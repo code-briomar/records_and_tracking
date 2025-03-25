@@ -1,5 +1,5 @@
-import { Accordion, AccordionItem, Avatar } from "@heroui/react";
-import { LayoutDashboard } from "lucide-react";
+import { Accordion, AccordionItem, Button } from "@heroui/react";
+import { File, FilePenLine, Link, UserRound } from "lucide-react";
 import { UserDropdown } from "../components/user_dropdown";
 const defaultContent =
   "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.";
@@ -47,7 +47,7 @@ const staffList = [
 
 const LeftPanel = () => {
   return (
-    <div className="border-r-2 border-gray-300 p-2 space-y-4">
+    <div className="border-r-small border-divider p-2 space-y-4">
       {/* USER SECTION */}
       <div>
         <UserDropdown />
@@ -61,15 +61,43 @@ const LeftPanel = () => {
             key="1"
             aria-label="Staff"
             title="Staff"
-            startContent={<LayoutDashboard className="w-4 h-4" />}
+            startContent={<UserRound className="w-4 h-4" />}
           >
-            {defaultContent}
+            <div className="flex space-x-1 items-center ">
+              <span className="text-sm">Monitor Staff</span>
+              <Button variant="faded" size="sm">
+                Get Started
+                <Link className="w-4 h-4" />
+              </Button>
+            </div>
           </AccordionItem>
-          <AccordionItem key="2" aria-label="Accordion 2" title="Accordion 2">
-            {defaultContent}
+          <AccordionItem
+            key="2"
+            aria-label="CTS"
+            title="CTS"
+            startContent={<FilePenLine />}
+          >
+            <div className="flex space-x-1 items-center ">
+              <span className="text-xs">Track case files</span>
+              <Button variant="faded" size="sm">
+                Get Started
+                <Link className="w-4 h-4" />
+              </Button>
+            </div>
           </AccordionItem>
-          <AccordionItem key="3" aria-label="Accordion 3" title="Accordion 3">
-            {defaultContent}
+          <AccordionItem
+            key="3"
+            aria-label="File"
+            title="File"
+            startContent={<File />}
+          >
+            <div className="flex space-x-1 items-center ">
+              <span className="text-xs">Monitor files</span>
+              <Button variant="faded" size="sm">
+                Get Started
+                <Link className="w-4 h-4" />
+              </Button>
+            </div>
           </AccordionItem>
         </Accordion>
       </div>
@@ -82,9 +110,7 @@ const LeftPanel = () => {
             <AccordionItem
               key={staff.id}
               aria-label={staff.name}
-              startContent={
-                <Avatar isBordered radius="lg" src={staff.avatar} />
-              }
+              startContent={<UserRound />}
               subtitle={staff.subtitle}
               title={staff.name}
             >

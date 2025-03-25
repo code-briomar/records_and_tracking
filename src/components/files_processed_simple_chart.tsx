@@ -58,7 +58,7 @@ export const FilesProcessedChart = () => {
   return (
     <div className="p-4 bg-background/60 dark:bg-default-100/50 w-3/4 h-1/2 cursor-pointer rounded-lg">
       <div className="flex space-x-1 items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-700" id="primary-color">
+        <h2 className="text-lg font-semibold" id="primary-color">
           Files Processed
         </h2>
       </div>

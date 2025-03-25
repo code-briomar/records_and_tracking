@@ -1,5 +1,5 @@
 import { BreadcrumbItem, Breadcrumbs } from "@heroui/react";
-import { Bell, RotateCcwIcon, Sun } from "lucide-react";
+import { Bell, Moon, RotateCcwIcon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CustomSearchBar } from "../components/search_bar";
 
@@ -18,7 +18,7 @@ const NavbarSection = () => {
     }
   }, [darkMode]);
   return (
-    <div className="border-b-2 border-gray-300 p-5 flex flex-row items-center justify-between">
+    <div className="border-b-small border-divider p-5 flex flex-row items-center justify-between">
       {/* Breadcrumb */}
       <div>
         <Breadcrumbs>
@@ -28,7 +28,16 @@ const NavbarSection = () => {
       </div>
       <div className="flex items-center space-x-2">
         <CustomSearchBar />
-        <Sun onClick={() => setDarkMode(!darkMode)} className="w-6 h-6" />
+        <div
+          onClick={() => setDarkMode(!darkMode)}
+          className="cursor-pointer w-6 h-6"
+        >
+          {darkMode ? (
+            <Moon className="w-6 h-6" />
+          ) : (
+            <Sun className="w-6 h-6" />
+          )}
+        </div>
         <RotateCcwIcon className="w-6 h-6" />
         <Bell className="w-6 h-6" />
       </div>

@@ -1,6 +1,12 @@
-import { Accordion, AccordionItem, Avatar } from "@heroui/react";
-const defaultContent =
-  "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.";
+import { Accordion, AccordionItem } from "@heroui/react";
+import { UserRound } from "lucide-react";
+const defaultContent = [
+  "New leave request submitted by Jane Doe.",
+  "System maintenance scheduled for 10 PM tonight.",
+  "Reminder: Staff meeting at 3 PM.",
+  "Policy update: Work-from-home guidelines revised.",
+  "You have 5 unread messages from HR.",
+];
 
 const RightPanel = () => {
   return (
@@ -12,46 +18,33 @@ const RightPanel = () => {
           <AccordionItem
             key="1"
             aria-label="Chung Miller"
-            startContent={
-              <Avatar
-                isBordered
-                color="primary"
-                radius="lg"
-                src="https://i.pravatar.cc/150?u=a042581f4e29026024d"
-              />
-            }
+            startContent={<UserRound className="w-4 h-4" />}
             subtitle="4 unread messages"
             title="Chung Miller"
           >
-            {defaultContent}
+            <ul className="list-disc list-inside text-gray-700 text-sm">
+              {defaultContent.map((notification, index) => (
+                <li key={index}>{notification}</li>
+              ))}
+            </ul>
           </AccordionItem>
           <AccordionItem
             key="2"
             aria-label="Janelle Lenard"
-            startContent={
-              <Avatar
-                isBordered
-                color="success"
-                radius="lg"
-                src="https://i.pravatar.cc/150?u=a042581f4e29026704d"
-              />
-            }
+            startContent={<UserRound className="w-4 h-4" />}
             subtitle="3 incompleted steps"
             title="Janelle Lenard"
           >
-            {defaultContent}
+            <ul className="list-disc list-inside text-gray-700 text-sm">
+              {defaultContent.map((notification, index) => (
+                <li key={index}>{notification}</li>
+              ))}
+            </ul>
           </AccordionItem>
           <AccordionItem
             key="3"
             aria-label="Zoey Lang"
-            startContent={
-              <Avatar
-                isBordered
-                color="warning"
-                radius="lg"
-                src="https://i.pravatar.cc/150?u=a04258114e29026702d"
-              />
-            }
+            startContent={<UserRound className="w-4 h-4" />}
             subtitle={
               <p className="flex">
                 2 issues to<span className="text-primary ml-1">fix now</span>
@@ -59,7 +52,11 @@ const RightPanel = () => {
             }
             title="Zoey Lang"
           >
-            {defaultContent}
+            <ul className="list-disc list-inside text-gray-700 text-sm">
+              {defaultContent.map((notification, index) => (
+                <li key={index}>{notification}</li>
+              ))}
+            </ul>
           </AccordionItem>
         </Accordion>
       </div>
@@ -70,18 +67,15 @@ const RightPanel = () => {
           <AccordionItem
             key="1"
             aria-label="Court Admin - Alex"
-            startContent={
-              <Avatar
-                isBordered
-                color="primary"
-                radius="lg"
-                src="https://i.pravatar.cc/150?u=a042581f4e29026024d"
-              />
-            }
+            startContent={<UserRound />}
             subtitle="4 unread messages"
             title="Court Admin - Alex"
           >
-            {defaultContent}
+            <ul className="list-disc list-inside text-gray-700 text-sm">
+              {defaultContent.map((notification, index) => (
+                <li key={index}>{notification}</li>
+              ))}
+            </ul>
           </AccordionItem>
         </Accordion>
       </div>

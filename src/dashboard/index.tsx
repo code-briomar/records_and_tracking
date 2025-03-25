@@ -17,7 +17,7 @@ export default function Dashboard() {
         <CardBody className="grid grid-cols-[1fr_3fr_1fr] h-dvh">
           {/* LEFT PANEL */}
           <LeftPanel />
-          <div className="border-r-2 border-gray-300">
+          <div className="border-r-small border-divider">
             {/* Navbar Section */}
             <NavbarSection />
 
