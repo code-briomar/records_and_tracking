@@ -1,28 +1,35 @@
 import { invoke } from "@tauri-apps/api/core";
 
-export const createUser = async (): Promise<void> => {
-    try {
-        const response = await invoke("create_user", {
-            name: "Briane",
-            role: "Staff",
-            email: "alice@example.com",
-            phoneNumber: "123456789",
-            passwordHash: "hashedpassword",
-        });
-        console.log(response);
-    } catch (error) {
-        console.error("Error:", error);
-    }
-} 
 
-export async function getUser(userId: number): Promise<void> {
+export const createUser = async (user: {
+    name: string;
+    role: "Super Admin" | "Court Admin" | "Staff";
+    email: string;
+    phoneNumber: string;
+    passwordHash: string;
+}): Promise<number> => { // ✅ Returns user_id
+    try {
+        const userId: number = await invoke("create_user", user);
+        console.log("User created successfully with ID:", userId);
+        return userId;
+    } catch (error) {
+        console.error("Error creating user:", error);
+        throw error;
+    }
+};
+
+
+
+export async function getUser(userId: number): Promise<any> {
     try {
         const user = await invoke("get_user", { userId });
-        console.log(user);
+        return user || {};  // Ensure it always returns an object
     } catch (error) {
         console.error("Error fetching user:", error);
+        return {}; // Return an empty object instead of undefined
     }
 }
+
 
 export async function updateUserStatus(userId: number, newStatus: string): Promise<string> {
     try {

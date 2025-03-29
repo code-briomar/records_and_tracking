@@ -9,16 +9,16 @@ import { invoke } from "@tauri-apps/api/core";
  * @returns A promise resolving to a success message.
  */
 export async function addStaff(
-    userId: number,
+    user_id: number,
     role: string,
     contactNumber?: string,
     status: "Active" | "Absent" = "Active"
-): Promise<string> {
+): Promise<Object> {
     try {
-        const response: string = await invoke("add_staff", {
-            user_id: userId,
-            role,
-            contact_number: contactNumber,
+        const response: Object = await invoke("create_staff", {
+            userId: user_id,
+            role: role,
+            contactNumber,
             status,
         });
         console.log("Staff Added:", response);
@@ -70,18 +70,13 @@ export async function getAllStaff(): Promise<any[]> {
  */
 export async function updateStaff(
     staffId: number,
-    role: string,
-    contactNumber?: string,
-    status: "Active" | "Absent" = "Active"
+    newStatus: "Active" | "Absent" = "Active"
 ): Promise<string> {
     try {
-        const response: string = await invoke("update_staff", {
-            staff_id: staffId,
-            role,
-            contact_number: contactNumber,
-            status,
+        const response: string = await invoke("update_staff_status", {
+            staffId,
+            newStatus,
         });
-        console.log("Staff Updated:", response);
         return response;
     } catch (error) {
         console.error("Error updating staff:", error);

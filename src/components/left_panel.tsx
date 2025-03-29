@@ -2,49 +2,9 @@ import { Accordion, AccordionItem, Button } from "@heroui/react";
 import { File, FilePenLine, Link, UserRound } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { UserDropdown } from "../components/user_dropdown";
+import { staff } from "./staff_data";
 const defaultContent =
   "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.";
-const staffList = [
-  {
-    id: 1,
-    name: "Chung Miller",
-    color: "primary",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d",
-    subtitle: "4 unread reasons",
-  },
-  {
-    id: 2,
-    name: "Janelle Lenard",
-    color: "success",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-    subtitle: "3 incomplete steps",
-  },
-  {
-    id: 3,
-    name: "Zoey Lang",
-    color: "warning",
-    avatar: "https://i.pravatar.cc/150?u=a04258114e29026702d",
-    subtitle: (
-      <p className="flex">
-        2 issues to <span className="text-primary ml-1">fix now</span>
-      </p>
-    ),
-  },
-  {
-    id: 4,
-    name: "Alex Johnson",
-    color: "danger",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026703d",
-    subtitle: "5 pending approvals",
-  },
-  {
-    id: 5, // This will trigger "See more"
-    name: "Michael Smith",
-    color: "secondary",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026705d",
-    subtitle: "1 urgent task",
-  },
-];
 
 const LeftPanel = () => {
   const navigate = useNavigate();
@@ -53,6 +13,8 @@ const LeftPanel = () => {
 
     navigate(path);
   };
+
+  const absentStaff = staff.filter((staff) => staff.status === "Absent");
 
   return (
     <div className="border-r-small border-divider p-2 space-y-4">
@@ -138,23 +100,29 @@ const LeftPanel = () => {
       {/* Absent Staff */}
       <div>
         <h1 className="m-2 text-rose-500">Absent Staff</h1>
-        <Accordion selectionMode="multiple">
-          {staffList.slice(0, 4).map((staff) => (
-            <AccordionItem
-              key={staff.id}
-              aria-label={staff.name}
-              startContent={<UserRound />}
-              subtitle={staff.subtitle}
-              title={staff.name}
-            >
-              {defaultContent}
-            </AccordionItem>
-          ))}
-        </Accordion>
-        {staffList.length > 4 && (
-          <div className="mt-2 text-blue-500 cursor-pointer hover:underline">
-            <a href="/all-notifications">See more</a>
-          </div>
+
+        {absentStaff.length > 0 ? (
+          <>
+            {absentStaff.slice(0, 4).map((staff) => (
+              <AccordionItem
+                key={staff.staff_id}
+                aria-label={staff.name}
+                startContent={<UserRound />}
+                subtitle={staff.contact_number}
+                title={staff.name}
+              >
+                {defaultContent}
+              </AccordionItem>
+            ))}
+
+            {absentStaff.length > 4 && (
+              <div className="mt-2 text-blue-500 cursor-pointer hover:underline">
+                <a href="/all-notifications">See more</a>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-green-600 font-semibold">✅ Everyone is present</p>
         )}
       </div>
     </div>

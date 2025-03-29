@@ -1,5 +1,3 @@
-import type { Selection } from "@heroui/react";
-
 import {
   Button,
   Dropdown,
@@ -7,12 +5,19 @@ import {
   DropdownMenu,
   DropdownTrigger,
 } from "@heroui/react";
+import { useField } from "formik";
 import { ChevronDown } from "lucide-react";
 import React from "react";
 
-export default function LeaveTypeDropdown() {
-  const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
-    new Set(["Type of Reason"])
+interface LeaveTypeDropdownProps {
+  name: string;
+}
+
+export default function LeaveTypeDropdown({ name }: LeaveTypeDropdownProps) {
+  const [field, , helpers] = useField(name); // Formik handles value & state updates
+
+  const selectedKeys = new Set(
+    field.value ? [field.value] : ["Type of Reason"]
   );
 
   const selectedValue = React.useMemo(
@@ -30,15 +35,18 @@ export default function LeaveTypeDropdown() {
       </DropdownTrigger>
       <DropdownMenu
         disallowEmptySelection
-        aria-label="Single selection example"
+        aria-label="Leave Type Selection"
         selectedKeys={selectedKeys}
         selectionMode="single"
         variant="flat"
-        onSelectionChange={setSelectedKeys}
+        onSelectionChange={(keys) => {
+          const selected = Array.from(keys)[0] || "";
+          helpers.setValue(selected); // Update Formik state
+        }}
       >
-        <DropdownItem key="text">Sick</DropdownItem>
-        <DropdownItem key="number">Personal</DropdownItem>
-        <DropdownItem key="date">Emergency</DropdownItem>
+        <DropdownItem key="sick">Sick</DropdownItem>
+        <DropdownItem key="personal">Personal</DropdownItem>
+        <DropdownItem key="emergency">Emergency</DropdownItem>
       </DropdownMenu>
     </Dropdown>
   );

@@ -19,6 +19,7 @@ import {
   User,
 } from "@heroui/react";
 import React, { SVGProps } from "react";
+import { Case } from "../services/cases";
 import caseFiles from "./case_files_data";
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
@@ -178,13 +179,14 @@ const INITIAL_VISIBLE_COLUMNS = [
   "actions",
 ];
 
-type CaseFiles = (typeof caseFiles)[0];
-
 export default function CaseFilters() {
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
+
+  console.log("Case Files:", caseFiles);
+
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
@@ -236,9 +238,9 @@ export default function CaseFilters() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: CaseFiles, b: CaseFiles) => {
-      const first = a[sortDescriptor.column as keyof CaseFiles];
-      const second = b[sortDescriptor.column as keyof CaseFiles];
+    return [...items].sort((a: Case, b: Case) => {
+      const first = a[sortDescriptor.column as keyof Case];
+      const second = b[sortDescriptor.column as keyof Case];
 
       let cmp = 0;
 
@@ -252,86 +254,80 @@ export default function CaseFilters() {
     });
   }, [sortDescriptor, items]);
 
-  const renderCell = React.useCallback(
-    (file: CaseFiles, columnKey: React.Key) => {
-      const cellValue = file[columnKey as keyof CaseFiles];
+  const renderCell = React.useCallback((file: Case, columnKey: React.Key) => {
+    const cellValue = file[columnKey as keyof Case];
 
-      switch (columnKey) {
-        case "case_id":
-          return <p className="text-bold text-small">{file.caseId}</p>;
+    switch (columnKey) {
+      case "case_id":
+        return <p className="text-bold text-small">{file?.case_id}</p>;
 
-        case "case_title":
-          return (
-            <div className="flex flex-col">
-              <p className="text-bold text-small">{cellValue}</p>
-              <p className="text-bold text-tiny text-default-500">
-                {file.category}
-              </p>
-            </div>
-          );
+      case "case_title":
+        return (
+          <div className="flex flex-col">
+            <p className="text-bold text-small">{cellValue}</p>
+          </div>
+        );
 
-        case "status":
-          return (
-            <Chip
-              className="capitalize border-none gap-1 text-default-600"
-              color={statusColorMap[file.status]}
-              size="sm"
-              variant="dot"
-            >
-              {cellValue}
-            </Chip>
-          );
+      case "status":
+        return (
+          <Chip
+            className="capitalize border-none gap-1 text-default-600"
+            color={statusColorMap[file.status]}
+            size="sm"
+            variant="dot"
+          >
+            {cellValue}
+          </Chip>
+        );
 
-        case "assigned_staff":
-          return (
-            <User
-              avatarProps={{ radius: "full", size: "sm", src: "" }}
-              classNames={{ description: "text-default-500" }}
-              description={`Last updated: ${file.lastUpdated}`}
-              name={cellValue}
-            />
-          );
+      case "assigned_staff":
+        return (
+          <User
+            avatarProps={{ radius: "full", size: "sm", src: "" }}
+            classNames={{ description: "text-default-500" }}
+            description={`Last updated: ${file.date_created}`}
+            name={cellValue}
+          />
+        );
 
-        case "priority":
-          return (
-            <Chip
-              className={`capitalize ${
-                file.priority === "High"
-                  ? "bg-red-500 text-white"
-                  : file.priority === "Medium"
-                  ? "bg-yellow-500 text-black"
-                  : "bg-green-500 text-white"
-              }`}
-              size="sm"
-            >
-              {cellValue}
-            </Chip>
-          );
+      case "priority":
+        return (
+          <Chip
+            className={`capitalize ${
+              file.priority === "High"
+                ? "bg-red-500 text-white"
+                : file.priority === "Medium"
+                ? "bg-yellow-500 text-black"
+                : "bg-green-500 text-white"
+            }`}
+            size="sm"
+          >
+            {cellValue}
+          </Chip>
+        );
 
-        case "actions":
-          return (
-            <div className="relative flex justify-end items-center gap-2">
-              <Dropdown className="bg-background border-1 border-default-200">
-                <DropdownTrigger>
-                  <Button isIconOnly radius="full" size="sm" variant="light">
-                    <VerticalDotsIcon className="text-default-400" />
-                  </Button>
-                </DropdownTrigger>
-                <DropdownMenu>
-                  <DropdownItem key="view">View</DropdownItem>
-                  <DropdownItem key="edit">Edit</DropdownItem>
-                  <DropdownItem key="delete">Delete</DropdownItem>
-                </DropdownMenu>
-              </Dropdown>
-            </div>
-          );
+      case "actions":
+        return (
+          <div className="relative flex justify-end items-center gap-2">
+            <Dropdown className="bg-background border-1 border-default-200">
+              <DropdownTrigger>
+                <Button isIconOnly radius="full" size="sm" variant="light">
+                  <VerticalDotsIcon className="text-default-400" />
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu>
+                <DropdownItem key="view">View</DropdownItem>
+                <DropdownItem key="edit">Edit</DropdownItem>
+                <DropdownItem key="delete">Delete</DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        );
 
-        default:
-          return cellValue;
-      }
-    },
-    []
-  );
+      default:
+        return cellValue;
+    }
+  }, []);
 
   const onRowsPerPageChange = React.useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -533,7 +529,7 @@ export default function CaseFilters() {
       </TableHeader>
       <TableBody emptyContent={"No users found"} items={sortedItems}>
         {(item) => (
-          <TableRow key={item.caseId}>
+          <TableRow key={item.case_id}>
             {(columnKey) => (
               <TableCell>{renderCell(item, columnKey)}</TableCell>
             )}

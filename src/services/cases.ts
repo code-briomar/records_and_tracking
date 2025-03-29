@@ -1,88 +1,92 @@
 import { invoke } from "@tauri-apps/api/core";
 
-/**
- * Add a new case record.
- * @param title - The title of the case.
- * @param status - The status of the case ("Open", "In Progress", or "Closed").
- * @param assignedStaffId - The staff ID assigned to the case (optional).
- * @param priority - The priority of the case ("Low", "Medium", or "High").
- * @returns A promise resolving to a success message.
- */
-export async function addCase(
-    title: string,
-    status: "Open" | "In Progress" | "Closed" = "Open",
-    assignedStaffId?: number,
-    priority: "Low" | "Medium" | "High" = "Medium"
-): Promise<string> {
-    try {
-        const response: string = await invoke("add_case", {
-            title,
-            status,
-            assigned_staff_id: assignedStaffId,
-            priority,
-        });
-        console.log("Case Added:", response);
-        return response;
-    } catch (error) {
-        console.error("Error adding case:", error);
-        throw error;
-    }
+// ✅ Case Type Definition
+export interface Case {
+    case_id: number;
+    title: string;
+    status: "Open" | "In Progress" | "Closed";
+    assigned_staff_id?: number | null;
+    priority: "Low" | "Medium" | "High";
+    date_created: string;
 }
 
-/**
- * Fetch all case records or filter by staff ID.
- * @param staffId - Optional staff ID to filter cases assigned to a specific staff member.
- * @returns A promise resolving to an array of case records.
- */
-export async function getCases(staffId?: number): Promise<any[]> {
+// ✅ Get All Cases
+export async function getAllCases(): Promise<Case[]> {
     try {
-        const response: any[] = await invoke("get_cases", { assigned_staff_id: staffId });
-        console.log("Fetched Cases:", response);
-        return response;
+        const cases: Case[] = await invoke("get_all_cases");
+        return cases;
     } catch (error) {
         console.error("Error fetching cases:", error);
         throw error;
     }
 }
 
-/**
- * Update the details of a case.
- * @param caseId - The ID of the case to update.
- * @param status - Updated status of the case ("Open", "In Progress", or "Closed").
- * @param assignedStaffId - Updated staff ID assigned to the case (optional).
- * @param priority - Updated priority of the case ("Low", "Medium", or "High").
- * @returns A promise resolving to a success message.
- */
-export async function updateCase(
-    caseId: number,
-    status: "Open" | "In Progress" | "Closed",
+// ✅ Create a Case
+export async function createCase(
+    title: string,
     assignedStaffId?: number,
     priority: "Low" | "Medium" | "High" = "Medium"
-): Promise<string> {
+): Promise<{ message: string; status: string; case_id: number }> {
     try {
-        const response: string = await invoke("update_case", {
-            case_id: caseId,
-            status,
+        const response: { message: string; status: string; case_id: number } = await invoke("create_case", {
+            title,
             assigned_staff_id: assignedStaffId,
             priority,
         });
-        console.log("Case Updated:", response);
+        console.log("Case created successfully:", response);
         return response;
     } catch (error) {
-        console.error("Error updating case:", error);
+        console.error("Error creating case:", error);
         throw error;
     }
 }
 
-/**
- * Delete a case by its ID.
- * @param caseId - The ID of the case to delete.
- * @returns A promise resolving to a success message.
- */
+// ✅ Get Case by ID
+export async function getCase(caseId: number): Promise<Case | null> {
+    try {
+        const caseData: Case | null = await invoke("get_case", { case_id: caseId });
+        return caseData;
+    } catch (error) {
+        console.error("Error fetching case:", error);
+        return null;
+    }
+}
+
+// ✅ Update Case Status
+export async function updateCaseStatus(caseId: number, newStatus: "Open" | "In Progress" | "Closed"): Promise<string> {
+    try {
+        const response: string = await invoke("update_case_status", {
+            case_id: caseId,
+            new_status: newStatus,
+        });
+        console.log("Case status updated:", response);
+        return response;
+    } catch (error) {
+        console.error("Error updating case status:", error);
+        throw error;
+    }
+}
+
+// ✅ Assign Staff to a Case
+export async function assignStaffToCase(caseId: number, staffId?: number | null): Promise<string> {
+    try {
+        const response: string = await invoke("assign_staff_to_case", {
+            case_id: caseId,
+            staff_id: staffId,
+        });
+        console.log("Staff assigned to case:", response);
+        return response;
+    } catch (error) {
+        console.error("Error assigning staff:", error);
+        throw error;
+    }
+}
+
+// ✅ Delete a Case
 export async function deleteCase(caseId: number): Promise<string> {
     try {
         const response: string = await invoke("delete_case", { case_id: caseId });
-        console.log("Case Deleted:", response);
+        console.log("Case deleted:", response);
         return response;
     } catch (error) {
         console.error("Error deleting case:", error);

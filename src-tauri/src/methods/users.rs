@@ -46,7 +46,7 @@ pub fn get_all_users(state: State<AppState>) -> Result<Vec<User>, String> {
     Ok(users)
 }
 
-// Create User
+// Create User & Return user_id
 #[tauri::command]
 pub fn create_user(
     state: State<AppState>,
@@ -55,13 +55,19 @@ pub fn create_user(
     email: String,
     phone_number: Option<String>,
     password_hash: String,
-) -> Result<String, String> {
+) -> Result<i64, String> {
+    // ✅ Now returns user_id
     let conn = state.conn.lock().unwrap();
+
     match conn.execute(
         "INSERT INTO users (name, role, email, phone_number, password_hash, status) VALUES (?1, ?2, ?3, ?4, ?5, 'Active')",
         params![name, role, email, phone_number, password_hash],
     ) {
-        Ok(_) => Ok("User created successfully".to_string()),
+        Ok(_) => {
+            // ✅ Get last inserted user_id
+            let user_id = conn.last_insert_rowid();
+            Ok(user_id) // ✅ Return user_id
+        }
         Err(e) => Err(format!("Failed to create user: {}", e)),
     }
 }

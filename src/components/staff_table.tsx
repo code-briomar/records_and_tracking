@@ -16,10 +16,12 @@ import {
   TableColumn,
   TableHeader,
   TableRow,
+  useDisclosure,
   User,
 } from "@heroui/react";
 import React, { SVGProps } from "react";
-import { users } from "./staff_data";
+import AddNewStaffMemberForm from "./add_new_staff_member_form";
+import { staff } from "./staff_data";
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
@@ -164,15 +166,18 @@ const statusColorMap: Record<string, ChipProps["color"]> = {
   vacation: "warning",
 };
 
-const INITIAL_VISIBLE_COLUMNS = ["name", "role", "status", "actions"];
+type Staff = (typeof staff)[0];
 
-type User = (typeof users)[0];
+const INITIAL_VISIBLE_COLUMNS = ["name", "role", "status", "actions"];
 
 export default function StaffTable() {
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
+
+  const { onOpen, isOpen, onOpenChange } = useDisclosure();
+
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
@@ -184,7 +189,7 @@ export default function StaffTable() {
   });
   const [page, setPage] = React.useState(1);
 
-  const pages = Math.ceil(users.length / rowsPerPage);
+  const pages = Math.ceil(staff.length / rowsPerPage);
 
   const hasSearchFilter = Boolean(filterValue);
 
@@ -197,10 +202,10 @@ export default function StaffTable() {
   }, [visibleColumns]);
 
   const filteredItems = React.useMemo(() => {
-    let filteredUsers = [...users];
+    let filteredStaff = [...staff];
 
     if (hasSearchFilter) {
-      filteredUsers = filteredUsers.filter((user) =>
+      filteredStaff = filteredStaff.filter((user) =>
         user.name.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
@@ -208,13 +213,13 @@ export default function StaffTable() {
       statusFilter !== "all" &&
       Array.from(statusFilter).length !== statusOptions.length
     ) {
-      filteredUsers = filteredUsers.filter((user) =>
+      filteredStaff = filteredStaff.filter((user) =>
         Array.from(statusFilter).includes(user.status)
       );
     }
 
-    return filteredUsers;
-  }, [users, filterValue, statusFilter]);
+    return filteredStaff;
+  }, [staff, filterValue, statusFilter]);
 
   const items = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -224,30 +229,30 @@ export default function StaffTable() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: User, b: User) => {
-      const first = a[sortDescriptor.column as keyof User] as number;
-      const second = b[sortDescriptor.column as keyof User] as number;
+    return [...items].sort((a: Staff, b: Staff) => {
+      const first = a[sortDescriptor.column as keyof Staff] as number;
+      const second = b[sortDescriptor.column as keyof Staff] as number;
       const cmp = first < second ? -1 : first > second ? 1 : 0;
 
       return sortDescriptor.direction === "descending" ? -cmp : cmp;
     });
   }, [sortDescriptor, items]);
 
-  const renderCell = React.useCallback((user: User, columnKey: React.Key) => {
-    const cellValue = user[columnKey as keyof User];
+  const renderCell = React.useCallback((staff: Staff, columnKey: React.Key) => {
+    const cellValue = staff[columnKey as keyof Staff];
 
     switch (columnKey) {
       case "name":
         return (
           <User
-            avatarProps={{ radius: "full", size: "sm", src: user.avatar }}
+            avatarProps={{ radius: "full", size: "sm", src: staff.avatar }}
             classNames={{
               description: "text-default-500",
             }}
-            description={user.email}
+            description={staff?.email}
             name={cellValue}
           >
-            {user.email}
+            {staff?.name}
           </User>
         );
       case "role":
@@ -255,7 +260,7 @@ export default function StaffTable() {
           <div className="flex flex-col">
             <p className="text-bold text-small capitalize">{cellValue}</p>
             <p className="text-bold text-tiny capitalize text-default-500">
-              {user.team}
+              {staff.contact_number}
             </p>
           </div>
         );
@@ -263,7 +268,7 @@ export default function StaffTable() {
         return (
           <Chip
             className="capitalize border-none gap-1 text-default-600"
-            color={statusColorMap[user.status]}
+            color={statusColorMap[staff.status]}
             size="sm"
             variant="dot"
           >
@@ -382,6 +387,7 @@ export default function StaffTable() {
               className="bg-foreground text-background"
               endContent={<PlusIcon />}
               size="sm"
+              onPress={onOpen}
             >
               Add New
             </Button>
@@ -389,7 +395,7 @@ export default function StaffTable() {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-default-400 text-small">
-            Total {users.length} users
+            Total {staff.length} users
           </span>
           <label className="flex items-center text-default-400 text-small">
             Rows per page:
@@ -413,7 +419,7 @@ export default function StaffTable() {
     visibleColumns,
     onSearchChange,
     onRowsPerPageChange,
-    users.length,
+    staff.length,
     hasSearchFilter,
   ]);
 
@@ -461,46 +467,55 @@ export default function StaffTable() {
   );
 
   return (
-    <Table
-      isCompact
-      removeWrapper
-      aria-label="Example table with custom cells, pagination and sorting"
-      bottomContent={bottomContent}
-      bottomContentPlacement="outside"
-      checkboxesProps={{
-        classNames: {
-          wrapper: "after:bg-foreground after:text-background text-background",
-        },
-      }}
-      classNames={classNames}
-      selectedKeys={selectedKeys}
-      selectionMode="multiple"
-      sortDescriptor={sortDescriptor}
-      topContent={topContent}
-      topContentPlacement="outside"
-      onSelectionChange={setSelectedKeys}
-      onSortChange={setSortDescriptor}
-    >
-      <TableHeader columns={headerColumns}>
-        {(column) => (
-          <TableColumn
-            key={column.uid}
-            align={column.uid === "actions" ? "center" : "start"}
-            allowsSorting={column.sortable}
-          >
-            {column.name}
-          </TableColumn>
-        )}
-      </TableHeader>
-      <TableBody emptyContent={"No users found"} items={sortedItems}>
-        {(item) => (
-          <TableRow key={item.id}>
-            {(columnKey) => (
-              <TableCell>{renderCell(item, columnKey)}</TableCell>
-            )}
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+    <>
+      <Table
+        isCompact
+        removeWrapper
+        aria-label="Example table with custom cells, pagination and sorting"
+        bottomContent={bottomContent}
+        bottomContentPlacement="outside"
+        checkboxesProps={{
+          classNames: {
+            wrapper:
+              "after:bg-foreground after:text-background text-background",
+          },
+        }}
+        classNames={classNames}
+        selectedKeys={selectedKeys}
+        selectionMode="multiple"
+        sortDescriptor={sortDescriptor}
+        topContent={topContent}
+        topContentPlacement="outside"
+        onSelectionChange={setSelectedKeys}
+        onSortChange={setSortDescriptor}
+      >
+        <TableHeader columns={headerColumns}>
+          {(column) => (
+            <TableColumn
+              key={column.uid}
+              align={column.uid === "actions" ? "center" : "start"}
+              allowsSorting={column.sortable}
+            >
+              {column.name}
+            </TableColumn>
+          )}
+        </TableHeader>
+        <TableBody emptyContent={"No users found"} items={sortedItems}>
+          {(staff) => (
+            <TableRow key={staff.staff_id}>
+              {(columnKey) => (
+                <TableCell>{renderCell(staff, columnKey)}</TableCell>
+              )}
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+
+      <AddNewStaffMemberForm
+        isOpen={isOpen}
+        onOpen={onOpen}
+        onOpenChange={onOpenChange}
+      />
+    </>
   );
 }
