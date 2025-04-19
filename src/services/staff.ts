@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { staff } from "../components/staff_data";
 
 /**
  * Add a new staff member.
@@ -21,7 +22,7 @@ export async function addStaff(
             contactNumber,
             status,
         });
-        console.log("Staff Added:", response);
+        staff.push(response);
         return response;
     } catch (error) {
         console.error("Error adding staff:", error);
@@ -71,7 +72,7 @@ export async function getAllStaff(): Promise<any[]> {
 export async function updateStaff(
     staffId: number,
     newStatus: "Active" | "Absent" = "Active"
-): Promise<string> {
+): Promise<any> {
     try {
         const response: string = await invoke("update_staff_status", {
             staffId,
@@ -89,9 +90,9 @@ export async function updateStaff(
  * @param staffId - The ID of the staff member to delete.
  * @returns A promise resolving to a success message.
  */
-export async function deleteStaff(staffId: number): Promise<string> {
+export async function deleteStaff(staffId: number): Promise<any> {
     try {
-        const response: string = await invoke("delete_staff", { staff_id: staffId });
+        const response: string = await invoke("delete_staff", { staffId });
         console.log("Staff Deleted:", response);
         return response;
     } catch (error) {

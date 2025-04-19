@@ -16,28 +16,33 @@ import {
   TableColumn,
   TableHeader,
   TableRow,
-  User,
+  useDisclosure,
 } from "@heroui/react";
 import React, { SVGProps } from "react";
 import { Case } from "../services/cases";
-import caseFiles from "./case_files_data";
+import AddNewCaseFileForm from "./add_new_case_file_form";
+import DeleteCaseFileModal from "./delete_case_file_form";
+import EditCaseFileForm from "./edit _case_file_form";
+import { fileSectionData as caseFiles } from "./files_data";
+import { staff } from "./staff_data";
+import ViewCaseFileModal from "./view_case_file_modal";
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
 };
 
 export const columns = [
-  { name: "CASE ID", uid: "case_id", sortable: true },
-  { name: "CASE TITLE", uid: "case_title", sortable: true },
-  { name: "STATUS", uid: "status", sortable: true },
-  { name: "DATE OPENED", uid: "date_opened", sortable: true },
-  { name: "LAST UPDATED", uid: "last_updated", sortable: true },
-  { name: "ASSIGNED STAFF", uid: "assigned_staff", sortable: true },
-  { name: "PRIORITY", uid: "priority", sortable: true },
-  { name: "CATEGORY", uid: "category" },
-  { name: "NEXT ACTION DUE", uid: "next_action_due", sortable: true },
-  { name: "ATTACHMENTS", uid: "attachments" },
-  { name: "COMMENTS", uid: "comments" },
+  { name: "CASE NUMBER", uid: "case_number", sortable: true },
+  { name: "PURPOSE", uid: "purpose", sortable: true },
+  { name: "STATUS", uid: "status", sortable: true }, // Assuming status is part of the case table
+  { name: "UPLOADED BY", uid: "uploaded_by", sortable: true },
+  { name: "CURRENT LOCATION", uid: "current_location", sortable: true },
+  { name: "NOTES", uid: "notes" },
+  { name: "DATE RECEIVED", uid: "date_recieved", sortable: true },
+  { name: "REQUIRED ON", uid: "required_on", sortable: true },
+  { name: "REQUIRED ON SIGNATURE", uid: "required_on_signature" },
+  { name: "DATE RETURNED", uid: "date_returned", sortable: true },
+  { name: "RETURNED SIGNATURE", uid: "date_returned_signature" },
   { name: "ACTIONS", uid: "actions" },
 ];
 
@@ -171,21 +176,41 @@ const statusColorMap: Record<string, ChipProps["color"]> = {
 };
 
 const INITIAL_VISIBLE_COLUMNS = [
-  "case_id",
-  "case_title",
-  "status",
-  "assigned_staff",
-  "priority",
+  "case_number",
+  "purpose",
+  "status", // Only include if it's part of your case/file schema
+  "uploaded_by",
+  "current_location",
+  "required_on",
   "actions",
 ];
 
 export default function CaseFilters() {
+  const [case_id, SetCaseID] = React.useState<number>(0);
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
 
-  console.log("Case Files:", caseFiles);
+  const { onOpen, isOpen, onOpenChange } = useDisclosure();
+
+  const {
+    onOpen: onOpenView,
+    isOpen: isOpenView,
+    onOpenChange: onOpenChangeView,
+  } = useDisclosure();
+
+  const {
+    onOpen: onOpenEdit,
+    isOpen: isOpenEdit,
+    onOpenChange: onOpenChangeEdit,
+  } = useDisclosure();
+
+  const {
+    onOpen: onOpenDelete,
+    isOpen: isOpenDelete,
+    onOpenChange: onOpenChangeDelete,
+  } = useDisclosure();
 
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
@@ -211,21 +236,21 @@ export default function CaseFilters() {
   }, [visibleColumns]);
 
   const filteredItems = React.useMemo(() => {
-    let filteredCaseFiles = [...caseFiles];
+    let filteredCaseFiles = [...caseFiles] as Case[];
 
-    if (hasSearchFilter) {
-      filteredCaseFiles = filteredCaseFiles.filter((file) =>
-        file.title.toLowerCase().includes(filterValue.toLowerCase())
-      );
-    }
-    if (
-      statusFilter !== "all" &&
-      Array.from(statusFilter).length !== statusOptions.length
-    ) {
-      filteredCaseFiles = filteredCaseFiles.filter((user) =>
-        Array.from(statusFilter).includes(user.status)
-      );
-    }
+    // if (hasSearchFilter) {
+    //   filteredCaseFiles = filteredCaseFiles.filter((file) =>
+    //     file.title.toLowerCase().includes(filterValue.toLowerCase())
+    //   );
+    // }
+    // if (
+    //   statusFilter !== "all" &&
+    //   Array.from(statusFilter).length !== statusOptions.length
+    // ) {
+    //   filteredCaseFiles = filteredCaseFiles.filter((user) =>
+    //     Array.from(statusFilter).includes(user.status)
+    //   );
+    // }
 
     return filteredCaseFiles;
   }, [caseFiles, filterValue, statusFilter]);
@@ -258,55 +283,100 @@ export default function CaseFilters() {
     const cellValue = file[columnKey as keyof Case];
 
     switch (columnKey) {
-      case "case_id":
-        return <p className="text-bold text-small">{file?.case_id}</p>;
+      case "case_number":
+        return <p className="text-bold text-small">{file?.case_number}</p>;
 
-      case "case_title":
-        return (
-          <div className="flex flex-col">
-            <p className="text-bold text-small">{cellValue}</p>
-          </div>
-        );
-
-      case "status":
+      case "purpose":
         return (
           <Chip
             className="capitalize border-none gap-1 text-default-600"
-            color={statusColorMap[file.status]}
+            color={
+              file.purpose === "Judgement"
+                ? "primary"
+                : file.purpose === "Ruling"
+                ? "success"
+                : "warning"
+            }
             size="sm"
             variant="dot"
           >
-            {cellValue}
+            {file.purpose}
           </Chip>
         );
 
-      case "assigned_staff":
+      // case "status": // Optional: Only include if your files actually have a status field
+      //   return (
+      //     <Chip
+      //       className="capitalize border-none gap-1 text-default-600"
+      //       color={statusColorMap[file.status]}
+      //       size="sm"
+      //       variant="dot"
+      //     >
+      //       {cellValue}
+      //     </Chip>
+      //   );
+
+      case "uploaded_by":
         return (
-          <User
-            avatarProps={{ radius: "full", size: "sm", src: "" }}
-            classNames={{ description: "text-default-500" }}
-            description={`Last updated: ${file.date_created}`}
-            name={cellValue}
-          />
+          <span>
+            {/* {users.find((u) => u.user_id === file.uploaded_by)?.name ||
+              `User #${file.uploaded_by}`} */}
+            {staff.find((u) => u.user_id === file.uploaded_by)?.name ||
+              `User #${file.uploaded_by}`}
+          </span>
         );
 
-      case "priority":
+      case "current_location":
+        return <span>{file.current_location}</span>;
+
+      case "notes":
+        return <span className="text-sm text-default-600">{file.notes}</span>;
+
+      case "date_recieved":
         return (
-          <Chip
-            className={`capitalize ${
-              file.priority === "High"
-                ? "bg-red-500 text-white"
-                : file.priority === "Medium"
-                ? "bg-yellow-500 text-black"
-                : "bg-green-500 text-white"
-            }`}
-            size="sm"
-          >
-            {cellValue}
-          </Chip>
+          <span className="text-xs font-semibold">
+            {new Date(file.date_recieved).toLocaleString("en-US")}
+          </span>
         );
+
+      case "required_on":
+        return (
+          <span className="text-xs font-semibold">
+            {new Date(file.required_on).toLocaleString("en-US")}
+          </span>
+        );
+
+      case "required_on_signature":
+        return <span>{file.required_on_signature}</span>;
+
+      case "date_returned":
+        return (
+          <span className="text-xs font-semibold">
+            {file.date_returned
+              ? new Date(file.date_returned).toLocaleString("en-US")
+              : "Pending"}
+          </span>
+        );
+
+      case "date_returned_signature":
+        return <span>{file.date_returned_signature || "—"}</span>;
 
       case "actions":
+        const launchViewModal = () => {
+          SetCaseID(file.file_id);
+          onOpenChangeView();
+        };
+
+        const launchEditModal = () => {
+          SetCaseID(file.file_id);
+          onOpenEdit();
+        };
+
+        const launchDeleteModal = () => {
+          SetCaseID(file.file_id);
+          onOpenDelete();
+        };
+
         return (
           <div className="relative flex justify-end items-center gap-2">
             <Dropdown className="bg-background border-1 border-default-200">
@@ -316,9 +386,15 @@ export default function CaseFilters() {
                 </Button>
               </DropdownTrigger>
               <DropdownMenu>
-                <DropdownItem key="view">View</DropdownItem>
-                <DropdownItem key="edit">Edit</DropdownItem>
-                <DropdownItem key="delete">Delete</DropdownItem>
+                <DropdownItem key="view" onPress={launchViewModal}>
+                  View
+                </DropdownItem>
+                <DropdownItem key="edit" onPress={launchEditModal}>
+                  Edit
+                </DropdownItem>
+                <DropdownItem key="delete" onPress={launchDeleteModal}>
+                  Delete
+                </DropdownItem>
               </DropdownMenu>
             </Dropdown>
           </div>
@@ -419,6 +495,7 @@ export default function CaseFilters() {
               className="bg-foreground text-background"
               endContent={<PlusIcon />}
               size="sm"
+              onPress={onOpen}
             >
               Add New
             </Button>
@@ -426,7 +503,7 @@ export default function CaseFilters() {
         </div>
         <div className="flex justify-between items-center">
           <span className="text-default-400 text-small">
-            Total {caseFiles.length} users
+            Total {caseFiles.length} case files
           </span>
           <label className="flex items-center text-default-400 text-small">
             Rows per page:
@@ -496,46 +573,74 @@ export default function CaseFilters() {
   );
 
   return (
-    <Table
-      isCompact
-      removeWrapper
-      aria-label="Example table with custom cells, pagination and sorting"
-      bottomContent={bottomContent}
-      bottomContentPlacement="outside"
-      checkboxesProps={{
-        classNames: {
-          wrapper: "after:bg-foreground after:text-background text-background",
-        },
-      }}
-      classNames={classNames}
-      selectedKeys={selectedKeys}
-      selectionMode="multiple"
-      sortDescriptor={sortDescriptor}
-      topContent={topContent}
-      topContentPlacement="outside"
-      onSelectionChange={setSelectedKeys}
-      onSortChange={setSortDescriptor}
-    >
-      <TableHeader columns={headerColumns}>
-        {(column) => (
-          <TableColumn
-            key={column.uid}
-            align={column.uid === "actions" ? "center" : "start"}
-            allowsSorting={column.sortable}
-          >
-            {column.name}
-          </TableColumn>
-        )}
-      </TableHeader>
-      <TableBody emptyContent={"No users found"} items={sortedItems}>
-        {(item) => (
-          <TableRow key={item.case_id}>
-            {(columnKey) => (
-              <TableCell>{renderCell(item, columnKey)}</TableCell>
-            )}
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+    <>
+      <Table
+        isCompact
+        removeWrapper
+        aria-label="Example table with custom cells, pagination and sorting"
+        bottomContent={bottomContent}
+        bottomContentPlacement="outside"
+        checkboxesProps={{
+          classNames: {
+            wrapper:
+              "after:bg-foreground after:text-background text-background",
+          },
+        }}
+        classNames={classNames}
+        selectedKeys={selectedKeys}
+        selectionMode="multiple"
+        sortDescriptor={sortDescriptor}
+        topContent={topContent}
+        topContentPlacement="outside"
+        onSelectionChange={setSelectedKeys}
+        onSortChange={setSortDescriptor}
+      >
+        <TableHeader columns={headerColumns}>
+          {(column) => (
+            <TableColumn
+              key={column.uid}
+              align={column.uid === "actions" ? "center" : "start"}
+              allowsSorting={column.sortable}
+            >
+              {column.name}
+            </TableColumn>
+          )}
+        </TableHeader>
+        <TableBody emptyContent={"No case files found"} items={sortedItems}>
+          {(item) => (
+            <TableRow key={Math.random()}>
+              {(columnKey) => (
+                <TableCell>{renderCell(item, columnKey)}</TableCell>
+              )}
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+
+      <ViewCaseFileModal
+        case_id={case_id}
+        isOpen={isOpenView}
+        onOpenChange={onOpenChangeView}
+      />
+
+      <AddNewCaseFileForm
+        isOpen={isOpen}
+        onOpen={onOpen}
+        onOpenChange={onOpenChange}
+      />
+
+      <EditCaseFileForm
+        case_id={case_id}
+        isOpen={isOpenEdit}
+        onOpenChange={onOpenChangeEdit}
+        onOpen={onOpen}
+      />
+
+      <DeleteCaseFileModal
+        case_id={case_id}
+        isOpen={isOpenDelete}
+        onOpenChange={onOpenChangeDelete}
+      />
+    </>
   );
 }

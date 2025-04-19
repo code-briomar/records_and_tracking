@@ -47,9 +47,9 @@ export async function updateUserStatus(userId: number, newStatus: string): Promi
  * @param userId - The ID of the user to delete.
  * @returns A promise resolving to a success message or an error.
  */
-export async function deleteUser(userId: number): Promise<string> {
+export async function deleteUser(userId: number): Promise<any> {
     try {
-        const response: string = await invoke("delete_user", { user_id: userId });
+        const response: string = await invoke("delete_user", { userId });
         console.log("User Deleted:", response);
         return response;
     } catch (error) {

@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+    @apply bg-background/60 dark:bg-default-100/50 bg-[url('/light-bg.png')] dark:bg-[url('/dark-bg.jpeg')];
+    background-size: cover;
+    background-position: center;
+}

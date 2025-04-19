@@ -1,12 +1,23 @@
 import { Accordion, AccordionItem, Button } from "@heroui/react";
-import { File, FilePenLine, Link, UserRound } from "lucide-react";
+import {
+  Brain,
+  ChevronRight,
+  Cog,
+  FilePenLine,
+  Gauge,
+  Link,
+  Logs,
+  MessageCircleMore,
+  UserRound,
+  Wrench,
+} from "lucide-react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserDropdown } from "../components/user_dropdown";
-import { staff } from "./staff_data";
-const defaultContent =
-  "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.";
+import { fetchStaffData, staff } from "./staff_data";
 
 const LeftPanel = () => {
+  const [absentStaff, setAbsentStaff] = React.useState<any>([]);
   const navigate = useNavigate();
   const redirect = (path: string) => {
     console.log(path);
@@ -14,10 +25,28 @@ const LeftPanel = () => {
     navigate(path);
   };
 
-  const absentStaff = staff.filter((staff) => staff.status === "Absent");
+  useEffect(() => {
+    const fetchAbsentStaff = async () => {
+      try {
+        // Simulate fetching staff data
+        const response = staff.filter((staff) => staff.status == "Absent");
+        setAbsentStaff(response);
+      } catch (error) {
+        console.error("Error fetching staff data:", error);
+      }
+    };
+
+    fetchStaffData(); // Fetch all staff data on mount
+
+    fetchAbsentStaff();
+  }, [staff]); // Empty dependency array to run only once on mount
+
+  // const absentStaff = staff.filter((staff) => staff.status == "Absent");
+
+  console.log("Absent Staff: ", absentStaff);
 
   return (
-    <div className="border-r-small border-divider p-2 space-y-4">
+    <div className="border-r-small border-divider p-2 space-y-8">
       {/* USER SECTION */}
       <div>
         <UserDropdown />
@@ -25,21 +54,23 @@ const LeftPanel = () => {
 
       {/* Menu */}
       <div>
-        <h1 className="m-2 text-gray-500 ">Dashbaord</h1>
         <Accordion variant="shadow">
+          {/*Dashboard*/}
           <AccordionItem
             key="1"
             aria-label="Dashboard"
             title="Dashboard"
-            startContent={<UserRound className="w-4 h-4" />}
+            startContent={<Gauge className="w-4 h-4" />}
           >
             <div className="flex space-x-1 items-center ">
               <Button variant="faded" size="sm" onPress={() => redirect("/")}>
                 Proceed
-                <Link className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           </AccordionItem>
+
+          {/*Staff*/}
           <AccordionItem
             key="2"
             aria-label="Staff"
@@ -54,10 +85,13 @@ const LeftPanel = () => {
                 onPress={() => redirect("/staff")}
               >
                 Get Started
-                <Link className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           </AccordionItem>
+
+          {/* CTS*/}
+          {/*TODO::Include In Future Release*/}
           <AccordionItem
             key="3"
             aria-label="CTS"
@@ -72,11 +106,13 @@ const LeftPanel = () => {
                 onPress={() => redirect("/cts")}
               >
                 Get Started
-                <Link className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           </AccordionItem>
-          <AccordionItem
+
+          {/*Files*/}
+          {/* <AccordionItem
             key="4"
             aria-label="Files"
             title="Files"
@@ -88,6 +124,105 @@ const LeftPanel = () => {
                 variant="faded"
                 size="sm"
                 onPress={() => redirect("/files")}
+              >
+                Get Started
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </AccordionItem> */}
+
+          {/*Audit Logs*/}
+          <AccordionItem
+            key="5"
+            aria-label="Audit-Logs"
+            title="Audit Logs"
+            startContent={<Logs />}
+          >
+            <div className="flex flex-col space-y-1 items-start ">
+              <span className="text-xs">Look at what's been happening</span>
+              <Button
+                variant="faded"
+                size="sm"
+                onPress={() => redirect("/audit_logs")}
+              >
+                Proceed
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </AccordionItem>
+
+          {/*Messaging*/}
+          <AccordionItem
+            key="6"
+            aria-label="Messaging"
+            title="Messaging"
+            startContent={<MessageCircleMore className={"text-green-500"} />}
+          >
+            <div className="flex flex-col space-y-1 items-start ">
+              <span className="text-xs">Contact other users directly</span>
+              <Button
+                variant="faded"
+                size="sm"
+                onPress={() => redirect("/messaging")}
+              >
+                Get Started
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </AccordionItem>
+
+          {/*AI Insights.....Don't Say It's AI*/}
+          <AccordionItem
+            key="7"
+            aria-label="AI"
+            title="Insights"
+            startContent={<Brain />}
+          >
+            <div className="flex space-x-1 items-center ">
+              <span className="text-xs">View deep insights</span>
+              <Button
+                variant="faded"
+                size="sm"
+                onPress={() => redirect("/messaging")}
+              >
+                Get Started
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </AccordionItem>
+
+          {/*Tools - Such as Scanned PDF to Word*/}
+          <AccordionItem
+            key="8"
+            aria-label="Tools"
+            title="Tools"
+            startContent={<Wrench />}
+          >
+            <div className="flex space-x-1 items-center ">
+              <span className="text-xs">Access Tools Here</span>
+              <Button
+                variant="faded"
+                size="sm"
+                onPress={() => redirect("/messaging")}
+              >
+                Get Started
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </AccordionItem>
+
+          <AccordionItem
+            key="9"
+            aria-label="Settings"
+            title="Settings"
+            startContent={<Cog className={"text-gray-600"} />}
+          >
+            <div className="flex space-x-1 items-center ">
+              <span className="text-xs">Settings</span>
+              <Button
+                variant="faded"
+                size="sm"
+                onPress={() => redirect("/customize")}
               >
                 Get Started
                 <Link className="w-4 h-4" />
@@ -103,16 +238,26 @@ const LeftPanel = () => {
 
         {absentStaff.length > 0 ? (
           <>
-            {absentStaff.slice(0, 4).map((staff) => (
-              <AccordionItem
+            {absentStaff.map((staff: any) => (
+              // <AccordionItem
+              //   key={staff.staff_id}
+              //   aria-label={staff.name}
+              //   startContent={<UserRound />}
+              //   subtitle={staff.contact_number}
+              //   title={staff.name}
+              // >
+              //   {defaultContent}
+              // </AccordionItem>
+              <div
                 key={staff.staff_id}
-                aria-label={staff.name}
-                startContent={<UserRound />}
-                subtitle={staff.contact_number}
-                title={staff.name}
+                className="flex items-center justify-between p-2 border-b border-gray-200"
               >
-                {defaultContent}
-              </AccordionItem>
+                <div className="flex items-center space-x-2">
+                  <UserRound className="w-4 h-4" />
+                  <div className="text-sm font-semibold">{staff.name}</div>
+                </div>
+                {/* <div className="text-xs text-gray-500">{staff.status}</div> */}
+              </div>
             ))}
 
             {absentStaff.length > 4 && (

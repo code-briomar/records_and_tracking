@@ -7,11 +7,11 @@ import RightPanel from "../components/right_panel";
 import { SummaryCards } from "../components/summary_cards";
 
 export default function Dashboard() {
+  const breadcrumbs = ["Super-Admin","Dashboaord"];
   return (
     <>
       <Card
-        isBlurred
-        className="rounded-none h-full w-full border-none bg-background/60 dark:bg-default-100/50"
+        className="rounded-none h-full w-full border-none bg-background/60 dark:bg-default-100/50 bg-[url('public/light-bg.png')]  dark:bg-[url('public/dark-bg.png')] bg-no-repeat bg-cover"
         shadow="sm"
       >
         <CardBody className="grid grid-cols-[1fr_3fr_1fr] h-dvh">
@@ -19,7 +19,7 @@ export default function Dashboard() {
           <LeftPanel />
           <div className="border-r-small border-divider">
             {/* Navbar Section */}
-            <NavbarSection />
+            <NavbarSection breadcrumbs={breadcrumbs} />
 
             {/* Today's Summaries Section */}
             <div className="p-5">

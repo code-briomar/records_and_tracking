@@ -56,7 +56,7 @@ export default function NotificationsSection() {
             <div className="flex flex-col">
               <p className="text-bold text-sm capitalize">{cellValue}</p>
               <p className="text-bold text-sm capitalize text-default-400">
-                {notification.type}
+                {notification.notification_id}
               </p>
             </div>
           );
@@ -64,7 +64,7 @@ export default function NotificationsSection() {
           return (
             <Chip
               className="capitalize"
-              color={statusColorMap[notification.read.toString()]}
+              color={statusColorMap[notification.read_status.toString()]}
               size="sm"
               variant="flat"
             >
@@ -77,7 +77,7 @@ export default function NotificationsSection() {
             <div className="flex flex-col">
               <p className="text-bold text-sm capitalize">{cellValue}</p>
               <p className="text-bold text-sm capitalize text-default-400">
-                {notification.date}
+                {notification.date_created}
               </p>
             </div>
           );
@@ -139,7 +139,7 @@ export default function NotificationsSection() {
         </TableHeader>
         <TableBody items={notifications}>
           {(item) => (
-            <TableRow key={item.id}>
+            <TableRow key={item.notification_id}>
               {(columnKey) => (
                 <TableCell>{renderCell(item, columnKey)}</TableCell>
               )}
@@ -150,8 +150,8 @@ export default function NotificationsSection() {
 
       {/* Custom Modal Placement */}
       <CustomModal
+          onOpen={onOpen}
         isOpen={isOpen}
-        onOpen={onOpen}
         onOpenChange={onOpenChange}
       />
     </>

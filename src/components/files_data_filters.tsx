@@ -16,23 +16,30 @@ import {
   TableColumn,
   TableHeader,
   TableRow,
+  useDisclosure,
   User,
 } from "@heroui/react";
 import React, { SVGProps } from "react";
-import fileSectionData from "./files_data";
+import { File } from "../services/files";
+import AddNewFileForm from "./add_new_file_form";
+import DeleteFileModal from "./delete_file_form";
+import EditFileModal from "./edit _file_form";
+import { fileSectionData } from "./files_data";
+import ViewFileModal from "./view_file_modal";
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
 };
 
 export const columns = [
-  { name: "File ID", uid: "fileId", sortable: true },
-  { name: "CASE TITLE", uid: "case_title", sortable: true },
   { name: "File Name", uid: "fileName", sortable: true },
-  { name: "Uploaded By", uid: "uploadedBy", sortable: true },
+  { name: "Status", uid: "status", sortable: true },
   { name: "Date Uploaded", uid: "dateUploaded", sortable: true },
-  { name: "File Type", uid: "fileType", sortable: true },
-  { name: "File Size", uid: "size", sortable: true },
+  { name: "Uploaded By", uid: "uploadedBy", sortable: true },
+  { name: "Start Date", uid: "startDate", sortable: true },
+  { name: "Needed By", uid: "neededByDate", sortable: true },
+  { name: "Closed Date", uid: "closedDate", sortable: true },
+  { name: "Current Location", uid: "currentLocation", sortable: true },
   { name: "ACTIONS", uid: "actions" },
 ];
 
@@ -166,22 +173,42 @@ const statusColorMap: Record<string, ChipProps["color"]> = {
 };
 
 const INITIAL_VISIBLE_COLUMNS = [
-  "fileId",
-  // "case_title",
   "fileName",
+  "status",
   "uploadedBy",
   "dateUploaded",
-  "size",
-  "actions",
+  "currentLocation",
 ];
 
-type Files = (typeof fileSectionData)[0];
+// type File = (typeof fileSectionData)[0];
 
 export default function FileFilters() {
+  const [file_id, setFileId] = React.useState<number>(0);
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
+
+  const { onOpen, isOpen, onOpenChange } = useDisclosure();
+
+  const {
+    onOpen: onOpenView,
+    isOpen: isOpenView,
+    onOpenChange: onOpenChangeView,
+  } = useDisclosure();
+
+  const {
+    onOpen: onOpenEdit,
+    isOpen: isOpenEdit,
+    onOpenChange: onOpenChangeEdit,
+  } = useDisclosure();
+
+  const {
+    onOpen: onOpenDelete,
+    isOpen: isOpenDelete,
+    onOpenChange: onOpenChangeDelete,
+  } = useDisclosure();
+
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
@@ -210,7 +237,7 @@ export default function FileFilters() {
 
     if (hasSearchFilter) {
       filteredFiles = filteredFiles.filter((file) =>
-        file.fileName.toLowerCase().includes(filterValue.toLowerCase())
+        file.file_name.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
     if (
@@ -218,7 +245,7 @@ export default function FileFilters() {
       Array.from(statusFilter).length !== statusOptions.length
     ) {
       filteredFiles = filteredFiles.filter((user) =>
-        Array.from(statusFilter).includes(user.fileName)
+        Array.from(statusFilter).includes(user.file_name)
       );
     }
 
@@ -233,9 +260,9 @@ export default function FileFilters() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: Files, b: Files) => {
-      const first = a[sortDescriptor.column as keyof Files];
-      const second = b[sortDescriptor.column as keyof Files];
+    return [...items].sort((a: File, b: File) => {
+      const first = a[sortDescriptor.column as keyof File];
+      const second = b[sortDescriptor.column as keyof File];
 
       let cmp = 0;
 
@@ -249,39 +276,29 @@ export default function FileFilters() {
     });
   }, [sortDescriptor, items]);
 
-  const renderCell = React.useCallback((file: Files, columnKey: React.Key) => {
-    const cellValue = file[columnKey as keyof Files];
+  const renderCell = React.useCallback((file: File, columnKey: React.Key) => {
+    const cellValue = file[columnKey as keyof File];
 
     switch (columnKey) {
-      case "fileId":
-        return <p className="text-bold text-small">{file.fileId}</p>;
-
-      case "case_title":
-        return (
-          <div className="flex flex-col">
-            <p className="text-bold text-small">{cellValue}</p>
-            <p className="text-bold text-tiny text-default-500">
-              {file.caseTitle}
-            </p>
-          </div>
-        );
-
       case "fileName":
         return (
           <div className="flex flex-col">
             <p className="text-bold text-small">{cellValue}</p>
             <p className="text-bold text-tiny text-default-500">
-              {file.fileName}
+              {file.file_name}
             </p>
           </div>
         );
+
+      case "status":
+        return <p className="text-bold text-small">{file.file_id}</p>;
 
       case "uploadedBy":
         return (
           <User
             avatarProps={{ radius: "full", size: "sm", src: "" }}
             classNames={{ description: "text-default-500" }}
-            description={`Last updated: ${file.uploadedBy}`}
+            description={`Last updated: ${file.uploaded_by}`}
             name={cellValue}
           />
         );
@@ -291,24 +308,67 @@ export default function FileFilters() {
           <User
             avatarProps={{ radius: "full", size: "sm", src: "" }}
             classNames={{ description: "text-default-500" }}
-            description={`Last updated: ${file.dateUploaded}`}
+            description={`Last updated: ${file.date_uploaded}`}
             name={cellValue}
           />
         );
 
-      case "size":
+      case "startDate":
         return (
-          <Chip
-            className="capitalize border-none gap-1 text-default-600"
-            color={statusColorMap[file.size]}
-            size="sm"
-            variant="dot"
-          >
-            {cellValue}
-          </Chip>
+            <div className="flex flex-col">
+              <p className="text-bold text-small">{cellValue}</p>
+              <p className="text-bold text-tiny text-default-500">
+                {file.start_date}
+              </p>
+            </div>
+        );
+
+      case "neededByDate":
+        return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">{cellValue}</p>
+              <p className="text-bold text-tiny text-default-500">
+                {file.needed_by_date}
+              </p>
+            </div>
+        );
+
+      case "closedDate":
+        return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">{cellValue}</p>
+              <p className="text-bold text-tiny text-default-500">
+                {file.closed_date}
+              </p>
+            </div>
+        );
+
+      case "currentLocation":
+        return (
+            <div className="flex flex-col">
+              <p className="text-bold text-small">{cellValue}</p>
+              <p className="text-bold text-tiny text-default-500">
+                {file.current_location}
+              </p>
+            </div>
         );
 
       case "actions":
+        const launchViewModal = () => {
+          setFileId(file.file_id);
+          onOpenChangeView();
+        };
+
+        const launchEditModal = () => {
+          setFileId(file.file_id);
+          onOpenChangeEdit();
+        };
+
+        const launchDeleteModal = () => {
+          setFileId(file.file_id);
+          onOpenChangeDelete();
+        };
+
         return (
           <div className="relative flex justify-end items-center gap-2">
             <Dropdown className="bg-background border-1 border-default-200">
@@ -318,9 +378,15 @@ export default function FileFilters() {
                 </Button>
               </DropdownTrigger>
               <DropdownMenu>
-                <DropdownItem key="view">View</DropdownItem>
-                <DropdownItem key="edit">Edit</DropdownItem>
-                <DropdownItem key="delete">Delete</DropdownItem>
+                <DropdownItem key="view" onPress={() => launchViewModal()}>
+                  View
+                </DropdownItem>
+                <DropdownItem key="edit" onPress={() => launchEditModal()}>
+                  Edit
+                </DropdownItem>
+                <DropdownItem key="delete" onPress={() => launchDeleteModal()}>
+                  Delete
+                </DropdownItem>
               </DropdownMenu>
             </Dropdown>
           </div>
@@ -421,6 +487,7 @@ export default function FileFilters() {
               className="bg-foreground text-background"
               endContent={<PlusIcon />}
               size="sm"
+              onPress={onOpen}
             >
               Add New
             </Button>
@@ -500,46 +567,69 @@ export default function FileFilters() {
   );
 
   return (
-    <Table
-      isCompact
-      removeWrapper
-      aria-label="Example table with custom cells, pagination and sorting"
-      bottomContent={bottomContent}
-      bottomContentPlacement="outside"
-      checkboxesProps={{
-        classNames: {
-          wrapper: "after:bg-foreground after:text-background text-background",
-        },
-      }}
-      classNames={classNames}
-      selectedKeys={selectedKeys}
-      selectionMode="multiple"
-      sortDescriptor={sortDescriptor}
-      topContent={topContent}
-      topContentPlacement="outside"
-      onSelectionChange={setSelectedKeys}
-      onSortChange={setSortDescriptor}
-    >
-      <TableHeader columns={headerColumns}>
-        {(column) => (
-          <TableColumn
-            key={column.uid}
-            align={column.uid === "actions" ? "center" : "start"}
-            allowsSorting={column.sortable}
-          >
-            {column.name}
-          </TableColumn>
-        )}
-      </TableHeader>
-      <TableBody emptyContent={"No users found"} items={sortedItems}>
-        {(item) => (
-          <TableRow key={item.fileId}>
-            {(columnKey) => (
-              <TableCell>{renderCell(item, columnKey)}</TableCell>
-            )}
-          </TableRow>
-        )}
-      </TableBody>
-    </Table>
+    <>
+      <Table
+        isCompact
+        removeWrapper
+        aria-label="Example table with custom cells, pagination and sorting"
+        bottomContent={bottomContent}
+        bottomContentPlacement="outside"
+        checkboxesProps={{
+          classNames: {
+            wrapper:
+              "after:bg-foreground after:text-background text-background",
+          },
+        }}
+        classNames={classNames}
+        selectedKeys={selectedKeys}
+        selectionMode="multiple"
+        sortDescriptor={sortDescriptor}
+        topContent={topContent}
+        topContentPlacement="outside"
+        onSelectionChange={setSelectedKeys}
+        onSortChange={setSortDescriptor}
+      >
+        <TableHeader columns={headerColumns}>
+          {(column) => (
+            <TableColumn
+              key={column.uid}
+              align={column.uid === "actions" ? "center" : "start"}
+              allowsSorting={column.sortable}
+            >
+              {column.name}
+            </TableColumn>
+          )}
+        </TableHeader>
+        <TableBody emptyContent={"No users found"} items={sortedItems}>
+          {(item) => (
+            <TableRow key={item.file_id}>
+              {(columnKey) => (
+                <TableCell>{renderCell(item, columnKey)}</TableCell>
+              )}
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+
+      <AddNewFileForm isOpen={isOpen} onOpenChange={onOpenChange} />
+
+      <ViewFileModal
+        file_id={file_id}
+        isOpen={isOpenView}
+        onOpenChange={onOpenChangeView}
+      />
+
+      <EditFileModal
+        file_id={file_id}
+        isOpen={isOpenEdit}
+        onOpenChange={onOpenChangeEdit}
+      />
+
+      <DeleteFileModal
+        file_id={file_id}
+        isOpen={isOpenDelete}
+        onOpenChange={onOpenChangeDelete}
+      />
+    </>
   );
 }

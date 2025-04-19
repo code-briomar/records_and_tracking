@@ -1,6 +1,7 @@
 import { addToast, Button, Input } from "@heroui/react";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import * as Yup from "yup";
+import { createNotification } from "../services/notifications";
 import { addStaff } from "../services/staff";
 import { createUser } from "../services/users";
 import CustomModal from "./modal";
@@ -9,8 +10,9 @@ import { fetchStaffData } from "./staff_data";
 // Validation Schema
 const staffSchema = Yup.object().shape({
   name: Yup.string().required("Full name is required"),
-  email: Yup.string().email("Invalid email").required("Email is required"),
+  email: Yup.string().email("Invalid email"),
   phone: Yup.string()
+    .required("Phone number is required")
     .matches(/^\d+$/, "Phone number must be digits")
     .required("Phone number is required"),
   role: Yup.string().required("Role is required"),
@@ -26,10 +28,10 @@ export default function AddNewStaffMemberForm({
   onOpen: () => void; // ✅ Now a function, correctly typed
 }) {
   const handleSubmit = async (values: any, { resetForm }: any) => {
+    let userId;
     try {
       console.log("Submitting new staff:", values);
 
-      let userId;
       try {
         userId = await createUser({
           name: values.name,
@@ -86,6 +88,21 @@ export default function AddNewStaffMemberForm({
         await fetchStaffData();
       } catch (error) {
         console.error("Error refreshing staff data:", error);
+      }
+
+      console.log("User ID:", userId);
+
+      // Create a new notification
+      let notification = createNotification(
+        `New staff member added: ${values.name}`,
+        "Info",
+        userId
+      );
+
+      if (!notification) {
+        console.error("Failed to create notification.");
+      } else {
+        console.log("Notification created:", notification);
       }
 
       resetForm();

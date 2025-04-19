@@ -15,8 +15,8 @@ export async function createNotification(
     try {
         const response: string = await invoke("create_notification", {
             message,
-            type,
-            user_id: userId,
+            notificationType: type,
+            userId,
         });
         console.log("Notification Created:", response);
         return response;
@@ -33,7 +33,7 @@ export async function createNotification(
  */
 export async function getNotifications(userId?: number): Promise<any[]> {
     try {
-        const response: any[] = await invoke("get_notifications", { user_id: userId });
+        const response: any[] = await invoke("get_all_notifications", { user_id: userId });
         console.log("Fetched Notifications:", response);
         return response;
     } catch (error) {
@@ -50,7 +50,7 @@ export async function getNotifications(userId?: number): Promise<any[]> {
 export async function markNotificationAsRead(notificationId: number): Promise<string> {
     try {
         const response: string = await invoke("mark_notification_as_read", {
-            notification_id: notificationId,
+            notificationId,
         });
         console.log("Notification Marked as Read:", response);
         return response;
@@ -67,7 +67,7 @@ export async function markNotificationAsRead(notificationId: number): Promise<st
  */
 export async function deleteNotification(notificationId: number): Promise<string> {
     try {
-        const response: string = await invoke("delete_notification", { notification_id: notificationId });
+        const response: string = await invoke("delete_notification", { notificationId });
         console.log("Notification Deleted:", response);
         return response;
     } catch (error) {

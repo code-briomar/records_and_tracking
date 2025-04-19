@@ -19,20 +19,23 @@ import {
   useDisclosure,
   User,
 } from "@heroui/react";
-import React, { SVGProps } from "react";
+import React, { SVGProps, useEffect } from "react";
 import AddNewStaffMemberForm from "./add_new_staff_member_form";
-import { staff } from "./staff_data";
+import DeleteStaffMemberModal from "./delete_staff_member_modal";
+import EditStaffMemberForm from "./edit_staff_member_form";
+import { staff as staffData } from "./staff_data";
+import StaffViewModal from "./staff_view_modal";
 
 export type IconSvgProps = SVGProps<SVGSVGElement> & {
   size?: number;
 };
 
 export const columns = [
-  { name: "ID", uid: "id", sortable: true },
+  // { name: "ID", uid: "id", sortable: true },
   { name: "NAME", uid: "name", sortable: true },
-  { name: "AGE", uid: "age", sortable: true },
+  // { name: "AGE", uid: "age", sortable: true },
   { name: "ROLE", uid: "role", sortable: true },
-  { name: "TEAM", uid: "team" },
+  // { name: "TEAM", uid: "team" },
   { name: "EMAIL", uid: "email" },
   { name: "STATUS", uid: "status", sortable: true },
   { name: "ACTIONS", uid: "actions" },
@@ -161,22 +164,47 @@ export const ChevronDownIcon = ({
 };
 
 const statusColorMap: Record<string, ChipProps["color"]> = {
-  active: "success",
-  paused: "danger",
-  vacation: "warning",
+  Active: "success",
+  Absent: "danger",
 };
 
-type Staff = (typeof staff)[0];
+type Staff = (typeof staffData)[0];
 
 const INITIAL_VISIBLE_COLUMNS = ["name", "role", "status", "actions"];
 
 export default function StaffTable() {
+  const [view_staff_id, setViewStaffID] = React.useState<number | null>(null);
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
 
-  const { onOpen, isOpen, onOpenChange } = useDisclosure();
+  const [staff, setStaff] = React.useState<Staff[]>(staffData);
+
+  useEffect(() => {
+    setStaff(staffData);
+
+    console.log("Staff Data:", staffData);
+  }, [staffData]);
+
+  const { onOpen, isOpen, onOpenChange } = useDisclosure(); // Modal : AddNewStaffMemberForm
+  const {
+    onOpen: onOpenView,
+    isOpen: isOpenView,
+    onOpenChange: onOpenChangeView,
+  } = useDisclosure(); // Modal : ViewModal
+
+  const {
+    onOpen: onOpenEdit,
+    isOpen: isOpenEdit,
+    onOpenChange: onOpenChangeEdit,
+  } = useDisclosure(); // Modal : EditStaffMemberForm
+
+  const {
+    onOpen: onOpenDelete,
+    isOpen: isOpenDelete,
+    onOpenChange: onOpenChangeDelete,
+  } = useDisclosure(); // Modal : DeleteStaffMemberModal
 
   const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
@@ -270,12 +298,24 @@ export default function StaffTable() {
             className="capitalize border-none gap-1 text-default-600"
             color={statusColorMap[staff.status]}
             size="sm"
-            variant="dot"
+            variant="flat"
           >
-            {cellValue}
+            {staff.status}
           </Chip>
         );
       case "actions":
+        const getStaffID = () => {
+          setViewStaffID(staff.staff_id);
+          onOpenView();
+        };
+        const launchEditForm = () => {
+          setViewStaffID(staff.staff_id);
+          onOpenEdit();
+        };
+        const launchDeleteDialog = () => {
+          setViewStaffID(staff.staff_id);
+          onOpenDelete();
+        };
         return (
           <div className="relative flex justify-end items-center gap-2">
             <Dropdown className="bg-background border-1 border-default-200">
@@ -285,9 +325,15 @@ export default function StaffTable() {
                 </Button>
               </DropdownTrigger>
               <DropdownMenu>
-                <DropdownItem key="view">View</DropdownItem>
-                <DropdownItem key="edit">Edit</DropdownItem>
-                <DropdownItem key="delete">Delete</DropdownItem>
+                <DropdownItem key="view" onPress={getStaffID}>
+                  View
+                </DropdownItem>
+                <DropdownItem key="edit" onPress={launchEditForm}>
+                  Edit
+                </DropdownItem>
+                <DropdownItem key="delete" onPress={launchDeleteDialog}>
+                  Delete
+                </DropdownItem>
               </DropdownMenu>
             </Dropdown>
           </div>
@@ -515,6 +561,22 @@ export default function StaffTable() {
         isOpen={isOpen}
         onOpen={onOpen}
         onOpenChange={onOpenChange}
+      />
+      <StaffViewModal
+        staff_id={view_staff_id || 0}
+        isOpen={isOpenView}
+        onOpenChange={onOpenChangeView}
+      />
+      <EditStaffMemberForm
+        staff_id={view_staff_id || 0}
+        isOpen={isOpenEdit}
+        onOpen={onOpenEdit}
+        onOpenChange={onOpenChangeEdit}
+      />
+      <DeleteStaffMemberModal
+        staff_id={view_staff_id || 0}
+        isOpen={isOpenDelete}
+        onOpenChange={onOpenChangeDelete}
       />
     </>
   );

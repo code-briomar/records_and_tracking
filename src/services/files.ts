@@ -1,30 +1,48 @@
 import { invoke } from "@tauri-apps/api/core";
 
-/**
- * Upload a new file record.
- * @param fileName - Name of the file.
- * @param uploadedBy - ID of the user who uploaded the file.
- * @param fileSize - Size of the file.
- * @param caseId - Optional case ID to which the file belongs.
- * @param version - Version of the file (default is "1.0").
- * @returns A promise resolving to a success message.
- */
-export async function uploadFile(
-    fileName: string,
-    uploadedBy: number,
-    fileSize: string,
-    caseId?: number,
-    version: string = "1.0"
-): Promise<string> {
+// ✅ File Type Definition
+export interface File {
+    file_id: number;
+    case_number: string;
+    purpose: string;
+    uploaded_by: number;
+    current_location: string;
+    notes: string;
+    date_recieved: string;
+    required_on: string;
+    required_on_signature: string;
+    date_returned: string | null;
+    date_returned_signature: string | null;
+    deleted: number;
+}
+
+// ✅ Get All Files
+export async function getAllFiles(): Promise<File[]> {
     try {
-        const response: string = await invoke("upload_file", {
-            file_name: fileName,
-            uploaded_by: uploadedBy,
-            file_size: fileSize,
-            case_id: caseId,
-            version,
+        const files: File[] = await invoke("get_all_files");
+        console.log("Files", files);
+        return files;
+    } catch (error) {
+        console.error("Error fetching files:", error);
+        throw error;
+    }
+}
+
+// ✅ Upload a File
+export async function uploadFile(
+    file: Omit<File, 'file_id'> // We don’t need `file_id` for upload as it’s auto-generated
+): Promise<{ message: string; status: string; file_id: number }> {
+    try {
+        const response: { message: string; status: string; file_id: number } = await invoke("add_new_file", {
+            case_number: file.case_number,
+            purpose: file.purpose,
+            uploaded_by: file.uploaded_by,
+            current_location: file.current_location,
+            notes: file.notes,
+            required_on: file.required_on,
+            required_on_signature: file.required_on_signature,
         });
-        console.log("File Uploaded:", response);
+        console.log("File uploaded successfully:", response);
         return response;
     } catch (error) {
         console.error("Error uploading file:", error);
@@ -32,63 +50,92 @@ export async function uploadFile(
     }
 }
 
-/**
- * Fetch all file records or filter by case ID.
- * @param caseId - Optional case ID to filter files related to a specific case.
- * @returns A promise resolving to an array of file records.
- */
-export async function getFiles(caseId?: number): Promise<any[]> {
+// ✅ Get File by ID
+export async function getFile(fileId: number): Promise<File | null> {
     try {
-        const response: any[] = await invoke("get_files", { case_id: caseId });
-        console.log("Fetched Files:", response);
-        return response;
+        const fileData: File | null = await invoke("get_file_by_id", { file_id: fileId });
+        return fileData;
     } catch (error) {
-        console.error("Error fetching files:", error);
-        throw error;
+        console.error("Error fetching file:", error);
+        return null;
     }
 }
 
-/**
- * Update the details of a file record.
- * @param fileId - The ID of the file to update.
- * @param fileName - Updated name of the file.
- * @param caseId - Updated case ID (optional).
- * @param version - Updated version of the file.
- * @returns A promise resolving to a success message.
- */
-export async function updateFile(
-    fileId: number,
-    fileName: string,
-    caseId?: number,
-    version: string = "1.0"
-): Promise<string> {
+// ✅ Update File Date
+export async function updateFileDate(fileId: number, dateType: string, newDate: string): Promise<string> {
     try {
-        const response: string = await invoke("update_file", {
+        const response: string = await invoke("update_file_date", {
             file_id: fileId,
-            file_name: fileName,
-            case_id: caseId,
-            version,
+            date_type: dateType,
+            new_date: newDate,
         });
-        console.log("File Updated:", response);
+        console.log("File date updated:", response);
         return response;
     } catch (error) {
-        console.error("Error updating file:", error);
+        console.error("Error updating file date:", error);
         throw error;
     }
 }
 
-/**
- * Delete a file by its ID.
- * @param fileId - The ID of the file to delete.
- * @returns A promise resolving to a success message.
- */
+// ✅ Update File Notes
+export async function updateFileNotes(fileId: number, newNotes: string): Promise<string> {
+    try {
+        const response: string = await invoke("update_file_notes", {
+            file_id: fileId,
+            new_notes: newNotes,
+        });
+        console.log("File notes updated:", response);
+        return response;
+    } catch (error) {
+        console.error("Error updating file notes:", error);
+        throw error;
+    }
+}
+
+// ✅ Delete a File (Soft Delete)
 export async function deleteFile(fileId: number): Promise<string> {
     try {
         const response: string = await invoke("delete_file", { file_id: fileId });
-        console.log("File Deleted:", response);
+        console.log("File deleted:", response);
         return response;
     } catch (error) {
         console.error("Error deleting file:", error);
+        throw error;
+    }
+}
+
+// ✅ Search Files By Case Number
+export async function searchFilesByCaseNumber(caseNumber: string): Promise<File[]> {
+    try {
+        const files: File[] = await invoke("search_files_by_case_number", { case_number: caseNumber });
+        console.log("Files found by case number:", files);
+        return files;
+    } catch (error) {
+        console.error("Error searching files by case number:", error);
+        throw error;
+    }
+}
+
+// ✅ Search Files By User
+export async function filterFilesByUser(userId: number): Promise<File[]> {
+    try {
+        const files: File[] = await invoke("filter_files_by_user", { user_id: userId });
+        console.log("Files found by user:", files);
+        return files;
+    } catch (error) {
+        console.error("Error searching files by user:", error);
+        throw error;
+    }
+}
+
+// ✅ Search Files By Purpose
+export async function getFilesByPurpose(purpose: string): Promise<File[]> {
+    try {
+        const files: File[] = await invoke("get_files_by_purpose", { purpose });
+        console.log("Files found by purpose:", files);
+        return files;
+    } catch (error) {
+        console.error("Error searching files by purpose:", error);
         throw error;
     }
 }

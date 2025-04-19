@@ -14,7 +14,7 @@ export const fetchStaffData = async () => {
               const userDetails = await getUser(staffMember.user_id);
               
               // Ensure userDetails is an object before merging
-              return { ...staffMember, ...(userDetails || {}),avatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d" };
+              return {...(userDetails || {}), ...staffMember ,avatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d" };
           })
       );
 

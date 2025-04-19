@@ -7,6 +7,8 @@ use std::sync::{Arc, Mutex};
 mod methods;
 use methods::attendance::*;
 use methods::cases::*;
+use methods::files::*;
+use methods::notifications::*;
 use methods::staff::*;
 use methods::users::*;
 
@@ -66,7 +68,17 @@ pub fn run() {
             get_case,
             update_case_status,
             assign_staff_to_case,
-            delete_case
+            delete_case,
+            get_all_files,
+            add_new_file,
+            update_file_date,
+            get_file_by_id,
+            delete_file,
+            create_notification,
+            get_all_notifications,
+            get_notification,
+            mark_notification_as_read,
+            delete_notification,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");
