@@ -5,7 +5,8 @@ import NavbarSection from "../components/navbar";
 import RightPanel from "../components/right_panel";
 
 export default function CTS() {
-  const breadcrumbs = ["Super-Admin","CTS"];
+  const breadcrumbs = ["Super-Admin", "CTS"];
+
   return (
     <>
       <Card

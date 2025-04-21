@@ -11,7 +11,7 @@ import { Pen } from "lucide-react";
 import { useEffect, useState } from "react";
 import * as Yup from "yup";
 import { updateFile } from "../services/files";
-import { fileSectionData as caseFiles } from "./files_data";
+import { useFileStore } from "../store/useFileStore";
 import CustomModal from "./modal";
 
 // Validation Schema
@@ -40,6 +40,8 @@ export default function EditCaseFileForm({
     priority: "",
   });
 
+  const { files: caseFiles, fetchFiles, loading } = useFileStore();
+
   useEffect(() => {
     const fetchCaseFile = async () => {
       try {
@@ -58,7 +60,17 @@ export default function EditCaseFileForm({
     };
 
     fetchCaseFile();
-  }, [file_id]);
+  }, [file_id, caseFiles]);
+
+  useEffect(() => {
+    fetchFiles(); // Fetch files when the component mounts
+    if (!caseFiles.length) return;
+
+    const response = caseFiles.find((c) => c.file_id === file_id);
+    if (response) {
+      setCaseFile(response);
+    }
+  }, [file_id, caseFiles]);
 
   const handleSubmit = async (values: any, { resetForm }: any) => {
     try {
@@ -92,6 +104,7 @@ export default function EditCaseFileForm({
         color: "success",
       });
 
+      fetchFiles(); // Fetch updated files list
       resetForm();
       onOpenChange(false);
     } catch (error) {

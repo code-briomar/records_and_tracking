@@ -20,7 +20,6 @@ export interface File {
 export async function getAllFiles(): Promise<File[]> {
     try {
         const files: File[] = await invoke("get_all_files");
-        console.log("Files", files);
         return files;
     } catch (error) {
         console.error("Error fetching files:", error);

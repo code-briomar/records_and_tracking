@@ -236,7 +236,7 @@ export default function CaseFilters() {
   }, [visibleColumns]);
 
   const filteredItems = React.useMemo(() => {
-    let filteredCaseFiles = [...caseFiles] as Case[];
+    let filteredCaseFiles = [...caseFiles] as File[];
 
     // if (hasSearchFilter) {
     //   filteredCaseFiles = filteredCaseFiles.filter((file) =>
