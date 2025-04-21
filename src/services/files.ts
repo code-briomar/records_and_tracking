@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 // ✅ File Type Definition
 export interface File {
     file_id: number;
-    case_number: string;
+    caseNumber: string;
     purpose: string;
     uploaded_by: number;
     current_location: string;
@@ -29,18 +29,17 @@ export async function getAllFiles(): Promise<File[]> {
 }
 
 // ✅ Upload a File
-export async function uploadFile(
+export async function addNewFile(
     file: Omit<File, 'file_id'> // We don’t need `file_id` for upload as it’s auto-generated
 ): Promise<{ message: string; status: string; file_id: number }> {
     try {
         const response: { message: string; status: string; file_id: number } = await invoke("add_new_file", {
-            case_number: file.case_number,
+            caseNumber: file.caseNumber,
             purpose: file.purpose,
-            uploaded_by: file.uploaded_by,
-            current_location: file.current_location,
+            uploadedBy: file.uploaded_by,
+            currentLocation: file.current_location,
             notes: file.notes,
-            required_on: file.required_on,
-            required_on_signature: file.required_on_signature,
+            requiredOn: file.required_on,
         });
         console.log("File uploaded successfully:", response);
         return response;
@@ -49,6 +48,36 @@ export async function uploadFile(
         throw error;
     }
 }
+
+// ✅ Update a File
+export async function updateFile(
+    file: {
+      file_id: number;
+      case_number: string;
+      purpose: string;
+      current_location: string;
+      notes: string;
+      required_on: string;
+    }
+  ): Promise<{ message: string; status: string; file_id: number }> {
+    try {
+      const response: { message: string; status: string; file_id: number } = await invoke("update_file", {
+        fileId: file.file_id,
+        caseNumber: file.case_number,
+        purpose: file.purpose,
+        currentLocation: file.current_location,
+        notes: file.notes,
+        requiredOn: file.required_on,
+      });
+  
+      console.log("File updated successfully:", response);
+      return response;
+    } catch (error) {
+      console.error("Error updating file:", error);
+      throw error;
+    }
+  }
+  
 
 // ✅ Get File by ID
 export async function getFile(fileId: number): Promise<File | null> {

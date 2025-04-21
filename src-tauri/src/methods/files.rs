@@ -6,20 +6,20 @@ use tauri::State;
 
 use crate::AppState; // Import AppState
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct File {
     pub file_id: i32,
-    pub case_number: String,
-    pub purpose: String,
-    pub uploaded_by: i32,
-    pub current_location: String,
-    pub notes: String,
-    pub date_recieved: String,
-    pub required_on: String,
-    pub required_on_signature: String,
+    pub case_number: Option<String>,
+    pub purpose: Option<String>,
+    pub uploaded_by: Option<i32>,
+    pub current_location: Option<String>,
+    pub notes: Option<String>,
+    pub date_recieved: Option<String>,
+    pub required_on: Option<String>,
+    pub required_on_signature: Option<String>,
     pub date_returned: Option<String>,
     pub date_returned_signature: Option<String>,
-    pub deleted: i32,
+    pub deleted: Option<bool>,
 }
 
 //  Get All Files
@@ -36,7 +36,7 @@ pub fn get_all_files(state: State<AppState>) -> Result<Vec<File>, String> {
 
     let file_iter = stmt
         .query_map([], |row| {
-            Ok(File {
+            let file_result = File {
                 file_id: row.get(0)?,
                 case_number: row.get(1)?,
                 purpose: row.get(2)?,
@@ -49,11 +49,20 @@ pub fn get_all_files(state: State<AppState>) -> Result<Vec<File>, String> {
                 date_returned: row.get(9)?,
                 date_returned_signature: row.get(10)?,
                 deleted: row.get(11)?,
-            })
+            };
+            Ok(file_result)
         })
         .map_err(|e| format!("Failed to fetch files: {}", e))?;
 
-    Ok(file_iter.filter_map(Result::ok).collect())
+    let mut files = Vec::new();
+    for file in file_iter {
+        match file {
+            Ok(f) => files.push(f),
+            Err(e) => eprintln!("Failed to parse row: {:?}", e), // Log the exact error
+        }
+    }
+
+    Ok(files)
 }
 
 //  Add a new File Record
@@ -66,23 +75,21 @@ pub fn add_new_file(
     current_location: String,
     notes: String,
     required_on: String,
-    required_on_signature: String,
 ) -> Result<serde_json::Value, String> {
     let conn = state.conn.lock().unwrap();
 
     match conn.execute(
         "INSERT INTO files (
             case_number, purpose, uploaded_by, current_location, notes,
-            required_on, required_on_signature
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            required_on 
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
         params![
             case_number,
             purpose,
             uploaded_by,
             current_location,
             notes,
-            required_on,
-            required_on_signature
+            required_on
         ],
     ) {
         Ok(_) => {
@@ -149,6 +156,51 @@ pub fn update_file_date(
     match conn.execute(&query, params![new_date, file_id]) {
         Ok(_) => Ok("Updated successfully".to_string()),
         Err(e) => Err(format!("Failed to update : {}", e)),
+    }
+}
+
+// Update file
+#[tauri::command]
+pub fn update_file(
+    state: State<AppState>,
+    file_id: i64,
+    case_number: String,
+    purpose: String,
+    current_location: String,
+    notes: String,
+    required_on: String,
+) -> Result<serde_json::Value, String> {
+    let conn = state.conn.lock().unwrap();
+
+    match conn.execute(
+        "UPDATE files 
+         SET case_number = ?1,
+             purpose = ?2,
+             current_location = ?3,
+             notes = ?4,
+             required_on = ?5
+         WHERE file_id = ?6",
+        params![
+            case_number,
+            purpose,
+            current_location,
+            notes,
+            required_on,
+            file_id
+        ],
+    ) {
+        Ok(rows_updated) => {
+            if rows_updated == 0 {
+                Err("No file found with the provided ID.".into())
+            } else {
+                Ok(json!({
+                    "message": "File updated successfully",
+                    "status": "success",
+                    "file_id": file_id
+                }))
+            }
+        }
+        Err(e) => Err(format!("Failed to update file: {}", e)),
     }
 }
 

@@ -1,10 +1,17 @@
-import { addToast, Button, Input } from "@heroui/react";
+import {
+  addToast,
+  Button,
+  Input,
+  Select,
+  SelectItem,
+  Textarea,
+} from "@heroui/react";
 import { ErrorMessage, Field, Form, Formik } from "formik";
+import { Pen } from "lucide-react";
 import { useEffect, useState } from "react";
 import * as Yup from "yup";
-import { updateCaseStatus } from "../services/cases";
-import { createNotification } from "../services/notifications";
-import { caseFiles } from "./case_files_data";
+import { updateFile } from "../services/files";
+import { fileSectionData as caseFiles } from "./files_data";
 import CustomModal from "./modal";
 
 // Validation Schema
@@ -16,12 +23,12 @@ const caseFileSchema = Yup.object().shape({
 });
 
 export default function EditCaseFileForm({
-  case_id,
+  file_id,
   isOpen,
   onOpenChange,
   onOpen,
 }: {
-  case_id: number;
+  file_id: number;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onOpen: () => void; // ✅ Now a function, correctly typed
@@ -36,15 +43,9 @@ export default function EditCaseFileForm({
   useEffect(() => {
     const fetchCaseFile = async () => {
       try {
-        let response = caseFiles.find((c) => c.case_id === case_id);
+        let response = caseFiles.find((c) => c.file_id === file_id);
         if (response) {
-          setCaseFile((prev: any) => ({
-            ...prev,
-            case_title: response.title,
-            status: response.status,
-            assigned_staff: response.assigned_staff_id,
-            priority: response.priority,
-          }));
+          setCaseFile(response);
         }
       } catch (error) {
         console.error("Error fetching case file:", error);
@@ -57,53 +58,50 @@ export default function EditCaseFileForm({
     };
 
     fetchCaseFile();
-
-    console.log("Case File Data:", caseFile);
-  }, [case_id]);
+  }, [file_id]);
 
   const handleSubmit = async (values: any, { resetForm }: any) => {
-    // Ensure assigned_staff is a number or null
-    //   const assignedStaff = values.assigned_staff
-    //     ? parseInt(values.assigned_staff, 10)
-    //     : undefined;
+    try {
+      console.log("Updating file values:", values);
 
-    console.log("Updating old values to:", values);
+      const payload = {
+        file_id: caseFile.file_id, // assuming caseFile contains this
+        case_number: values.case_number,
+        purpose: values.purpose,
+        current_location: values.current_location,
+        notes: values.notes,
+        required_on: values.required_on,
+      };
 
-    // Update Case Status
-    const response: any = await updateCaseStatus(case_id, values.status);
+      const response = await updateFile(payload);
 
-    if (!response || response.error) {
+      if (!response || response.status !== "success") {
+        addToast({
+          title: "Error",
+          description: "Failed to update file.",
+          color: "danger",
+        });
+        return;
+      }
+
+      console.log("File updated successfully:", response);
+
+      addToast({
+        title: "Success",
+        description: "File updated successfully.",
+        color: "success",
+      });
+
+      resetForm();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error during file update:", error);
       addToast({
         title: "Error",
-        description: "Failed to update case status.",
+        description: "Something went wrong while updating.",
         color: "danger",
       });
-      throw new Error(response?.error || "Failed to update case.");
     }
-
-    console.log("Case Status Updated Successfully:", response);
-
-    addToast({
-      title: "Success",
-      description: "Case status updated successfully.",
-      color: "success",
-    });
-
-    // Create a new notification
-    let notification = createNotification(
-      `Case '${values.case_title}' status updated to '${values.status}'.`,
-      "Success",
-      undefined
-    );
-
-    if (!notification) {
-      console.error("Failed to create notification.");
-    } else {
-      console.log("Notification created:", notification);
-    }
-
-    resetForm();
-    onOpenChange(false);
   };
 
   return (
@@ -111,79 +109,134 @@ export default function EditCaseFileForm({
       <CustomModal
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-        title={"Edit Case File No. " + case_id}
+        title={"Edit Case File No: " + caseFile.case_number}
       >
         <Formik
           initialValues={{
-            case_title: caseFile.case_title,
-            status: caseFile.status,
-            assigned_staff: caseFile.assigned_staff,
-            priority: caseFile.priority,
+            case_number: caseFile.case_number || "",
+            purpose: caseFile.purpose || "",
+            uploaded_by: caseFile.uploaded_by || "",
+            current_location: caseFile.current_location || "",
+            notes: caseFile.notes || "",
+            date_recieved: caseFile.date_recieved || "",
+            required_on: caseFile.required_on || "",
+            date_returned: caseFile.date_returned || "",
           }}
-          validationSchema={caseFileSchema}
+          validationSchema={Yup.object().shape({
+            case_number: Yup.string().required("Case number is required"),
+            purpose: Yup.string().required("Purpose is required"),
+            current_location: Yup.string().required(
+              "Current location is required"
+            ),
+            notes: Yup.string().required("Notes are required"),
+            required_on: Yup.date()
+              .required("Required date is required")
+              .nullable(),
+          })}
           onSubmit={handleSubmit}
         >
-          {({ errors, touched, isValid, dirty }) => (
+          {({ errors, touched, isValid, dirty, setFieldValue }) => (
             <Form className="flex flex-col gap-4">
+              {/* Case Number */}
               <div>
-                <Field as={Input} label="Case Title" name="case_title" />
+                <Field
+                  as={Input}
+                  label="Case Number"
+                  name="case_number"
+                  variant="bordered"
+                  endContent={<Pen className="text-gray-500 m-2" />}
+                />
                 <ErrorMessage
-                  name="case_title"
+                  name="case_number"
                   component="p"
                   className="text-red-500 text-sm"
                 />
               </div>
 
+              {/* Purpose */}
               <div>
-                <Field
-                  as={Input}
-                  label="Status"
-                  name="status"
-                  placeholder="Enter status (e.g., Open)"
-                  color={errors.status && touched.status ? "danger" : "default"}
-                />
+                <Field name="purpose">
+                  {({ field, form }: any) => (
+                    <Select
+                      label="Purpose"
+                      placeholder="Select a purpose"
+                      selectedKeys={[field.value]}
+                      onSelectionChange={(keys) =>
+                        form.setFieldValue(field.name, Array.from(keys)[0])
+                      }
+                      variant="bordered"
+                    >
+                      <SelectItem key="Ruling">Ruling</SelectItem>
+                      <SelectItem key="Judgement">Judgement</SelectItem>
+                      <SelectItem key="Other">Other</SelectItem>
+                    </Select>
+                  )}
+                </Field>
                 <ErrorMessage
-                  name="status"
+                  name="purpose"
                   component="p"
                   className="text-red-500 text-sm"
                 />
               </div>
 
+              {/* Current Location */}
               <div>
                 <Field
                   as={Input}
-                  label="Assigned Staff"
-                  name="assigned_staff"
-                  color={
-                    errors.assigned_staff && touched.assigned_staff
-                      ? "danger"
-                      : "default"
-                  }
-                  placeholder="Enter assigned staff ID"
+                  label="Current Location"
+                  name="current_location"
+                  variant="bordered"
                 />
                 <ErrorMessage
-                  name="assigned_staff"
+                  name="current_location"
                   component="p"
                   className="text-red-500 text-sm"
                 />
               </div>
 
+              {/* Notes */}
               <div>
                 <Field
-                  as={Input}
-                  label="Priority"
-                  name="priority"
-                  placeholder="Enter priority (e.g., High)"
-                  color={
-                    errors.priority && touched.priority ? "danger" : "default"
-                  }
+                  as={Textarea}
+                  label="Notes"
+                  name="notes"
+                  placeholder="Add relevant notes"
+                  variant="bordered"
                 />
                 <ErrorMessage
-                  name="priority"
+                  name="notes"
                   component="p"
                   className="text-red-500 text-sm"
                 />
               </div>
+
+              {/* Required On */}
+              <div>
+                <Field
+                  as={Input}
+                  type="datetime-local"
+                  label="Required On"
+                  name="required_on"
+                  variant="bordered"
+                />
+                <ErrorMessage
+                  name="required_on"
+                  component="p"
+                  className="text-red-500 text-sm"
+                />
+              </div>
+
+              {/* Errors */}
+              {Object.keys(errors).length > 0 && (
+                <div className="text-red-500 text-sm">
+                  <p>Please fix the following errors:</p>
+                  <ul>
+                    {Object.values(errors).map((error: any, index: number) => (
+                      <li key={index}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Buttons */}
               <div className="flex justify-end gap-2 mt-4">

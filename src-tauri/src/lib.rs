@@ -71,6 +71,7 @@ pub fn run() {
             delete_case,
             get_all_files,
             add_new_file,
+            update_file,
             update_file_date,
             get_file_by_id,
             delete_file,

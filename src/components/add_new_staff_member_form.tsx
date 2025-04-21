@@ -83,6 +83,7 @@ export default function AddNewStaffMemberForm({
         description:
           (response as any).message || "Staff member added successfully!",
         color: "success",
+        shouldShowTimeoutProgress: true,
       });
       try {
         await fetchStaffData();

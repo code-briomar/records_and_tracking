@@ -1,9 +1,6 @@
-import { addToast, Button, Input } from "@heroui/react";
+import { Button, Input } from "@heroui/react";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import * as Yup from "yup";
-import { uploadFile } from "../services/files"; // ✅ Import file upload service
-import { createNotification } from "../services/notifications";
-import { fetchFileData } from "./files_data";
 import CustomModal from "./modal";
 
 // ✅ Validation Schema for File Upload
@@ -24,62 +21,65 @@ export default function AddNewFileForm({
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  // const handleSubmit = async (values: any, { resetForm }: any) => {
+  //   try {
+  //     console.log("Uploading file:", values);
+
+  //     // Upload file to backend
+  //     const response = await addNewFile(
+  //       values.file_name,
+  //       parseInt(values.uploaded_by),
+  //       values.file_size,
+  //       values.case_id,
+  //       values.version
+  //     );
+
+  //     if (!response || !response.file_id) {
+  //       throw new Error("Failed to upload file. No file ID returned.");
+  //     }
+
+  //     addToast({
+  //       title: "File Uploaded",
+  //       description: `File '${values.file_name}' uploaded successfully.`,
+  //       color: "success",
+  //     });
+  //     try {
+  //       await fetchFileData();
+  //     } catch (error) {
+  //       console.error("Error refreshing staff data:", error);
+  //     }
+  //     console.log("File uploaded successfully:", response);
+
+  //     // Create a new notification
+  //     let notification = createNotification(
+  //       `File '${values.file_name}' uploaded successfully.`,
+  //       "Success",
+  //       undefined
+  //     );
+
+  //     if (!notification) {
+  //       console.error("Failed to create notification.");
+  //     } else {
+  //       console.log("Notification created:", notification);
+  //     }
+
+  //     // Reset form after successful upload
+  //     resetForm();
+  //     onOpenChange(false);
+  //   } catch (error: any) {
+  //     console.error("Error uploading file:", error.message || error);
+
+  //     addToast({
+  //       title: "Error",
+  //       description: error.message || "An unexpected error occurred.",
+  //       color: "danger",
+  //     });
+  //   }
+  // };
+
   const handleSubmit = async (values: any, { resetForm }: any) => {
-    try {
-      console.log("Uploading file:", values);
-
-      // Upload file to backend
-      const response = await uploadFile(
-        values.file_name,
-        parseInt(values.uploaded_by),
-        values.file_size,
-        values.case_id,
-        values.version
-      );
-
-      if (!response || !response.file_id) {
-        throw new Error("Failed to upload file. No file ID returned.");
-      }
-
-      addToast({
-        title: "File Uploaded",
-        description: `File '${values.file_name}' uploaded successfully.`,
-        color: "success",
-      });
-      try {
-        await fetchFileData();
-      } catch (error) {
-        console.error("Error refreshing staff data:", error);
-      }
-      console.log("File uploaded successfully:", response);
-
-      // Create a new notification
-      let notification = createNotification(
-        `File '${values.file_name}' uploaded successfully.`,
-        "Success",
-        undefined
-      );
-
-      if (!notification) {
-        console.error("Failed to create notification.");
-      } else {
-        console.log("Notification created:", notification);
-      }
-
-      // Reset form after successful upload
-      resetForm();
-      onOpenChange(false);
-    } catch (error: any) {
-      console.error("Error uploading file:", error.message || error);
-
-      addToast({
-        title: "Error",
-        description: error.message || "An unexpected error occurred.",
-        color: "danger",
-      });
-    }
+    console.log("Uploading file:", values);
   };
-
   return (
     <>
       <CustomModal

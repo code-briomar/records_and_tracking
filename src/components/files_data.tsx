@@ -83,6 +83,8 @@ export const fetchFileData = async () => {
     // Fetch all staff data
     const files = await getAllFiles();
 
+    console.log("New Files List", files);
+
     fileSectionData = files;
   } catch (error) {
     console.error("Error fetching staff data:", error);

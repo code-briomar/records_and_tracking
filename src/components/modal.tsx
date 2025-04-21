@@ -1,5 +1,6 @@
 import { Modal, ModalBody, ModalContent, ModalHeader } from "@heroui/react";
 // export const { isOpen, onOpen, onOpenChange } = useDisclosure();
+
 export default function CustomModal({
   isOpen,
   onOpenChange,
@@ -18,6 +19,7 @@ export default function CustomModal({
         backdrop:
           "bg-gradient-to-t from-gray-200 to-gray-200/10 backdrop-opacity-40 dark:from-zinc-900 dark:to-zinc-900/10 dark:backdrop-opacity-20",
       }}
+      isDismissable={false}
       isOpen={isOpen}
       onOpenChange={onOpenChange}
     >

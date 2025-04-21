@@ -34,7 +34,7 @@ export type IconSvgProps = SVGProps<SVGSVGElement> & {
 export const columns = [
   { name: "CASE NUMBER", uid: "case_number", sortable: true },
   { name: "PURPOSE", uid: "purpose", sortable: true },
-  { name: "STATUS", uid: "status", sortable: true }, // Assuming status is part of the case table
+  //{ name: "STATUS", uid: "status", sortable: true }, // Assuming status is part of the case table
   { name: "UPLOADED BY", uid: "uploaded_by", sortable: true },
   { name: "CURRENT LOCATION", uid: "current_location", sortable: true },
   { name: "NOTES", uid: "notes" },
@@ -178,7 +178,7 @@ const statusColorMap: Record<string, ChipProps["color"]> = {
 const INITIAL_VISIBLE_COLUMNS = [
   "case_number",
   "purpose",
-  "status", // Only include if it's part of your case/file schema
+  //"status", // Only include if it's part of your case/file schema
   "uploaded_by",
   "current_location",
   "required_on",
@@ -186,7 +186,7 @@ const INITIAL_VISIBLE_COLUMNS = [
 ];
 
 export default function CaseFilters() {
-  const [case_id, SetCaseID] = React.useState<number>(0);
+  const [file_id, setFileID] = React.useState<number>(0);
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
@@ -342,7 +342,11 @@ export default function CaseFilters() {
       case "required_on":
         return (
           <span className="text-xs font-semibold">
-            {new Date(file.required_on).toLocaleString("en-US")}
+            {new Date(file.required_on).toLocaleDateString("en-US", {
+              day: "numeric",
+              month: "numeric",
+              year: "numeric",
+            })}
           </span>
         );
 
@@ -363,17 +367,17 @@ export default function CaseFilters() {
 
       case "actions":
         const launchViewModal = () => {
-          SetCaseID(file.file_id);
+          setFileID(file.file_id);
           onOpenChangeView();
         };
 
         const launchEditModal = () => {
-          SetCaseID(file.file_id);
+          setFileID(file.file_id);
           onOpenEdit();
         };
 
         const launchDeleteModal = () => {
-          SetCaseID(file.file_id);
+          setFileID(file.file_id);
           onOpenDelete();
         };
 
@@ -618,7 +622,7 @@ export default function CaseFilters() {
       </Table>
 
       <ViewCaseFileModal
-        case_id={case_id}
+        file_id={file_id}
         isOpen={isOpenView}
         onOpenChange={onOpenChangeView}
       />
@@ -630,14 +634,14 @@ export default function CaseFilters() {
       />
 
       <EditCaseFileForm
-        case_id={case_id}
+        file_id={file_id}
         isOpen={isOpenEdit}
         onOpenChange={onOpenChangeEdit}
         onOpen={onOpen}
       />
 
       <DeleteCaseFileModal
-        case_id={case_id}
+        file_id={file_id}
         isOpen={isOpenDelete}
         onOpenChange={onOpenChangeDelete}
       />

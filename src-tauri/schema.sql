@@ -66,7 +66,7 @@ CREATE TABLE IF NOT EXISTS files(
     notes TEXT NOT NULL, -- Notes or comments about the file
     date_recieved TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Date the file was recorded/uploaded
     required_on TIMESTAMP NOT NULL, -- Date the file is needed by
-    required_on_signature TEXT NOT NULL, -- Signature of the person who recorded the file
+    required_on_signature TEXT, -- Signature of the person who recorded the file
     date_returned TIMESTAMP, -- Date the file was returned
     date_returned_signature TEXT, -- Signature of the person who returned the file
     deleted INT DEFAULT 0, -- 1 for true, 0 for false
