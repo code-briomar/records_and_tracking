@@ -2,8 +2,9 @@ import { invoke } from "@tauri-apps/api/core";
 
 // ✅ File Type Definition
 export interface File {
+    case_number?: any;
     file_id: number;
-    caseNumber: string;
+    caseNumber: string
     purpose: string;
     uploaded_by: number;
     current_location: string;
@@ -13,7 +14,7 @@ export interface File {
     required_on_signature: string;
     date_returned: string | null;
     date_returned_signature: string | null;
-    deleted: number;
+    deleted: boolean;
 }
 
 // ✅ Get All Files
@@ -124,7 +125,7 @@ export async function updateFileNotes(fileId: number, newNotes: string): Promise
 // ✅ Delete a File (Soft Delete)
 export async function deleteFile(fileId: number): Promise<string> {
     try {
-        const response: string = await invoke("delete_file", { file_id: fileId });
+        const response: string = await invoke("delete_file", {  fileId });
         console.log("File deleted:", response);
         return response;
     } catch (error) {

@@ -8,17 +8,22 @@ import {
 } from "@heroui/react";
 import { LucideTrash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { deleteCase } from "../services/cases";
+import { deleteFile, File } from "../services/files";
 import { createNotification } from "../services/notifications";
-import { caseFiles, fetchCasesData } from "./case_files_data";
+// import { fileSectionData as caseFiles, fetchFileData } from "./files_data";
+import { fetchFileData } from "./files_data";
 import CustomModal from "./modal";
 export default function DeleteCaseFileModal({
-  case_id,
+  file_id,
   isOpen,
+  caseFiles,
+  setCaseFiles,
   onOpenChange,
 }: {
-  case_id: number;
+  file_id: number;
   isOpen: boolean;
+  caseFiles: File[];
+  setCaseFiles: React.Dispatch<React.SetStateAction<File[]>>;
   onOpenChange: (open: boolean) => void;
 }) {
   const [caseData, setCaseData] = useState<any>(null);
@@ -26,18 +31,18 @@ export default function DeleteCaseFileModal({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen && case_id) {
+    if (isOpen && file_id) {
       fetchCaseDetails();
 
-      console.log("Staff ID: ", case_id);
+      console.log("Staff ID: ", file_id);
     }
-  }, [isOpen, case_id]);
+  }, [isOpen, file_id]);
 
   const fetchCaseDetails = async () => {
     setLoading(true);
     setError(null);
     try {
-      const caseFile = caseFiles.find((s) => s.case_id === case_id);
+      const caseFile = caseFiles.find((s) => s.file_id === file_id);
       if (!caseFile) throw new Error("No case file found.");
       setCaseData(caseFile);
     } catch (err: any) {
@@ -54,8 +59,8 @@ export default function DeleteCaseFileModal({
 
     try {
       // ✅ Delete Staff
-      console.log("Deleting Staff ID:", case_id);
-      const caseResponse: any = await deleteCase(case_id);
+      console.log("Deleting Staff ID:", file_id);
+      const caseResponse: any = await deleteFile(file_id);
 
       if (!caseResponse || caseResponse.error) {
         throw new Error(caseResponse?.error || "Failed to delete case file.");
@@ -89,7 +94,8 @@ export default function DeleteCaseFileModal({
       }
 
       try {
-        await fetchCasesData();
+        const new_data: File[] | undefined = await fetchFileData();
+        setCaseFiles(new_data);
       } catch (error) {
         console.error("Error refreshing staff data:", error);
       }

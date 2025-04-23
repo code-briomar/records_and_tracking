@@ -219,7 +219,7 @@ import {
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import { Pen } from "lucide-react";
 import * as Yup from "yup";
-import { addNewFile } from "../services/files";
+import { addNewFile, File } from "../services/files";
 import { fetchFileData } from "./files_data";
 import CustomModal from "./modal";
 import RequiredOnDatePicker from "./required_on_date_picker";
@@ -239,9 +239,11 @@ const fileSchema = Yup.object().shape({
 
 export default function AddNewFileForm({
   isOpen,
+  setCaseFiles,
   onOpenChange,
 }: {
   isOpen: boolean;
+  setCaseFiles: React.Dispatch<React.SetStateAction<File[]>>;
   onOpenChange: (open: boolean) => void;
 }) {
   const handleSubmit = async (values: any, { resetForm }: any) => {
@@ -269,7 +271,12 @@ export default function AddNewFileForm({
 
       console.log("File uploaded successfully:", response);
 
-      fetchFileData();
+      try {
+        const files = await fetchFileData();
+        setCaseFiles(files);
+      } catch (error) {
+        console.error("Error refreshing file data:", error);
+      }
 
       resetForm();
       onOpenChange(false);

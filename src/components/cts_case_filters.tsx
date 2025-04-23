@@ -1,7 +1,6 @@
 import {
   Button,
   Chip,
-  ChipProps,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -19,11 +18,10 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import React, { SVGProps } from "react";
-import { Case } from "../services/cases";
+import { File } from "../services/files";
 import AddNewCaseFileForm from "./add_new_case_file_form";
 import DeleteCaseFileModal from "./delete_case_file_form";
 import EditCaseFileForm from "./edit _case_file_form";
-import { fileSectionData as caseFiles } from "./files_data";
 import { staff } from "./staff_data";
 import ViewCaseFileModal from "./view_case_file_modal";
 
@@ -169,12 +167,6 @@ export const ChevronDownIcon = ({
   );
 };
 
-const statusColorMap: Record<string, ChipProps["color"]> = {
-  active: "success",
-  paused: "danger",
-  vacation: "warning",
-};
-
 const INITIAL_VISIBLE_COLUMNS = [
   "case_number",
   "purpose",
@@ -185,12 +177,45 @@ const INITIAL_VISIBLE_COLUMNS = [
   "actions",
 ];
 
-export default function CaseFilters() {
+const getDateRanges = () => {
+  const today = new Date();
+  const day = today.getDay(); // Sunday = 0
+
+  // Adjust so Monday = 0
+  const mondayOffset = (day + 6) % 7;
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - mondayOffset);
+
+  const getRange = (offset: number) => {
+    const start = new Date(monday);
+    const end = new Date(monday);
+    start.setDate(start.getDate() + offset);
+    end.setDate(end.getDate() + offset + 4);
+    return { start, end };
+  };
+
+  return {
+    lastWeek: getRange(-7),
+    thisWeek: getRange(0),
+    nextWeek: getRange(7),
+  };
+};
+
+export default function CaseFilters({
+  caseFiles,
+  setCaseFiles,
+}: {
+  caseFiles: File[];
+  setCaseFiles: React.Dispatch<React.SetStateAction<File[]>>;
+}) {
   const [file_id, setFileID] = React.useState<number>(0);
   const [filterValue, setFilterValue] = React.useState("");
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
+  const [dateFilter, setDateFilter] = React.useState<string>("all");
+
+  const dateRanges = getDateRanges();
 
   const { onOpen, isOpen, onOpenChange } = useDisclosure();
 
@@ -236,21 +261,39 @@ export default function CaseFilters() {
   }, [visibleColumns]);
 
   const filteredItems = React.useMemo(() => {
-    let filteredCaseFiles = [...caseFiles] as Case[];
+    let filteredCaseFiles = [...caseFiles] as File[];
 
-    // if (hasSearchFilter) {
-    //   filteredCaseFiles = filteredCaseFiles.filter((file) =>
-    //     file.title.toLowerCase().includes(filterValue.toLowerCase())
-    //   );
-    // }
+    // Exclude deleted files
+    filteredCaseFiles = filteredCaseFiles.filter((file) => !file.deleted);
+
+    console.log("Filtered Case Files: ", filteredCaseFiles);
+
+    if (hasSearchFilter) {
+      filteredCaseFiles = filteredCaseFiles.filter((file) =>
+        file.case_number.toLowerCase().includes(filterValue.toLowerCase())
+      );
+    }
+
     // if (
     //   statusFilter !== "all" &&
     //   Array.from(statusFilter).length !== statusOptions.length
     // ) {
-    //   filteredCaseFiles = filteredCaseFiles.filter((user) =>
-    //     Array.from(statusFilter).includes(user.status)
+    //   filteredCaseFiles = filteredCaseFiles.filter((file) =>
+    //     Array.from(statusFilter).includes(file.case_number.toLowerCase())
     //   );
     // }
+
+    if (dateFilter !== "all" && dateFilter in dateRanges) {
+      const range = dateRanges[dateFilter as keyof typeof dateRanges];
+      filteredCaseFiles = filteredCaseFiles.filter((file) => {
+        const reqDate = new Date(file.required_on);
+        return (
+          !isNaN(reqDate.getTime()) &&
+          reqDate >= range.start &&
+          reqDate <= range.end
+        );
+      });
+    }
 
     return filteredCaseFiles;
   }, [caseFiles, filterValue, statusFilter]);
@@ -263,9 +306,9 @@ export default function CaseFilters() {
   }, [page, filteredItems, rowsPerPage]);
 
   const sortedItems = React.useMemo(() => {
-    return [...items].sort((a: Case, b: Case) => {
-      const first = a[sortDescriptor.column as keyof Case];
-      const second = b[sortDescriptor.column as keyof Case];
+    return [...items].sort((a: File, b: File) => {
+      const first = a[sortDescriptor.column as keyof File];
+      const second = b[sortDescriptor.column as keyof File];
 
       let cmp = 0;
 
@@ -279,8 +322,8 @@ export default function CaseFilters() {
     });
   }, [sortDescriptor, items]);
 
-  const renderCell = React.useCallback((file: Case, columnKey: React.Key) => {
-    const cellValue = file[columnKey as keyof Case];
+  const renderCell = React.useCallback((file: File, columnKey: React.Key) => {
+    const cellValue = file[columnKey as keyof File];
 
     switch (columnKey) {
       case "case_number":
@@ -303,18 +346,6 @@ export default function CaseFilters() {
             {file.purpose}
           </Chip>
         );
-
-      // case "status": // Optional: Only include if your files actually have a status field
-      //   return (
-      //     <Chip
-      //       className="capitalize border-none gap-1 text-default-600"
-      //       color={statusColorMap[file.status]}
-      //       size="sm"
-      //       variant="dot"
-      //     >
-      //       {cellValue}
-      //     </Chip>
-      //   );
 
       case "uploaded_by":
         return (
@@ -373,7 +404,10 @@ export default function CaseFilters() {
 
         const launchEditModal = () => {
           setFileID(file.file_id);
-          onOpenEdit();
+
+          setTimeout(() => {
+            onOpenChangeEdit();
+          }, 0);
         };
 
         const launchDeleteModal = () => {
@@ -436,7 +470,7 @@ export default function CaseFilters() {
               base: "w-full sm:max-w-[44%]",
               inputWrapper: "border-1",
             }}
-            placeholder="Search by name..."
+            placeholder="Search by Case No..."
             size="sm"
             startContent={<SearchIcon className="text-default-300" />}
             value={filterValue}
@@ -470,6 +504,31 @@ export default function CaseFilters() {
                 ))}
               </DropdownMenu>
             </Dropdown>
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  size="sm"
+                  variant="flat"
+                >
+                  Required On
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                aria-label="Required On Filter"
+                selectedKeys={new Set([dateFilter])}
+                selectionMode="single"
+                onSelectionChange={(keys) =>
+                  setDateFilter(String(Array.from(keys)[0]))
+                }
+              >
+                <DropdownItem key="all">All</DropdownItem>
+                <DropdownItem key="lastWeek">Last Week</DropdownItem>
+                <DropdownItem key="thisWeek">This Week</DropdownItem>
+                <DropdownItem key="nextWeek">Next Week</DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -612,7 +671,7 @@ export default function CaseFilters() {
         </TableHeader>
         <TableBody emptyContent={"No case files found"} items={sortedItems}>
           {(item) => (
-            <TableRow key={Math.random()}>
+            <TableRow key={item.file_id}>
               {(columnKey) => (
                 <TableCell>{renderCell(item, columnKey)}</TableCell>
               )}
@@ -629,19 +688,23 @@ export default function CaseFilters() {
 
       <AddNewCaseFileForm
         isOpen={isOpen}
-        onOpen={onOpen}
+        setCaseFiles={setCaseFiles}
         onOpenChange={onOpenChange}
       />
 
       <EditCaseFileForm
         file_id={file_id}
         isOpen={isOpenEdit}
+        caseFiles={caseFiles}
+        setCaseFiles={setCaseFiles}
         onOpenChange={onOpenChangeEdit}
         onOpen={onOpen}
       />
 
       <DeleteCaseFileModal
         file_id={file_id}
+        caseFiles={caseFiles}
+        setCaseFiles={setCaseFiles}
         isOpen={isOpenDelete}
         onOpenChange={onOpenChangeDelete}
       />

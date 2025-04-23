@@ -78,19 +78,29 @@ import { File, getAllFiles } from "../services/files";
 
 export let fileSectionData: File[] = [];
 
-export const fetchFileData = async () => {
+export const fetchFileData = async (): Promise<File[]> => {
   try {
     // Fetch all staff data
     const files = await getAllFiles();
 
-    console.log("New Files List", files);
-
     fileSectionData = files;
+
+    files.map((file) => {
+      if (file.deleted == true) {
+        fileSectionData = fileSectionData.filter(
+          (f) => f.file_id !== file.file_id
+        );
+      }
+    });
+
+    return fileSectionData;
   } catch (error) {
     console.error("Error fetching staff data:", error);
   }
 
   console.log("fileSectionData", fileSectionData);
+
+  return fileSectionData;
 };
 
 fetchFileData();

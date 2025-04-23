@@ -1,11 +1,25 @@
 import { Card, CardBody } from "@heroui/react";
+import { useEffect, useState } from "react";
 import CaseFilters from "../components/cts_case_filters";
+import { fetchFileData } from "../components/files_data";
 import LeftPanel from "../components/left_panel";
 import NavbarSection from "../components/navbar";
 import RightPanel from "../components/right_panel";
+import { File } from "../services/files";
 
 export default function CTS() {
-  const breadcrumbs = ["Super-Admin","CTS"];
+  const breadcrumbs = ["Super-Admin", "CTS"];
+
+  const [caseFiles, setCaseFiles] = useState<File[]>([]);
+
+  useEffect(() => {
+    const loadFiles = async () => {
+      const data: File[] = await fetchFileData();
+      setCaseFiles(data);
+    };
+    loadFiles();
+  }, []);
+
   return (
     <>
       <Card
@@ -22,7 +36,7 @@ export default function CTS() {
 
             {/* Case Files Tracking */}
             <div className="p-2">
-              <CaseFilters />
+              <CaseFilters caseFiles={caseFiles} setCaseFiles={setCaseFiles} />
             </div>
           </div>
 
