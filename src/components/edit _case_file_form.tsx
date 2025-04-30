@@ -14,21 +14,12 @@ import { File, updateFile } from "../services/files";
 import { fetchFileData } from "./files_data";
 import CustomModal from "./modal";
 
-// Validation Schema
-const caseFileSchema = Yup.object().shape({
-  case_title: Yup.string().required("Full name is required"),
-  status: Yup.string().required("Status is required"),
-  assigned_staff: Yup.string().required("Assigned staff is required"),
-  priority: Yup.string().required("Priority is required"),
-});
-
 export default function EditCaseFileForm({
   file_id,
   isOpen,
   caseFiles,
   setCaseFiles,
   onOpenChange,
-  onOpen,
 }: {
   file_id: number;
   isOpen: boolean;
@@ -159,7 +150,7 @@ export default function EditCaseFileForm({
             })}
             onSubmit={handleSubmit}
           >
-            {({ errors, touched, isValid, dirty, setFieldValue }) => (
+            {({ errors }) => (
               <Form className="flex flex-col gap-4">
                 {/* Case Number */}
                 <div>

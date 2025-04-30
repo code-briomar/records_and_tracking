@@ -301,7 +301,7 @@ export default function AddNewFileForm({
         initialValues={{
           case_number: "",
           purpose: "",
-          uploaded_by: "",
+          uploaded_by: staff[0]?.staff_id, // Default to the first staff member TODO::Remove this in a future refactored version
           current_location: "",
           notes: "",
           required_on: "",
@@ -309,7 +309,7 @@ export default function AddNewFileForm({
         validationSchema={fileSchema}
         onSubmit={handleSubmit}
       >
-        {({ errors, touched, isValid, dirty }) => (
+        {({ isValid, dirty }) => (
           <Form className="flex flex-col gap-4">
             <div>
               <Field
@@ -342,37 +342,6 @@ export default function AddNewFileForm({
                     <SelectItem key="Ruling">Ruling</SelectItem>
                     <SelectItem key="Judgement">Judgement</SelectItem>
                     <SelectItem key="Other">Other</SelectItem>
-                  </Select>
-                )}
-              </Field>
-              <ErrorMessage
-                name="purpose"
-                component="p"
-                className="text-red-500 text-sm"
-              />
-            </div>
-
-            <div>
-              <Field name="uploaded_by">
-                {({ field, form }: any) => (
-                  <Select
-                    key={Math.random()}
-                    label="Uploaded By"
-                    placeholder="Select staff member"
-                    selectedKeys={[field.value]}
-                    onSelectionChange={(keys) =>
-                      form.setFieldValue(field.name, Array.from(keys)[0])
-                    }
-                    variant={"bordered"}
-                  >
-                    {staff.map((member) => (
-                      <SelectItem key={member.staff_id}>
-                        {member.name}
-                      </SelectItem>
-                    ))}
-                    {/* <SelectItem key={member.id}>
-                          {member.name} ({member.id})
-                        </SelectItem> */}
                   </Select>
                 )}
               </Field>

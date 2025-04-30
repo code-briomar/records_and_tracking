@@ -1,12 +1,14 @@
 import {
   Button,
   Chip,
+  DateValue,
   Dropdown,
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
   Input,
   Pagination,
+  RangeValue,
   Selection,
   SortDescriptor,
   Table,
@@ -20,6 +22,7 @@ import {
 import React, { SVGProps } from "react";
 import { File } from "../services/files";
 import AddNewCaseFileForm from "./add_new_case_file_form";
+import ControlledRangeDatePicker from "./controlled_range_date_picker";
 import DeleteCaseFileModal from "./delete_case_file_form";
 import EditCaseFileForm from "./edit _case_file_form";
 import { staff } from "./staff_data";
@@ -38,9 +41,7 @@ export const columns = [
   { name: "NOTES", uid: "notes" },
   { name: "DATE RECEIVED", uid: "date_recieved", sortable: true },
   { name: "REQUIRED ON", uid: "required_on", sortable: true },
-  { name: "REQUIRED ON SIGNATURE", uid: "required_on_signature" },
   { name: "DATE RETURNED", uid: "date_returned", sortable: true },
-  { name: "RETURNED SIGNATURE", uid: "date_returned_signature" },
   { name: "ACTIONS", uid: "actions" },
 ];
 
@@ -171,7 +172,7 @@ const INITIAL_VISIBLE_COLUMNS = [
   "case_number",
   "purpose",
   //"status", // Only include if it's part of your case/file schema
-  "uploaded_by",
+  // "uploaded_by",
   "current_location",
   "required_on",
   "actions",
@@ -201,6 +202,13 @@ const getDateRanges = () => {
   };
 };
 
+const dateFilterOptions = [
+  { name: "All", uid: "all" },
+  { name: "Last Week", uid: "lastWeek" },
+  { name: "This Week", uid: "thisWeek" },
+  { name: "Next Week", uid: "nextWeek" },
+];
+
 export default function CaseFilters({
   caseFiles,
   setCaseFiles,
@@ -219,17 +227,11 @@ export default function CaseFilters({
 
   const { onOpen, isOpen, onOpenChange } = useDisclosure();
 
-  const {
-    onOpen: onOpenView,
-    isOpen: isOpenView,
-    onOpenChange: onOpenChangeView,
-  } = useDisclosure();
+  const { isOpen: isOpenView, onOpenChange: onOpenChangeView } =
+    useDisclosure();
 
-  const {
-    onOpen: onOpenEdit,
-    isOpen: isOpenEdit,
-    onOpenChange: onOpenChangeEdit,
-  } = useDisclosure();
+  const { isOpen: isOpenEdit, onOpenChange: onOpenChangeEdit } =
+    useDisclosure();
 
   const {
     onOpen: onOpenDelete,
@@ -247,6 +249,18 @@ export default function CaseFilters({
     direction: "ascending",
   });
   const [page, setPage] = React.useState(1);
+
+  // Filter By Date
+  const [dateSearchValue, setDateSearchValue] =
+    React.useState<RangeValue<DateValue> | null>(null);
+
+  const handleDateRangeChange = (newValue: RangeValue<DateValue> | null) => {
+    setDateSearchValue(newValue);
+    if (!newValue) {
+      // If user clears date picker, optionally reset pagination, filters, etc.
+      setPage(1);
+    }
+  };
 
   const pages = Math.ceil(caseFiles.length / rowsPerPage);
 
@@ -266,37 +280,41 @@ export default function CaseFilters({
     // Exclude deleted files
     filteredCaseFiles = filteredCaseFiles.filter((file) => !file.deleted);
 
-    console.log("Filtered Case Files: ", filteredCaseFiles);
-
     if (hasSearchFilter) {
       filteredCaseFiles = filteredCaseFiles.filter((file) =>
         file.case_number.toLowerCase().includes(filterValue.toLowerCase())
       );
     }
 
-    // if (
-    //   statusFilter !== "all" &&
-    //   Array.from(statusFilter).length !== statusOptions.length
-    // ) {
-    //   filteredCaseFiles = filteredCaseFiles.filter((file) =>
-    //     Array.from(statusFilter).includes(file.case_number.toLowerCase())
-    //   );
-    // }
-
-    if (dateFilter !== "all" && dateFilter in dateRanges) {
+    // Date filtering logic
+    if (dateFilter !== "all") {
       const range = dateRanges[dateFilter as keyof typeof dateRanges];
+
+      if (range) {
+        filteredCaseFiles = filteredCaseFiles.filter((file) => {
+          const reqDate = new Date(file.required_on);
+          return reqDate >= range.start && reqDate <= range.end;
+        });
+      }
+    }
+
+    // const [value, setValue] = React.useState<RangeValue<DateValue> | null>({
+    //     start: parseDate("2024-04-01"),
+    //     end: parseDate("2024-04-08"),
+    //   });
+
+    if (dateSearchValue && dateSearchValue.start && dateSearchValue.end) {
+      const startDate = new Date(dateSearchValue.start.toString());
+      const endDate = new Date(dateSearchValue.end.toString());
+
       filteredCaseFiles = filteredCaseFiles.filter((file) => {
-        const reqDate = new Date(file.required_on);
-        return (
-          !isNaN(reqDate.getTime()) &&
-          reqDate >= range.start &&
-          reqDate <= range.end
-        );
+        const fileDate = new Date(file.required_on);
+        return fileDate >= startDate && fileDate <= endDate;
       });
     }
 
     return filteredCaseFiles;
-  }, [caseFiles, filterValue, statusFilter]);
+  }, [caseFiles, filterValue, dateFilter, dateSearchValue]);
 
   const items = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -371,9 +389,10 @@ export default function CaseFilters({
         );
 
       case "required_on":
+        const requiredDate = new Date(file.required_on);
         return (
           <span className="text-xs font-semibold">
-            {new Date(file.required_on).toLocaleDateString("en-US", {
+            {requiredDate.toLocaleDateString("en-US", {
               day: "numeric",
               month: "numeric",
               year: "numeric",
@@ -478,32 +497,11 @@ export default function CaseFilters({
             onClear={() => setFilterValue("")}
             onValueChange={onSearchChange}
           />
+          <ControlledRangeDatePicker
+            value={dateSearchValue}
+            setValue={handleDateRangeChange}
+          />
           <div className="flex gap-3">
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  size="sm"
-                  variant="flat"
-                >
-                  Status
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={statusFilter}
-                selectionMode="multiple"
-                onSelectionChange={setStatusFilter}
-              >
-                {statusOptions.map((status) => (
-                  <DropdownItem key={status.uid} className="capitalize">
-                    {capitalize(status.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
             <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
@@ -518,14 +516,16 @@ export default function CaseFilters({
                 aria-label="Required On Filter"
                 selectedKeys={new Set([dateFilter])}
                 selectionMode="single"
-                onSelectionChange={(keys) =>
-                  setDateFilter(String(Array.from(keys)[0]))
-                }
+                onSelectionChange={(keys) => {
+                  const selectedKey = String(Array.from(keys)[0]);
+                  setDateFilter(selectedKey);
+                }}
               >
-                <DropdownItem key="all">All</DropdownItem>
-                <DropdownItem key="lastWeek">Last Week</DropdownItem>
-                <DropdownItem key="thisWeek">This Week</DropdownItem>
-                <DropdownItem key="nextWeek">Next Week</DropdownItem>
+                {dateFilterOptions.map((option) => (
+                  <DropdownItem key={option.uid} className="capitalize">
+                    {capitalize(option.name)}
+                  </DropdownItem>
+                ))}
               </DropdownMenu>
             </Dropdown>
 

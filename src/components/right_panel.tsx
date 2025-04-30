@@ -17,8 +17,8 @@ const RightPanel = () => {
       // or update its status to read.
 
       // Remove the notification from the list
-      setNotifications(
-        Notifications.filter((n) => n.notification_id !== notification_id)
+      setNotifications((prevNotifications) =>
+        prevNotifications.filter((n) => n.notification_id !== notification_id)
       );
     } catch (error) {
       console.error("Error marking notification as read:", error);
@@ -29,13 +29,13 @@ const RightPanel = () => {
       {/* Notifications */}
       <h1 className="m-2 text-gray-500">Notifications</h1>
       <div className="overflow-y-auto max-h-[calc(96vh-200px)]">
-          {notifications.length == 0 && (
-              <>
-                  <div className={"p-2"}>
-                    <p>No notifications right now</p>
-                  </div>
-              </>
-          )}
+        {notifications.length == 0 && (
+          <>
+            <div className={"p-2"}>
+              <p>No notifications right now</p>
+            </div>
+          </>
+        )}
 
         {notifications
           .filter((n) => !n.read_status)
@@ -44,17 +44,18 @@ const RightPanel = () => {
               key={n.notification_id}
               className="p-2 border dark:border-background/40 shadow-sm backdrop-blur-sm my-2"
             >
-
               <CardBody className="relative">
-                  <div className={"flex justify-end absolute right-0 -top-0 z-99"}>
-                      <button
-                          onClick={() => markNotification(n.notification_id)}
-                          className="w-6 right-0 p-1 rounded-full hover:bg-foreground/10 transition"
-                          aria-label="Dismiss notification"
-                      >
-                          <X className="w-4 h-4 text-foreground/60 hover:text-foreground" />
-                      </button>
-                  </div>
+                <div
+                  className={"flex justify-end absolute right-0 -top-0 z-99"}
+                >
+                  <button
+                    onClick={() => markNotification(n.notification_id)}
+                    className="w-6 right-0 p-1 rounded-full hover:bg-foreground/10 transition"
+                    aria-label="Dismiss notification"
+                  >
+                    <X className="w-4 h-4 text-foreground/60 hover:text-foreground" />
+                  </button>
+                </div>
                 <div>
                   <p className="text-sm font-medium">{n.message}</p>
                   <p className="text-xs text-gray-500">

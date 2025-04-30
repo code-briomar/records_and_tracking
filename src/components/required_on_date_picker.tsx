@@ -12,18 +12,7 @@ const RequiredOnDatePicker = () => {
   const now = today(getLocalTimeZone());
   const { locale } = useLocale();
 
-  // Define disabled date ranges
-  const disabledRanges = [
-    [now, now.add({ days: 5 })],
-    [now.add({ days: 14 }), now.add({ days: 16 })],
-    [now.add({ days: 23 }), now.add({ days: 24 })],
-  ];
-
-  const isDateUnavailable = (date: any) =>
-    isWeekend(date, locale) ||
-    disabledRanges.some(
-      ([start, end]) => date.compare(start) >= 0 && date.compare(end) <= 0
-    );
+  const isDateUnavailable = (date: any) => isWeekend(date, locale);
 
   return (
     <Field name="required_on">
@@ -34,7 +23,7 @@ const RequiredOnDatePicker = () => {
           value={field.value ? parseDate(field.value) : null}
           onChange={(date) => {
             if (date) {
-              form.setFieldValue(field.name, date.toString()); // Store ISO 8601 string
+              form.setFieldValue(field.name, date.toString());
             } else {
               form.setFieldValue(field.name, "");
             }

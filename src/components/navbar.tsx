@@ -1,10 +1,10 @@
 import { BreadcrumbItem, Breadcrumbs } from "@heroui/react";
 import { Bell, Moon, RotateCcwIcon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
-import { CustomSearchBar } from "../components/search_bar";
-import {useNavigate} from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { CustomSearchBar } from "./search_bar";
 
-const NavbarSection = ({breadcrumbs}:{breadcrumbs:string[]}) => {
+const NavbarSection = ({ breadcrumbs }: { breadcrumbs: string[] }) => {
   const [darkMode, setDarkMode] = useState(
     localStorage.getItem("theme") === "dark" || !localStorage.getItem("theme")
   );
@@ -17,9 +17,9 @@ const NavbarSection = ({breadcrumbs}:{breadcrumbs:string[]}) => {
     window.location.reload(); // Refresh page
   };
 
-  const notifications = () =>{
+  const notifications = () => {
     navigate("/notifications");
-  }
+  };
 
   useEffect(() => {
     if (darkMode) {
@@ -35,13 +35,15 @@ const NavbarSection = ({breadcrumbs}:{breadcrumbs:string[]}) => {
       {/* Breadcrumb */}
       <div>
         <Breadcrumbs>
-          {breadcrumbs.map((item,index)=>(
+          {breadcrumbs.map((item, index) => (
             <BreadcrumbItem key={index}>{item}</BreadcrumbItem>
           ))}
         </Breadcrumbs>
       </div>
       <div className="flex items-center space-x-2">
-        <CustomSearchBar />
+        {/* Check the page */}
+        {window.location.pathname === "/cts" && <CustomSearchBar />}
+        {/* <CustomSearchBar /> */}
         <div
           onClick={() => setDarkMode(!darkMode)}
           className="cursor-pointer w-6 h-6"
@@ -56,9 +58,7 @@ const NavbarSection = ({breadcrumbs}:{breadcrumbs:string[]}) => {
           className={`w-6 h-6 cursor-pointer ${spinning ? "animate-spin" : ""}`}
           onClick={handleClick}
         />
-        <Bell className="w-6 h-6"
-          onClick={notifications}
-        />
+        <Bell className="w-6 h-6" onClick={notifications} />
       </div>
     </div>
   );

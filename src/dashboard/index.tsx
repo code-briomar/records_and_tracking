@@ -7,7 +7,7 @@ import RightPanel from "../components/right_panel";
 import { SummaryCards } from "../components/summary_cards";
 
 export default function Dashboard() {
-  const breadcrumbs = ["Super-Admin","Dashboaord"];
+  const breadcrumbs = ["Super-Admin", "Dashboaord"];
   return (
     <>
       <Card
