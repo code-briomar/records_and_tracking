@@ -1,14 +1,40 @@
 import { Input } from "@heroui/react";
+import bcrypt from "bcryptjs";
 import { useFormik } from "formik";
 import { SearchIcon } from "lucide-react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import * as Yup from "yup";
 import AuthForm from "../components/auth_form.tsx";
 import AuthFormCarousel from "../components/auth_form_carousel.tsx";
 import { useAuth } from "../context/auth_context.tsx";
+import { getUserByEmail } from "../services/users.ts";
+
+const saltRounds = 10;
+
+const hashPassword = async (plainPassword: string) => {
+  const hash = await bcrypt.hash(plainPassword, saltRounds);
+  return hash;
+};
+
+const validatePassword = async (
+  plainPassword: string,
+  hashedPassword: string
+) => {
+  const match = await bcrypt.compare(plainPassword, hashedPassword);
+  return match; // true if passwords match
+};
 
 function Auth() {
-  const { login } = useAuth();
+  const { login, authData } = useAuth();
+
+  useEffect(() => {
+    // Check if user is already logged in
+    if (authData) {
+      navigate("/dashboard");
+    }
+  }, []);
+
   const navigate = useNavigate();
   const login_formik = useFormik({
     initialValues: {
@@ -23,8 +49,35 @@ function Auth() {
         .min(8, "Password must be at least 8 characters")
         .required("Required"),
     }),
-    onSubmit: (values) => {
-      login(values);
+    onSubmit: async (values) => {
+      // Handle login logic here
+      const response = await getUserByEmail(values.login_email);
+
+      // Check if user password and password hash match use md5 hash
+      const passwordHash = await hashPassword(values.login_password);
+
+      // console.log("Password Hash: ", passwordHash);
+
+      // console.log("Password Hash: ", passwordHash);
+      // console.log("Password Hash from DB: ", response);
+      const isMatch = await validatePassword(
+        values.login_password,
+        passwordHash
+      );
+      if (!isMatch) {
+        console.log("Password is invalid");
+        alert("Invalid password. Please try again.");
+        return;
+      }
+
+      // // Check if user is active
+      if (response.status !== "Active") {
+        alert("User is not active. Please contact admin.");
+        return;
+      }
+
+      // Set context and redirect to dashboard
+      login(response);
       navigate("/dashboard");
     },
   });

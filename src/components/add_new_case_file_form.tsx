@@ -220,6 +220,7 @@ import { ErrorMessage, Field, Form, Formik } from "formik";
 import { Pen } from "lucide-react";
 import * as Yup from "yup";
 import { addNewFile, File } from "../services/files";
+import { createNotification } from "../services/notifications";
 import { fetchFileData } from "./files_data";
 import CustomModal from "./modal";
 import RequiredOnDatePicker from "./required_on_date_picker";
@@ -263,10 +264,26 @@ export default function AddNewFileForm({
         throw new Error("Failed to upload file. No file ID returned.");
       }
 
+      // Create a new notification
+      let notification = createNotification(
+        `File '${values.case_number}' updated successfully.`,
+        "Success"
+      );
+      if (!notification) {
+        addToast({
+          title: "Error",
+          description: "Internal error. Please try again.",
+          color: "danger",
+          shouldShowTimeoutProgress: true,
+        });
+        return;
+      }
+
       addToast({
         title: "File Uploaded",
         description: `File for case '${values.case_number}' uploaded successfully.`,
         color: "success",
+        shouldShowTimeoutProgress: true,
       });
 
       console.log("File uploaded successfully:", response);

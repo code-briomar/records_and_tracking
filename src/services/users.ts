@@ -30,6 +30,16 @@ export async function getUser(userId: number): Promise<any> {
     }
 }
 
+export async function getUserByEmail(email: string): Promise<any> {
+    try {
+        const user = await invoke("get_user_by_email", { email });
+        return user || {};  // Ensure it always returns an object
+    } catch (error) {
+        console.error("Error fetching user by email:", error);
+        return {}; // Return an empty object instead of undefined
+    }
+}
+
 
 export async function updateUserStatus(userId: number, newStatus: string): Promise<string> {
     try {

@@ -72,6 +72,7 @@ export default function DeleteCaseFileModal({
         title: "Success",
         description: "Case File deleted successfully.",
         color: "success",
+        shouldShowTimeoutProgress: true,
       });
 
       //   addToast({

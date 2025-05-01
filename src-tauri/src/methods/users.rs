@@ -97,6 +97,30 @@ pub fn get_user(state: State<AppState>, user_id: i32) -> Result<Option<User>, St
     Ok(user)
 }
 
+// Get User by Email
+#[tauri::command]
+pub fn get_user_by_email(state: State<AppState>, email: String) -> Result<Option<User>, String> {
+    let conn = state.conn.lock().unwrap();
+    let mut stmt = conn.prepare("SELECT user_id, name, role, email, phone_number, password_hash, status FROM users WHERE email = ?1")
+        .map_err(|e| format!("Failed to prepare statement: {}", e))?;
+
+    let user = stmt
+        .query_row(params![email], |row| {
+            Ok(User {
+                user_id: row.get(0)?,
+                name: row.get(1)?,
+                role: row.get(2)?,
+                email: row.get(3)?,
+                phone_number: row.get(4)?,
+                password_hash: row.get(5)?,
+                status: row.get(6)?,
+            })
+        })
+        .optional()
+        .map_err(|e| format!("Failed to fetch user: {}", e))?;
+
+    Ok(user)
+}
 // Update User Status
 #[tauri::command]
 pub fn update_user_status(

@@ -11,6 +11,7 @@ import { Pen } from "lucide-react";
 import { useEffect, useState } from "react";
 import * as Yup from "yup";
 import { File, updateFile } from "../services/files";
+import { createNotification } from "../services/notifications";
 import { fetchFileData } from "./files_data";
 import CustomModal from "./modal";
 
@@ -78,10 +79,26 @@ export default function EditCaseFileForm({
 
       console.log("File updated successfully:", response);
 
+      // Create a new notification
+      let notification = createNotification(
+        `File '${values.case_number}' updated successfully.`,
+        "Success"
+      );
+      if (!notification) {
+        addToast({
+          title: "Error",
+          description: "Internal error. Please try again.",
+          color: "danger",
+          shouldShowTimeoutProgress: true,
+        });
+        return;
+      }
+
       addToast({
         title: "Success",
         description: "File updated successfully.",
         color: "success",
+        shouldShowTimeoutProgress: true,
       });
 
       try {

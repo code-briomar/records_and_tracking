@@ -61,7 +61,11 @@ const LeftPanel = () => {
             startContent={<Gauge className="w-4 h-4" />}
           >
             <div className="flex space-x-1 items-center ">
-              <Button variant="faded" size="sm" onPress={() => redirect("/")}>
+              <Button
+                variant="faded"
+                size="sm"
+                onPress={() => redirect("/dashboard")}
+              >
                 Proceed
                 <ChevronRight className="w-4 h-4" />
               </Button>

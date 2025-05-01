@@ -7,10 +7,10 @@ import {
   DropdownSection,
   DropdownTrigger,
 } from "@heroui/dropdown";
-import { Link } from "@heroui/link";
 import { Button } from "@heroui/react";
 import { User } from "@heroui/user";
 import { ChevronDown } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth_context";
 
 export const PlusIcon = (props: any) => {
@@ -70,6 +70,7 @@ export const NotificationIcon = ({
 
 export const UserDropdown = () => {
   const { authData, logout } = useAuth();
+  const navigate = useNavigate();
   return (
     <Dropdown
       backdrop="blur"
@@ -88,8 +89,8 @@ export const UserDropdown = () => {
           className={"w-full h-[60px] cursor-pointer flex justify-between"}
         >
           <div className="cursor-pointer flex items-center justify-start p-4 space-x-2">
-            <Avatar src="https://i.pravatar.cc/150?u=a042581f4e29026024d" />
-            <span>{authData?.user_name || "User Name"}</span>
+            <Avatar />
+            <span>{authData?.name}</span>
           </div>
         </Button>
       </DropdownTrigger>
@@ -120,17 +121,18 @@ export const UserDropdown = () => {
             <User
               avatarProps={{
                 size: "sm",
-                src: "https://avatars.githubusercontent.com/u/30373425?v=4",
+                src: "",
               }}
               classNames={{
                 name: "text-default-600",
                 description: "text-default-500",
               }}
-              description="@jrgarciadev"
-              name="Junior Garcia"
+              description={`${authData?.role}`}
+              name={`${authData?.name}`}
             />
           </DropdownItem>
-          <DropdownItem key="edit-theme" as={Link} href="/theme-editor">
+          {/* TODO:: Future Update */}
+          {/* <DropdownItem key="edit-theme" as={Link} href="/theme-editor">
             Edit Theme
           </DropdownItem>
           <DropdownItem key="settings">Settings</DropdownItem>
@@ -164,11 +166,21 @@ export const UserDropdown = () => {
           >
             Theme
           </DropdownItem>
+        </DropdownSection> */}
         </DropdownSection>
 
         <DropdownSection aria-label="Help & Feedback">
           <DropdownItem key="help_and_feedback">Help & Feedback</DropdownItem>
-          <DropdownItem key="logout">Log Out</DropdownItem>
+          <DropdownItem
+            className="text-red-500"
+            key="logout"
+            onPress={() => {
+              logout();
+              navigate("/");
+            }}
+          >
+            Log Out
+          </DropdownItem>
         </DropdownSection>
       </DropdownMenu>
     </Dropdown>

@@ -49,6 +49,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             create_user,
             get_user,
+            get_user_by_email,
             get_all_users,
             update_user_status,
             delete_user,
