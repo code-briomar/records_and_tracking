@@ -1,13 +1,11 @@
 import { Accordion, AccordionItem, Button } from "@heroui/react";
 import {
-  Brain,
   ChevronRight,
   Cog,
   FilePenLine,
   Gauge,
   Link,
   Logs,
-  MessageCircleMore,
   UserRound,
   Wrench,
 } from "lucide-react";
@@ -70,26 +68,6 @@ const LeftPanel = () => {
             </div>
           </AccordionItem>
 
-          {/*Staff*/}
-          <AccordionItem
-            key="2"
-            aria-label="Staff"
-            title="Staff"
-            startContent={<UserRound className="w-4 h-4" />}
-          >
-            <div className="flex space-x-1 items-center ">
-              <span className="text-sm">Monitor Staff</span>
-              <Button
-                variant="faded"
-                size="sm"
-                onPress={() => redirect("/staff")}
-              >
-                Get Started
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </AccordionItem>
-
           {/* CTS*/}
           {/*TODO::Include In Future Release*/}
           <AccordionItem
@@ -104,6 +82,26 @@ const LeftPanel = () => {
                 variant="faded"
                 size="sm"
                 onPress={() => redirect("/cts")}
+              >
+                Get Started
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </AccordionItem>
+
+          {/*Staff*/}
+          <AccordionItem
+            key="2"
+            aria-label="Staff"
+            title="Staff"
+            startContent={<UserRound className="w-4 h-4" />}
+          >
+            <div className="flex space-x-1 items-center ">
+              <span className="text-sm">Monitor Staff</span>
+              <Button
+                variant="faded"
+                size="sm"
+                onPress={() => redirect("/staff")}
               >
                 Get Started
                 <ChevronRight className="w-4 h-4" />
@@ -152,7 +150,7 @@ const LeftPanel = () => {
           </AccordionItem>
 
           {/*Messaging*/}
-          <AccordionItem
+          {/* <AccordionItem
             key="6"
             aria-label="Messaging"
             title="Messaging"
@@ -169,10 +167,10 @@ const LeftPanel = () => {
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-          </AccordionItem>
+          </AccordionItem> */}
 
           {/*AI Insights.....Don't Say It's AI*/}
-          <AccordionItem
+          {/* <AccordionItem
             key="7"
             aria-label="AI"
             title="Insights"
@@ -189,7 +187,7 @@ const LeftPanel = () => {
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
-          </AccordionItem>
+          </AccordionItem> */}
 
           {/*Tools - Such as Scanned PDF to Word*/}
           <AccordionItem
@@ -203,7 +201,7 @@ const LeftPanel = () => {
               <Button
                 variant="faded"
                 size="sm"
-                onPress={() => redirect("/messaging")}
+                onPress={() => redirect("/tools")}
               >
                 Get Started
                 <ChevronRight className="w-4 h-4" />

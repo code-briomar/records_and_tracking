@@ -121,7 +121,7 @@ export default function Dashboard() {
                         } */}
                           <Card
                             key={file.file_id}
-                            className="flex-1 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md"
+                            className="flex-1 p-4 bg-white dark:bg-background/50 rounded-lg shadow-md"
                             shadow="sm"
                           >
                             <CardBody>

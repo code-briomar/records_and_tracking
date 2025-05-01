@@ -8,9 +8,10 @@ import {
   DropdownTrigger,
 } from "@heroui/dropdown";
 import { Link } from "@heroui/link";
+import { Button } from "@heroui/react";
 import { User } from "@heroui/user";
-import {Button} from "@heroui/react";
-import {ChevronDown} from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { useAuth } from "../context/auth_context";
 
 export const PlusIcon = (props: any) => {
   return (
@@ -68,6 +69,7 @@ export const NotificationIcon = ({
 };
 
 export const UserDropdown = () => {
+  const { authData, logout } = useAuth();
   return (
     <Dropdown
       backdrop="blur"
@@ -79,11 +81,15 @@ export const UserDropdown = () => {
       radius="sm"
     >
       <DropdownTrigger>
-
-        <Button variant={"light"} size={"lg"} endContent={<ChevronDown className={"w-4 h-4"}/>} className={"w-full h-[60px] cursor-pointer flex justify-between"}>
+        <Button
+          variant={"light"}
+          size={"lg"}
+          endContent={<ChevronDown className={"w-4 h-4"} />}
+          className={"w-full h-[60px] cursor-pointer flex justify-between"}
+        >
           <div className="cursor-pointer flex items-center justify-start p-4 space-x-2">
             <Avatar src="https://i.pravatar.cc/150?u=a042581f4e29026024d" />
-            <span>Hon. C Kemei</span>
+            <span>{authData?.user_name || "User Name"}</span>
           </div>
         </Button>
       </DropdownTrigger>
