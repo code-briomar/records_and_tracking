@@ -1,4 +1,4 @@
-import { Input } from "@heroui/react";
+import { addToast, Input } from "@heroui/react";
 import bcrypt from "bcryptjs";
 import { useFormik } from "formik";
 import { SearchIcon } from "lucide-react";
@@ -8,7 +8,8 @@ import * as Yup from "yup";
 import AuthForm from "../components/auth_form.tsx";
 import AuthFormCarousel from "../components/auth_form_carousel.tsx";
 import { useAuth } from "../context/auth_context.tsx";
-import { getUserByEmail } from "../services/users.ts";
+import { createNotification } from "../services/notifications.ts";
+import { createUser, getUserByEmail } from "../services/users.ts";
 
 const saltRounds = 10;
 
@@ -65,19 +66,123 @@ function Auth() {
         passwordHash
       );
       if (!isMatch) {
-        console.log("Password is invalid");
-        alert("Invalid password. Please try again.");
+        // console.log("Password is invalid");
+        // alert("Invalid password. Please try again.");
+        addToast({
+          title: "Invalid password",
+          description: "Please try again.",
+          color: "danger",
+          shouldShowTimeoutProgress: true,
+        });
         return;
       }
 
       // // Check if user is active
       if (response.status !== "Active") {
-        alert("User is not active. Please contact admin.");
+        // alert("User is not active. Please contact admin.");
+        addToast({
+          title: "User is not active",
+          description: "Please contact admin.",
+          color: "danger",
+          shouldShowTimeoutProgress: true,
+        });
         return;
       }
 
       // Set context and redirect to dashboard
       login(response);
+      navigate("/dashboard");
+    },
+  });
+
+  const signup_formik = useFormik({
+    initialValues: {
+      signup_first_name: "",
+      signup_last_name: "",
+      signup_phone_number: "",
+      signup_role: "" as "Super Admin" | "Court Admin" | "Staff",
+      signup_email: "",
+      signup_password: "",
+      signup_confirm_password: "",
+    },
+    validationSchema: Yup.object({
+      signup_email: Yup.string()
+        .email("Invalid email address")
+        .required("Required"),
+      signup_password: Yup.string()
+        .min(8, "Password must be at least 8 characters")
+        .required("Required"),
+      signup_confirm_password: Yup.string()
+        .oneOf([Yup.ref("signup_password"), undefined], "Passwords must match")
+        .required("Required"),
+    }),
+    onSubmit: async (values) => {
+      // Handle signup logic here
+      // console.log(values);
+
+      // Hash the password before sending it to the server
+      const hashedPassword = await hashPassword(values.signup_password);
+      console.log("Hashed Password: ", hashedPassword);
+
+      // Send the hashed password to the server
+      const response = await createUser({
+        name: `${values.signup_first_name} ${values.signup_last_name}`,
+        role: values.signup_role as "Super Admin" | "Court Admin" | "Staff",
+        email: values.signup_email,
+        phoneNumber: values.signup_phone_number,
+        passwordHash: hashedPassword,
+      });
+
+      if (!response) {
+        console.log("Error creating user");
+        addToast({
+          title: "Internal Error",
+          description: "Please try again.",
+          color: "danger",
+          shouldShowTimeoutProgress: true,
+        });
+        return;
+      }
+
+      console.log("User created successfully with ID:", response);
+
+      const notification_response = await createNotification(
+        `${values.signup_last_name} ${values.signup_first_name} has signed up`,
+        "Info"
+      );
+
+      if (!notification_response) {
+        console.log("Error creating notification");
+        addToast({
+          title: "Internal Error",
+          description: "Please try again.",
+          color: "danger",
+          shouldShowTimeoutProgress: true,
+        });
+        return;
+      }
+
+      console.log(
+        "Notification created successfully with ID:",
+        notification_response
+      );
+
+      addToast({
+        title: "User created successfully",
+        description: "",
+        color: "success",
+        shouldShowTimeoutProgress: true,
+      });
+
+      // Set context and redirect to dashboard
+      login({
+        id: response,
+        name: `${values.signup_first_name} ${values.signup_last_name}`,
+        role: values.signup_role as "Super Admin" | "Court Admin" | "Staff",
+        email: values.signup_email,
+        phoneNumber: values.signup_phone_number,
+        passwordHash: hashedPassword,
+      });
       navigate("/dashboard");
     },
   });
@@ -88,11 +193,11 @@ function Auth() {
       }
     >
       <div
-        className="col-span-1 shadow-sm rounded-none h-full w-full border-none
+        className="col-span-1 shadow-sm rounded-none h-screen w-full border-none
     bg-background/60 dark:bg-default-100/50 flex items-center justify-center
     backdrop-blur-md"
       >
-        <AuthForm login_formik={login_formik} />
+        <AuthForm login_formik={login_formik} signup_formik={signup_formik} />
       </div>
 
       <div className="col-span-2">

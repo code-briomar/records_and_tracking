@@ -2,13 +2,17 @@ import { BreadcrumbItem, Breadcrumbs } from "@heroui/react";
 import { Bell, Moon, RotateCcwIcon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/auth_context";
 import { CustomSearchBar } from "./search_bar";
 
 const NavbarSection = ({ breadcrumbs }: { breadcrumbs: string[] }) => {
+  const { authData } = useAuth();
+
   const [darkMode, setDarkMode] = useState(
     localStorage.getItem("theme") === "dark" || !localStorage.getItem("theme")
   );
   const [spinning, setSpinning] = useState(false);
+
   const navigate = useNavigate();
 
   const handleClick = () => {
@@ -58,7 +62,9 @@ const NavbarSection = ({ breadcrumbs }: { breadcrumbs: string[] }) => {
           className={`w-6 h-6 cursor-pointer ${spinning ? "animate-spin" : ""}`}
           onClick={handleClick}
         />
-        <Bell className="w-6 h-6" onClick={notifications} />
+        {authData?.role === "Super Admin" && (
+          <Bell className="w-6 h-6" onClick={notifications} />
+        )}
       </div>
     </div>
   );

@@ -3,9 +3,11 @@ import FileFilters from "../components/files_data_filters";
 import LeftPanel from "../components/left_panel";
 import NavbarSection from "../components/navbar";
 import RightPanel from "../components/right_panel";
+import { useAuth } from "../context/auth_context";
 
 export default function File() {
-  const breadcrumbs = ["Super-Admin","File Explorer"]
+  const { authData } = useAuth();
+  const breadcrumbs = [authData?.role, "File Explorer"];
   return (
     <>
       <Card

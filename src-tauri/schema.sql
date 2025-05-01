@@ -60,7 +60,8 @@ CREATE TABLE IF NOT EXISTS cases (
 CREATE TABLE IF NOT EXISTS files(
     file_id INTEGER PRIMARY KEY AUTOINCREMENT,
     case_number TEXT NOT NULL,
-    purpose TEXT CHECK(purpose IN ('Ruling', 'Judgement', 'Other')) NOT NULL, -- for
+    case_type TEXT CHECK(case_type IN ('Civil', 'Criminal','Other')) NOT NULL, -- type of case
+    purpose TEXT CHECK(purpose IN ('Ruling', 'Judgement', 'Hearing','Mention','Other')) NOT NULL, -- for
     uploaded_by INTEGER NOT NULL, -- ID of the user who uploaded the file
     current_location TEXT NOT NULL, -- Current location of the file (e.g., court, archive, etc.)
     notes TEXT NOT NULL, -- Notes or comments about the file
@@ -185,4 +186,21 @@ END;
 -- INDEXES
 CREATE INDEX IF NOT EXISTS idx_history_required_on_file_id ON history_required_on_in_files(file_id);
 CREATE INDEX IF NOT EXISTS idx_history_notes_file_id ON history_notes_in_files(file_id);
+
+
+-- Trigger before inserting into the files table
+-- SPECIAL REQUEST: In a day, there should be a maximum of 6 Criminal Cases.
+-- If the limit is reached, the trigger will prevent the insertion of new records.
+CREATE TRIGGER check_criminal_case_limit
+BEFORE INSERT ON files
+WHEN NEW.case_type = 'Criminal' AND (
+    (SELECT COUNT(*) 
+     FROM files 
+     WHERE case_type = 'Criminal' 
+       AND DATE(required_on) = DATE('now')) >= 6
+)
+BEGIN
+    SELECT RAISE(FAIL, 'Maximum limit of 6 Criminal cases reached for today.');
+END;
+
 

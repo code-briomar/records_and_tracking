@@ -229,6 +229,9 @@ import { staff } from "./staff_data";
 // Validation Schema
 const fileSchema = Yup.object().shape({
   case_number: Yup.string().required("Case number is required"),
+  case_type: Yup.string()
+    .oneOf(["Civil", "Criminal", "Other"], "Invalid case type")
+    .required("Case type is required"),
   purpose: Yup.string()
     .oneOf(["Ruling", "Judgement", "Other"], "Invalid purpose")
     .required("Purpose is required"),
@@ -249,9 +252,12 @@ export default function AddNewFileForm({
 }) {
   const handleSubmit = async (values: any, { resetForm }: any) => {
     try {
+      // SPECIAL REQUEST: In a day, there should be a maximum of 6 Criminal Cases
+
       const fileData = {
         ...values,
         caseNumber: values.case_number,
+        caseType: values.case_type,
         uploaded_by: parseInt(values.uploaded_by, 10), // Ensure uploader ID is a number
         required_on: new Date(values.required_on), // Ensure correct timestamp format
       };
@@ -301,7 +307,7 @@ export default function AddNewFileForm({
       console.error("Error in handleSubmit:", error.message || error);
       addToast({
         title: "Error",
-        description: error.message || "An unexpected error occurred.",
+        description: error || "An unexpected error occurred.",
         color: "danger",
         shouldShowTimeoutProgress: true,
       });
@@ -317,6 +323,7 @@ export default function AddNewFileForm({
       <Formik
         initialValues={{
           case_number: "",
+          case_type: "",
           purpose: "",
           uploaded_by: staff[0]?.staff_id, // Default to the first staff member TODO::Remove this in a future refactored version
           current_location: "",
@@ -344,6 +351,32 @@ export default function AddNewFileForm({
             </div>
 
             <div>
+              <Field name="case_type">
+                {({ field, form }: any) => (
+                  <Select
+                    label="Type of Case"
+                    placeholder="Select a case type"
+                    selectedKeys={[field.value]}
+                    onSelectionChange={(keys) =>
+                      form.setFieldValue(field.name, Array.from(keys)[0])
+                    }
+                    className=""
+                    variant={"bordered"}
+                  >
+                    <SelectItem key="Civil">Civil</SelectItem>
+                    <SelectItem key="Criminal">Criminal</SelectItem>
+                    <SelectItem key="Other">Other</SelectItem>
+                  </Select>
+                )}
+              </Field>
+              <ErrorMessage
+                name="case_type"
+                component="p"
+                className="text-red-500 text-sm"
+              />
+            </div>
+
+            <div>
               <Field name="purpose">
                 {({ field, form }: any) => (
                   <Select
@@ -358,6 +391,8 @@ export default function AddNewFileForm({
                   >
                     <SelectItem key="Ruling">Ruling</SelectItem>
                     <SelectItem key="Judgement">Judgement</SelectItem>
+                    <SelectItem key="Hearing">Hearing</SelectItem>
+                    <SelectItem key="Mention">Mention</SelectItem>
                     <SelectItem key="Other">Other</SelectItem>
                   </Select>
                 )}

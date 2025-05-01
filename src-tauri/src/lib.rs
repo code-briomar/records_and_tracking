@@ -16,27 +16,26 @@ struct AppState {
     conn: Arc<Mutex<Connection>>,
 }
 
-// Initialize Database
+use std::path::Path;
+
 fn init_db() -> Result<Arc<Mutex<Connection>>, rusqlite::Error> {
     let package_name = env!("CARGO_PKG_NAME");
     let db_path = format!("{}.db", package_name);
-
-    // Delete the database file if it exists
-    // if Path::new(&db_path).exists() {
-    //     fs::remove_file(&db_path).expect("Failed to delete existing database file");
-    // }
+    let is_new_db = !Path::new(&db_path).exists();
 
     let conn = Connection::open(&db_path)?;
 
-    // Read and execute schema.sql
-    let schema = fs::read_to_string("./schema.sql").expect("Failed to read schema.sql");
-    let _ = conn.execute_batch(&schema)?;
+    if is_new_db {
+        // Initialize schema only if DB doesn't exist
+        let schema = fs::read_to_string("./schema.sql").expect("Failed to read schema.sql");
+        conn.execute_batch(&schema)?;
 
-    // Read and execute seed.sql
-    let seed = fs::read_to_string("./seed.sql").expect("Failed to read seed.sql");
-    let __ = conn.execute_batch(&seed)?;
+        // Optionally seed initial data
+        let seed = fs::read_to_string("./seed.sql").expect("Failed to read seed.sql");
+        conn.execute_batch(&seed)?;
+    }
 
-    Ok(Arc::new(Mutex::new(conn))) // Return Arc<Mutex<Connection>>
+    Ok(Arc::new(Mutex::new(conn)))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

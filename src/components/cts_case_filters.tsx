@@ -34,6 +34,7 @@ export type IconSvgProps = SVGProps<SVGSVGElement> & {
 
 export const columns = [
   { name: "CASE NUMBER", uid: "case_number", sortable: true },
+  { name: "TYPE", uid: "case_type", sortable: true },
   { name: "PURPOSE", uid: "purpose", sortable: true },
   //{ name: "STATUS", uid: "status", sortable: true }, // Assuming status is part of the case table
   { name: "UPLOADED BY", uid: "uploaded_by", sortable: true },
@@ -170,6 +171,7 @@ export const ChevronDownIcon = ({
 
 const INITIAL_VISIBLE_COLUMNS = [
   "case_number",
+  "case_type",
   "purpose",
   //"status", // Only include if it's part of your case/file schema
   // "uploaded_by",
@@ -346,6 +348,24 @@ export default function CaseFilters({
     switch (columnKey) {
       case "case_number":
         return <p className="text-bold text-small">{file?.case_number}</p>;
+
+      case "case_type":
+        return (
+          <Chip
+            className="capitalize border-none gap-1 text-default-600"
+            color={
+              file.case_type === "Civil"
+                ? "default"
+                : file.case_type === "Criminal"
+                ? "warning"
+                : "default"
+            }
+            size="sm"
+            variant="flat"
+          >
+            {file.case_type}
+          </Chip>
+        );
 
       case "purpose":
         return (
@@ -565,9 +585,34 @@ export default function CaseFilters({
           </div>
         </div>
         <div className="flex justify-between items-center">
-          <span className="text-default-400 text-small">
-            Total {caseFiles.length} case files
-          </span>
+          <div className="flex gap-2 items-center">
+            <span className="text-default-400 text-small">
+              Total {caseFiles.length} case files,
+            </span>
+            <Chip
+              className="capitalize border-none gap-1 text-default-600"
+              size="sm"
+              variant="flat"
+              color="warning"
+            >
+              {/* Criminal Case Types */}
+              {
+                caseFiles.filter((file) => file.case_type === "Criminal").length
+              }{" "}
+              - Criminal
+            </Chip>
+
+            <Chip
+              className="capitalize border-none gap-1 text-default-600"
+              size="sm"
+              variant="flat"
+              color="default"
+            >
+              {/* Civil Case Types */}
+              {caseFiles.filter((file) => file.case_type === "Civil").length} -
+              Civil
+            </Chip>
+          </div>
           <label className="flex items-center text-default-400 text-small">
             Rows per page:
             <select

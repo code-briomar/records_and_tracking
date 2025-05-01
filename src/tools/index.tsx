@@ -15,6 +15,7 @@ import { utils, writeFile } from "xlsx-js-style";
 import { fileSectionData } from "../components/files_data";
 import { notifications } from "../components/notifications_data";
 import { staff } from "../components/staff_data";
+import { useAuth } from "../context/auth_context";
 
 const ExportExcelTool = () => {
   const [tableToExport, setTableToExport] = React.useState("cases");
@@ -172,7 +173,8 @@ const ExportExcelTool = () => {
 };
 
 export default function Tools() {
-  const breadcrumbs = ["Super-Admin", "Tools"];
+  const { authData } = useAuth();
+  const breadcrumbs = [authData?.role, "Tools"];
 
   return (
     <>

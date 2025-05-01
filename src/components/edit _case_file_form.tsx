@@ -60,6 +60,7 @@ export default function EditCaseFileForm({
       const payload = {
         file_id: caseFile.file_id, // assuming caseFile contains this
         case_number: values.case_number,
+        case_type: values.case_type,
         purpose: values.purpose,
         current_location: values.current_location,
         notes: values.notes,
@@ -130,7 +131,7 @@ export default function EditCaseFileForm({
       <CustomModal
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-        title={"Edit Case File No: " + caseFile.case_number}
+        title={"...Editing Case File No: " + caseFile.case_number}
       >
         {!caseFile && (
           <div className="flex items-center justify-center h-full w-full">
@@ -146,6 +147,7 @@ export default function EditCaseFileForm({
           <Formik
             initialValues={{
               case_number: caseFile.case_number || "",
+              case_type: caseFile.case_type || "",
               purpose: caseFile.purpose || "",
               uploaded_by: caseFile.uploaded_by || "",
               current_location: caseFile.current_location || "",
@@ -156,6 +158,7 @@ export default function EditCaseFileForm({
             }}
             validationSchema={Yup.object().shape({
               case_number: Yup.string().required("Case number is required"),
+              case_type: Yup.string().required("Case type is required"),
               purpose: Yup.string().required("Purpose is required"),
               current_location: Yup.string().required(
                 "Current location is required"
@@ -185,6 +188,32 @@ export default function EditCaseFileForm({
                   />
                 </div>
 
+                {/* Case Type */}
+                <div>
+                  <Field name="case_type">
+                    {({ field, form }: any) => (
+                      <Select
+                        label="Type of Case"
+                        placeholder="Select a case type"
+                        selectedKeys={[field.value]}
+                        onSelectionChange={(keys) =>
+                          form.setFieldValue(field.name, Array.from(keys)[0])
+                        }
+                        variant="bordered"
+                      >
+                        <SelectItem key="Civil">Civil</SelectItem>
+                        <SelectItem key="Criminal">Criminal</SelectItem>
+                        <SelectItem key="Other">Other</SelectItem>
+                      </Select>
+                    )}
+                  </Field>
+                  <ErrorMessage
+                    name="case_type"
+                    component="p"
+                    className="text-red-500 text-sm"
+                  />
+                </div>
+
                 {/* Purpose */}
                 <div>
                   <Field name="purpose">
@@ -200,6 +229,8 @@ export default function EditCaseFileForm({
                       >
                         <SelectItem key="Ruling">Ruling</SelectItem>
                         <SelectItem key="Judgement">Judgement</SelectItem>
+                        <SelectItem key="Mention">Mention</SelectItem>
+                        <SelectItem key="Hearing">Hearing</SelectItem>
                         <SelectItem key="Other">Other</SelectItem>
                       </Select>
                     )}
