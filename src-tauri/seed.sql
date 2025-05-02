@@ -5,11 +5,8 @@ PRAGMA foreign_keys = ON;
 -------------------------------------
 -- USERS
 -------------------------------------
-INSERT INTO users (name, role, email, phone_number, password_hash, status) VALUES
-                                                                               ('Juma Mwangi', 'Super Admin', 'juma.mwangi@example.co.ke', '0712345678', 'hashpassword1', 'Active'),
-                                                                               ('Achieng Otieno', 'Court Admin', 'achieng.otieno@example.co.ke', '0723456789', 'hashpassword2', 'Active'),
-                                                                               ('Kamau Karanja', 'Staff', 'kamau.karanja@example.co.ke', '0734567890', 'hashpassword3', 'Active'),
-                                                                               ('Wanjiku Njeri', 'Staff', 'wanjiku.njeri@example.co.ke', '0745678901', 'hashpassword4', 'Active');
+-- INSERT INTO users (name, role, email, phone_number, password_hash, status) VALUES
+--                                                                                ('Hon. C Kemei', 'Super Admin', 'cheptoock@gmail.com', '0795056287', '$2b$10$DWlaIIDDTGyPGMaEnZwct.QX5Tq5KrZ8KxHEeOrcSiD51gs9JhZzi', 'Active');
 
 -------------------------------------
 -- STAFF

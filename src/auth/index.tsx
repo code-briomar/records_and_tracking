@@ -9,6 +9,7 @@ import AuthForm from "../components/auth_form.tsx";
 import AuthFormCarousel from "../components/auth_form_carousel.tsx";
 import { useAuth } from "../context/auth_context.tsx";
 import { createNotification } from "../services/notifications.ts";
+import { addStaff } from "../services/staff.ts";
 import { createUser, getUserByEmail } from "../services/users.ts";
 
 const saltRounds = 10;
@@ -34,7 +35,7 @@ function Auth() {
     if (authData) {
       navigate("/dashboard");
     }
-  }, []);
+  }, [authData]);
 
   const navigate = useNavigate();
   const login_formik = useFormik({
@@ -51,46 +52,40 @@ function Auth() {
         .required("Required"),
     }),
     onSubmit: async (values) => {
-      // Handle login logic here
       const response = await getUserByEmail(values.login_email);
 
-      // Check if user password and password hash match use md5 hash
-      const passwordHash = await hashPassword(values.login_password);
+      if (!response || !response.password_hash) {
+        addToast({
+          title: "User not found",
+          description: "Please check your email.",
+          color: "danger",
+        });
+        return;
+      }
 
-      // console.log("Password Hash: ", passwordHash);
-
-      // console.log("Password Hash: ", passwordHash);
-      // console.log("Password Hash from DB: ", response);
       const isMatch = await validatePassword(
         values.login_password,
-        passwordHash
+        response.password_hash
       );
+
       if (!isMatch) {
-        // console.log("Password is invalid");
-        // alert("Invalid password. Please try again.");
         addToast({
           title: "Invalid password",
           description: "Please try again.",
           color: "danger",
-          shouldShowTimeoutProgress: true,
         });
         return;
       }
 
-      // // Check if user is active
-      if (response.status !== "Active") {
-        // alert("User is not active. Please contact admin.");
-        addToast({
-          title: "User is not active",
-          description: "Please contact admin.",
-          color: "danger",
-          shouldShowTimeoutProgress: true,
-        });
-        return;
-      }
+      addToast({
+        title: "Login successful",
+        description: "",
+        color: "success",
+        shouldShowTimeoutProgress: true,
+      });
 
-      // Set context and redirect to dashboard
-      login(response);
+      // If match, login user
+      login(response); // Store user data in auth context
       navigate("/dashboard");
     },
   });
@@ -144,6 +139,25 @@ function Auth() {
         return;
       }
 
+      // Response is the user ID
+      const staff_response = await addStaff(
+        response,
+        values.signup_role as "Super Admin" | "Court Admin" | "Staff",
+        values.signup_phone_number,
+        "Active"
+      );
+
+      if (!staff_response) {
+        console.log("Error creating staff member");
+        addToast({
+          title: "Internal Error",
+          description: "Please try again.",
+          color: "danger",
+          shouldShowTimeoutProgress: true,
+        });
+        return;
+      }
+
       console.log("User created successfully with ID:", response);
 
       const notification_response = await createNotification(
@@ -186,6 +200,7 @@ function Auth() {
       navigate("/dashboard");
     },
   });
+
   return (
     <div
       className={

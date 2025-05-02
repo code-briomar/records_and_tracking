@@ -74,27 +74,26 @@ const LeftPanel = () => {
           </AccordionItem>
 
           {/* Case Tracking System */}
-          {authData.role == "Super Admin" ||
-            (authData.role == "Court Admin" && (
-              <AccordionItem
-                key="2"
-                aria-label="CTS"
-                title="CTS"
-                startContent={<FilePenLine />}
-              >
-                <div className="flex space-x-1 items-center ">
-                  <span className="text-xs">Track case files</span>
-                  <Button
-                    variant="faded"
-                    size="sm"
-                    onPress={() => redirect("/cts")}
-                  >
-                    Get Started
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </AccordionItem>
-            ))}
+          {authData.role == "Super Admin" || authData.role == "Court Admin" ? (
+            <AccordionItem
+              key="2"
+              aria-label="CTS"
+              title="CTS"
+              startContent={<FilePenLine />}
+            >
+              <div className="flex space-x-1 items-center ">
+                <span className="text-xs">Track case files</span>
+                <Button
+                  variant="faded"
+                  size="sm"
+                  onPress={() => redirect("/cts")}
+                >
+                  Get Started
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </AccordionItem>
+          ) : null}
 
           {/* Diary */}
           {/*TODO::Include In Future Release*/}
@@ -222,27 +221,26 @@ const LeftPanel = () => {
           </AccordionItem> */}
 
           {/*Tools - Such as Scanned PDF to Word*/}
-          {authData.role == "Super Admin" ||
-            (authData.role == "Court Admin" && (
-              <AccordionItem
-                key="8"
-                aria-label="Tools"
-                title="Tools"
-                startContent={<Wrench />}
-              >
-                <div className="flex space-x-1 items-center ">
-                  <span className="text-xs">Access Tools Here</span>
-                  <Button
-                    variant="faded"
-                    size="sm"
-                    onPress={() => redirect("/tools")}
-                  >
-                    Get Started
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
-              </AccordionItem>
-            ))}
+          {authData.role == "Super Admin" || authData.role == "Court Admin" ? (
+            <AccordionItem
+              key="8"
+              aria-label="Tools"
+              title="Tools"
+              startContent={<Wrench />}
+            >
+              <div className="flex space-x-1 items-center ">
+                <span className="text-xs">Access Tools Here</span>
+                <Button
+                  variant="faded"
+                  size="sm"
+                  onPress={() => redirect("/tools")}
+                >
+                  Get Started
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </AccordionItem>
+          ) : null}
 
           {/* <AccordionItem
             key="9"
@@ -266,7 +264,7 @@ const LeftPanel = () => {
       </div>
 
       {/* Absent Staff */}
-      {authData.role == "Super Admin" && authData.role == "Court Admin" && (
+      {authData.role == "Super Admin" || authData.role == "Court Admin" ? (
         <div>
           <h1 className="m-2 text-rose-500">Absent Staff</h1>
 
@@ -306,7 +304,7 @@ const LeftPanel = () => {
             </p>
           )}
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

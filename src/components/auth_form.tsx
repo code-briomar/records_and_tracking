@@ -104,6 +104,13 @@ export default function AuthForm({ login_formik, signup_formik }: any) {
                 Login
               </Button>
             </form>
+
+            <p className="text-center text-small">
+              Forgot your password?{" "}
+              <Link size="sm" onPress={() => setSelected("forgot-password")}>
+                Reset
+              </Link>
+            </p>
           </Tab>
 
           {/* Sign Up */}
@@ -296,6 +303,48 @@ export default function AuthForm({ login_formik, signup_formik }: any) {
               </p>
             </form>
           </Tab>
+
+          {/* Forgot Password */}
+          {/* <Tab key="forgot-password" title="Forgot Password">
+            <form className="flex flex-col gap-4">
+              <Input
+                isRequired
+                label="Email"
+                placeholder="Enter your email"
+                name="reset_email"
+                type="email"
+              />
+
+              <Input
+                isRequired
+                label="New Password"
+                placeholder="Enter your new password"
+                name="reset_password"
+                type="password"
+                }
+              />
+
+              <Input
+                isRequired
+                label="Confirm Password"
+                placeholder="Confirm new password"
+                name="reset_confirm_password"
+                type="password"
+                }
+              />
+
+              <Button fullWidth color="primary" type="submit">
+                Reset Password
+              </Button>
+
+              <p className="text-center text-small">
+                Remembered your password?{" "}
+                <Link size="sm" onPress={() => setSelected("login")}>
+                  Go back to login
+                </Link>
+              </p>
+            </form>
+          </Tab> */}
         </Tabs>
       </CardBody>
     </Card>

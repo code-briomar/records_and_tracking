@@ -75,7 +75,7 @@ export default function Dashboard() {
             <Tabs
               aria-label="Options"
               selectedKey={
-                authData?.role === "Super Admin"
+                authData?.role == "Super Admin"
                   ? "upcoming_cases"
                   : authData?.role === "Staff"
                   ? "staff_directory"
@@ -84,38 +84,38 @@ export default function Dashboard() {
               onSelectionChange={(key) => setSelected(key as string)}
               className="p-2"
             >
-              {authData?.role === "Super Admin" ||
-                (authData?.role === "Court Admin" && (
-                  <>
-                    <Tab key="upcoming_cases" title={`Upcoming Cases`}>
-                      <Card>
-                        <CardHeader className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <FolderIcon className="w-5 h-5 text-blue-500" />
-                            <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-                              Today's Cases
-                            </h4>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-gray-500">
-                              {/* Today */}
-                              {new Date().toLocaleDateString("en-US", {
-                                month: "2-digit",
-                                day: "2-digit",
-                                year: "numeric",
-                              })}
-                            </span>
-                          </div>
-                        </CardHeader>
-                        <CardBody>
-                          {todayFiles.length > 0 ? (
-                            todayFiles.map((file, index) => (
-                              <div
-                                key={index}
-                                className="flex items-center gap-4 mb-4"
-                              >
-                                {/* File Section Data Interface */}
-                                {/* export interface File {
+              {authData?.role == "Super Admin" ||
+              authData?.role === "Court Admin" ? (
+                <>
+                  <Tab key="upcoming_cases" title={`Upcoming Cases`}>
+                    <Card>
+                      <CardHeader className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FolderIcon className="w-5 h-5 text-blue-500" />
+                          <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                            Today's Cases
+                          </h4>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-gray-500">
+                            {/* Today */}
+                            {new Date().toLocaleDateString("en-US", {
+                              month: "2-digit",
+                              day: "2-digit",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </div>
+                      </CardHeader>
+                      <CardBody>
+                        {todayFiles.length > 0 ? (
+                          todayFiles.map((file, index) => (
+                            <div
+                              key={index}
+                              className="flex items-center gap-4 mb-4"
+                            >
+                              {/* File Section Data Interface */}
+                              {/* export interface File {
                             case_number?: any;
                             file_id: number;
                             caseNumber: string
@@ -130,56 +130,56 @@ export default function Dashboard() {
                             date_returned_signature: string | null;
                             deleted: boolean;
                         } */}
-                                <Card
-                                  key={file.file_id}
-                                  className="flex-1 p-4 bg-white dark:bg-background/50 rounded-lg shadow-md"
-                                  shadow="sm"
-                                >
-                                  <CardBody>
-                                    <div className="text-base text-gray-600 dark:text-gray-400 space-y-1 ml-6">
-                                      <p className="flex items-center gap-1">
-                                        <ClipboardDocumentIcon className="w-4 h-4 text-purple-500" />
-                                        <span className="font-medium">
-                                          Purpose:
-                                        </span>{" "}
-                                        {file.purpose}
-                                      </p>
+                              <Card
+                                key={file.file_id}
+                                className="flex-1 p-4 bg-white dark:bg-background/50 rounded-lg shadow-md"
+                                shadow="sm"
+                              >
+                                <CardBody>
+                                  <div className="text-base text-gray-600 dark:text-gray-400 space-y-1 ml-6">
+                                    <p className="flex items-center gap-1">
+                                      <ClipboardDocumentIcon className="w-4 h-4 text-purple-500" />
+                                      <span className="font-medium">
+                                        Purpose:
+                                      </span>{" "}
+                                      {file.purpose}
+                                    </p>
 
-                                      {/* <p className="flex items-center gap-1">
+                                    {/* <p className="flex items-center gap-1">
                                     <PencilIcon className="w-4 h-4 text-yellow-500" />
                                     <span className="font-medium">Notes:</span>{" "}
                                     {file.notes || "—"}
                                   </p> */}
 
-                                      <p className="flex items-center gap-1">
-                                        <CalendarIcon className="w-4 h-4 text-gray-500" />
-                                        <span className="font-medium">
-                                          Date Received:
-                                        </span>{" "}
-                                        {new Date(
-                                          file.date_recieved
-                                        ).toLocaleDateString("en-US", {
-                                          month: "2-digit",
-                                          day: "2-digit",
-                                          year: "numeric",
-                                        })}
-                                      </p>
+                                    <p className="flex items-center gap-1">
+                                      <CalendarIcon className="w-4 h-4 text-gray-500" />
+                                      <span className="font-medium">
+                                        Date Received:
+                                      </span>{" "}
+                                      {new Date(
+                                        file.date_recieved
+                                      ).toLocaleDateString("en-US", {
+                                        month: "2-digit",
+                                        day: "2-digit",
+                                        year: "numeric",
+                                      })}
+                                    </p>
 
-                                      <p className="flex items-center gap-1">
-                                        <CalendarIcon className="w-4 h-4 text-blue-500" />
-                                        <span className="font-medium">
-                                          Required On:
-                                        </span>{" "}
-                                        {new Date(
-                                          file.required_on
-                                        ).toLocaleDateString("en-US", {
-                                          month: "2-digit",
-                                          day: "2-digit",
-                                          year: "numeric",
-                                        })}
-                                      </p>
+                                    <p className="flex items-center gap-1">
+                                      <CalendarIcon className="w-4 h-4 text-blue-500" />
+                                      <span className="font-medium">
+                                        Required On:
+                                      </span>{" "}
+                                      {new Date(
+                                        file.required_on
+                                      ).toLocaleDateString("en-US", {
+                                        month: "2-digit",
+                                        day: "2-digit",
+                                        year: "numeric",
+                                      })}
+                                    </p>
 
-                                      {/* <p className="flex items-center gap-1">
+                                    {/* <p className="flex items-center gap-1">
                                     <UserIcon className="w-4 h-4 text-teal-500" />
                                     <span className="font-medium">
                                       Signature Due:
@@ -187,23 +187,23 @@ export default function Dashboard() {
                                     {file.required_on_signature}
                                   </p> */}
 
-                                      <p className="flex items-center gap-1">
-                                        <CalendarIcon className="w-4 h-4 text-gray-500" />
-                                        <span className="font-medium">
-                                          Date Returned:
-                                        </span>{" "}
-                                        {file.date_returned || "—"}
-                                      </p>
+                                    <p className="flex items-center gap-1">
+                                      <CalendarIcon className="w-4 h-4 text-gray-500" />
+                                      <span className="font-medium">
+                                        Date Returned:
+                                      </span>{" "}
+                                      {file.date_returned || "—"}
+                                    </p>
 
-                                      <p className="flex items-center gap-1">
-                                        <MapPinIcon className="w-4 h-4 text-green-500" />
-                                        <span className="font-medium">
-                                          Current File Location:
-                                        </span>{" "}
-                                        {file.current_location}
-                                      </p>
+                                    <p className="flex items-center gap-1">
+                                      <MapPinIcon className="w-4 h-4 text-green-500" />
+                                      <span className="font-medium">
+                                        Current File Location:
+                                      </span>{" "}
+                                      {file.current_location}
+                                    </p>
 
-                                      {/* <p className="flex items-center gap-1">
+                                    {/* <p className="flex items-center gap-1">
                                     <UserIcon className="w-4 h-4 text-teal-500" />
                                     <span className="font-medium">
                                       Return Signature:
@@ -211,7 +211,7 @@ export default function Dashboard() {
                                     {file.date_returned_signature || "—"}
                                   </p> */}
 
-                                      {/* <p className="flex items-center gap-1">
+                                    {/* <p className="flex items-center gap-1">
                                     {file.deleted ? (
                                       <XCircleIcon className="w-4 h-4 text-red-500" />
                                     ) : (
@@ -222,46 +222,46 @@ export default function Dashboard() {
                                     </span>{" "}
                                     {file.deleted ? "Yes" : "No"}
                                   </p> */}
-                                      <div className="flex justify-end">
-                                        <Button
-                                          variant="faded"
-                                          color="primary"
-                                          onPress={() => navigate("/cts")}
-                                        >
-                                          View
-                                          <ChevronRight className="w-5 h-5" />
-                                        </Button>
-                                      </div>
+                                    <div className="flex justify-end">
+                                      <Button
+                                        variant="faded"
+                                        color="primary"
+                                        onPress={() => navigate("/cts")}
+                                      >
+                                        View
+                                        <ChevronRight className="w-5 h-5" />
+                                      </Button>
                                     </div>
-                                  </CardBody>
-                                </Card>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="flex items-center justify-center gap-4 mb-4 w-full">
-                              <h4>No Case Files Today</h4>
+                                  </div>
+                                </CardBody>
+                              </Card>
                             </div>
-                          )}
-                        </CardBody>
-                      </Card>
-                    </Tab>
-                    <Tab key="summaries" title="Summaries" disabled>
-                      {/* Today's Summaries Section */}
-                      <div className="p-5">
-                        <div className="flex items-center">
-                          <h3 className="text-md">Today</h3>
-                          <ChevronDown className="w-4 h-4" />
-                        </div>
-                        <SummaryCards />
+                          ))
+                        ) : (
+                          <div className="flex items-center justify-center gap-4 mb-4 w-full">
+                            <h4>No Case Files Today</h4>
+                          </div>
+                        )}
+                      </CardBody>
+                    </Card>
+                  </Tab>
+                  <Tab key="summaries" title="Summaries" disabled>
+                    {/* Today's Summaries Section */}
+                    <div className="p-5">
+                      <div className="flex items-center">
+                        <h3 className="text-md">Today</h3>
+                        <ChevronDown className="w-4 h-4" />
                       </div>
+                      <SummaryCards />
+                    </div>
 
-                      {/* Dashboard Charts */}
-                      <div className="flex items-center justify-center">
-                        <FilesProcessedChart />
-                      </div>
-                    </Tab>
-                  </>
-                ))}
+                    {/* Dashboard Charts */}
+                    <div className="flex items-center justify-center">
+                      <FilesProcessedChart />
+                    </div>
+                  </Tab>
+                </>
+              ) : null}
               {authData?.role === "Staff" && (
                 <Tab
                   key="staff_directory"

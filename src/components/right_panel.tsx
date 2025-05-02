@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "../context/auth_context";
 import { markNotificationAsRead } from "../services/notifications";
 import { notifications as Notifications } from "./notifications_data";
+import { staff } from "./staff_data";
 
 const RightPanel = () => {
   const { authData } = useAuth();
@@ -29,7 +30,7 @@ const RightPanel = () => {
   return (
     <div className="p-2 space-y-4">
       {/* Notifications */}
-      {authData?.role === "Super Admin" && (
+      {authData?.role == "Super Admin" && (
         <>
           <h1 className="m-2 text-gray-500">Notifications</h1>
           <div className="overflow-y-auto max-h-[calc(96vh-200px)]">
@@ -82,7 +83,7 @@ const RightPanel = () => {
       {/* Contacts (Example Placeholder) */}
       <div>
         <h1 className="m-2 text-gray-500">Contacts</h1>
-        <Accordion selectionMode="multiple">
+        {/* <Accordion selectionMode="multiple">
           <AccordionItem
             key="1"
             aria-label="Court Admin - Alex"
@@ -96,6 +97,25 @@ const RightPanel = () => {
               ))}
             </ul>
           </AccordionItem>
+        </Accordion> */}
+        <Accordion className="overflow-y-auto max-h-[400px]">
+          {staff.map((s) => (
+            <AccordionItem
+              key={s.staff_id}
+              aria-label={`${s.name} - ${s.role}`}
+              startContent={<UserRound />}
+              subtitle={`${s.phone_number}`}
+              title={`${s.role} - ${s.name}`}
+            >
+              <p>
+                <span className="font-semibold">Email:</span> {s.email}
+              </p>
+              <p>
+                <span className="font-semibold">Phone Number:</span>{" "}
+                {s.phone_number}
+              </p>
+            </AccordionItem>
+          ))}
         </Accordion>
       </div>
     </div>
