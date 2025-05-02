@@ -5,10 +5,12 @@ import { fetchFileData } from "../components/files_data";
 import LeftPanel from "../components/left_panel";
 import NavbarSection from "../components/navbar";
 import RightPanel from "../components/right_panel";
+import { useAuth } from "../context/auth_context";
 import { File } from "../services/files";
 
 export default function CTS() {
-  const breadcrumbs = ["Super-Admin", "CTS"];
+  const { authData } = useAuth();
+  const breadcrumbs = [authData?.role, "CTS"];
 
   const [caseFiles, setCaseFiles] = useState<File[]>([]);
 

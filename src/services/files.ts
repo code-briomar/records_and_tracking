@@ -3,8 +3,10 @@ import { invoke } from "@tauri-apps/api/core";
 // ✅ File Type Definition
 export interface File {
     case_number?: any;
+    case_type?: any;
     file_id: number;
     caseNumber: string
+    caseType?: string;
     purpose: string;
     uploaded_by: number;
     current_location: string;
@@ -36,6 +38,7 @@ export async function addNewFile(
     try {
         const response: { message: string; status: string; file_id: number } = await invoke("add_new_file", {
             caseNumber: file.caseNumber,
+            caseType: file.caseType,
             purpose: file.purpose,
             uploadedBy: file.uploaded_by,
             currentLocation: file.current_location,
@@ -55,6 +58,7 @@ export async function updateFile(
     file: {
       file_id: number;
       case_number: string;
+      case_type: string;
       purpose: string;
       current_location: string;
       notes: string;
@@ -65,6 +69,7 @@ export async function updateFile(
       const response: { message: string; status: string; file_id: number } = await invoke("update_file", {
         fileId: file.file_id,
         caseNumber: file.case_number,
+        caseType: file.case_type,
         purpose: file.purpose,
         currentLocation: file.current_location,
         notes: file.notes,

@@ -10,6 +10,7 @@ use crate::AppState; // Import AppState
 pub struct File {
     pub file_id: i32,
     pub case_number: Option<String>,
+    pub case_type: Option<String>,
     pub purpose: Option<String>,
     pub uploaded_by: Option<i32>,
     pub current_location: Option<String>,
@@ -28,7 +29,7 @@ pub fn get_all_files(state: State<AppState>) -> Result<Vec<File>, String> {
     let conn = state.conn.lock().unwrap();
     let mut stmt = conn
         .prepare(
-            "SELECT file_id, case_number, purpose, uploaded_by, current_location, notes,
+            "SELECT file_id, case_number, case_type, purpose, uploaded_by, current_location, notes,
              date_recieved, required_on, required_on_signature, date_returned,
              date_returned_signature, deleted FROM files",
         )
@@ -39,16 +40,17 @@ pub fn get_all_files(state: State<AppState>) -> Result<Vec<File>, String> {
             let file_result = File {
                 file_id: row.get(0)?,
                 case_number: row.get(1)?,
-                purpose: row.get(2)?,
-                uploaded_by: row.get(3)?,
-                current_location: row.get(4)?,
-                notes: row.get(5)?,
-                date_recieved: row.get(6)?,
-                required_on: row.get(7)?,
-                required_on_signature: row.get(8)?,
-                date_returned: row.get(9)?,
-                date_returned_signature: row.get(10)?,
-                deleted: row.get(11)?,
+                case_type: row.get(2)?,
+                purpose: row.get(3)?,
+                uploaded_by: row.get(4)?,
+                current_location: row.get(5)?,
+                notes: row.get(6)?,
+                date_recieved: row.get(7)?,
+                required_on: row.get(8)?,
+                required_on_signature: row.get(9)?,
+                date_returned: row.get(10)?,
+                date_returned_signature: row.get(11)?,
+                deleted: row.get(12)?,
             };
             Ok(file_result)
         })
@@ -70,6 +72,7 @@ pub fn get_all_files(state: State<AppState>) -> Result<Vec<File>, String> {
 pub fn add_new_file(
     state: State<AppState>,
     case_number: String,
+    case_type: String,
     purpose: String,
     uploaded_by: i32,
     current_location: String,
@@ -80,11 +83,12 @@ pub fn add_new_file(
 
     match conn.execute(
         "INSERT INTO files (
-            case_number, purpose, uploaded_by, current_location, notes,
+            case_number, case_type, purpose, uploaded_by, current_location, notes,
             required_on 
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![
             case_number,
+            case_type,
             purpose,
             uploaded_by,
             current_location,
@@ -110,7 +114,7 @@ pub fn get_file_by_id(state: State<AppState>, file_id: i32) -> Result<Option<Fil
     let conn = state.conn.lock().unwrap();
     let mut stmt = conn
         .prepare(
-            "SELECT file_id, case_number, purpose, uploaded_by, current_location, notes,
+            "SELECT file_id, case_number, case_type, purpose, uploaded_by, current_location, notes,
          date_recieved, required_on, required_on_signature, date_returned,
          date_returned_signature, deleted FROM files WHERE file_id = ?1",
         )
@@ -121,16 +125,17 @@ pub fn get_file_by_id(state: State<AppState>, file_id: i32) -> Result<Option<Fil
             Ok(File {
                 file_id: row.get(0)?,
                 case_number: row.get(1)?,
-                purpose: row.get(2)?,
-                uploaded_by: row.get(3)?,
-                current_location: row.get(4)?,
-                notes: row.get(5)?,
-                date_recieved: row.get(6)?,
-                required_on: row.get(7)?,
-                required_on_signature: row.get(8)?,
-                date_returned: row.get(9)?,
-                date_returned_signature: row.get(10)?,
-                deleted: row.get(11)?,
+                case_type: row.get(2)?,
+                purpose: row.get(3)?,
+                uploaded_by: row.get(4)?,
+                current_location: row.get(5)?,
+                notes: row.get(6)?,
+                date_recieved: row.get(7)?,
+                required_on: row.get(8)?,
+                required_on_signature: row.get(9)?,
+                date_returned: row.get(10)?,
+                date_returned_signature: row.get(11)?,
+                deleted: row.get(12)?,
             })
         })
         .optional()
@@ -165,6 +170,7 @@ pub fn update_file(
     state: State<AppState>,
     file_id: i64,
     case_number: String,
+    case_type: String,
     purpose: String,
     current_location: String,
     notes: String,
@@ -175,13 +181,16 @@ pub fn update_file(
     match conn.execute(
         "UPDATE files 
          SET case_number = ?1,
-             purpose = ?2,
-             current_location = ?3,
-             notes = ?4,
-             required_on = ?5
-         WHERE file_id = ?6",
+                case_type = ?2,
+                purpose = ?3,
+                current_location = ?4,
+                notes = ?5,
+                required_on = ?6
+
+         WHERE file_id = ?7",
         params![
             case_number,
+            case_type,
             purpose,
             current_location,
             notes,
@@ -307,7 +316,7 @@ pub fn search_files_by_case_number(
 ) -> Result<Vec<File>, String> {
     let conn = state.conn.lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT file_id, case_number, purpose, uploaded_by, current_location, notes, date_recieved, required_on, required_on_signature, date_returned, date_returned_signature, deleted 
+        "SELECT file_id, case_number, case_type, purpose, uploaded_by, current_location, notes, date_recieved, required_on, required_on_signature, date_returned, date_returned_signature, deleted 
          FROM files 
          WHERE case_number = ?1 AND deleted = 0",
     ).map_err(|e| format!("Failed to prepare statement: {}", e))?;
@@ -317,16 +326,17 @@ pub fn search_files_by_case_number(
             Ok(File {
                 file_id: row.get(0)?,
                 case_number: row.get(1)?,
-                purpose: row.get(2)?,
-                uploaded_by: row.get(3)?,
-                current_location: row.get(4)?,
-                notes: row.get(5)?,
-                date_recieved: row.get(6)?,
-                required_on: row.get(7)?,
-                required_on_signature: row.get(8)?,
-                date_returned: row.get(9)?,
-                date_returned_signature: row.get(10)?,
-                deleted: row.get(11)?,
+                case_type: row.get(2)?,
+                purpose: row.get(3)?,
+                uploaded_by: row.get(4)?,
+                current_location: row.get(5)?,
+                notes: row.get(6)?,
+                date_recieved: row.get(7)?,
+                required_on: row.get(8)?,
+                required_on_signature: row.get(9)?,
+                date_returned: row.get(10)?,
+                date_returned_signature: row.get(11)?,
+                deleted: row.get(12)?,
             })
         })
         .map_err(|e| format!("Failed to fetch files: {}", e))?;
@@ -339,7 +349,7 @@ pub fn search_files_by_case_number(
 pub fn filter_files_by_user(state: State<AppState>, user_id: i32) -> Result<Vec<File>, String> {
     let conn = state.conn.lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT file_id, case_number, purpose, uploaded_by, current_location, notes, date_recieved, required_on, required_on_signature, date_returned, date_returned_signature, deleted 
+        "SELECT file_id, case_number, case_type, purpose, uploaded_by, current_location, notes, date_recieved, required_on, required_on_signature, date_returned, date_returned_signature, deleted 
          FROM files 
          WHERE uploaded_by = ?1 AND deleted = 0",
     ).map_err(|e| format!("Failed to prepare statement: {}", e))?;
@@ -349,16 +359,17 @@ pub fn filter_files_by_user(state: State<AppState>, user_id: i32) -> Result<Vec<
             Ok(File {
                 file_id: row.get(0)?,
                 case_number: row.get(1)?,
-                purpose: row.get(2)?,
-                uploaded_by: row.get(3)?,
-                current_location: row.get(4)?,
-                notes: row.get(5)?,
-                date_recieved: row.get(6)?,
-                required_on: row.get(7)?,
-                required_on_signature: row.get(8)?,
-                date_returned: row.get(9)?,
-                date_returned_signature: row.get(10)?,
-                deleted: row.get(11)?,
+                case_type: row.get(2)?,
+                purpose: row.get(3)?,
+                uploaded_by: row.get(4)?,
+                current_location: row.get(5)?,
+                notes: row.get(6)?,
+                date_recieved: row.get(7)?,
+                required_on: row.get(8)?,
+                required_on_signature: row.get(9)?,
+                date_returned: row.get(10)?,
+                date_returned_signature: row.get(11)?,
+                deleted: row.get(12)?,
             })
         })
         .map_err(|e| format!("Failed to fetch files: {}", e))?;
@@ -371,7 +382,7 @@ pub fn filter_files_by_user(state: State<AppState>, user_id: i32) -> Result<Vec<
 pub fn get_files_by_purpose(state: State<AppState>, purpose: String) -> Result<Vec<File>, String> {
     let conn = state.conn.lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT file_id, case_number, purpose, uploaded_by, current_location, notes, date_recieved, required_on, required_on_signature, date_returned, date_returned_signature, deleted 
+        "SELECT file_id, case_number, case_type, purpose, uploaded_by, current_location, notes, date_recieved, required_on, required_on_signature, date_returned, date_returned_signature, deleted 
          FROM files 
          WHERE purpose = ?1 AND deleted = 0",
     ).map_err(|e| format!("Failed to prepare statement: {}", e))?;
@@ -381,16 +392,17 @@ pub fn get_files_by_purpose(state: State<AppState>, purpose: String) -> Result<V
             Ok(File {
                 file_id: row.get(0)?,
                 case_number: row.get(1)?,
-                purpose: row.get(2)?,
-                uploaded_by: row.get(3)?,
-                current_location: row.get(4)?,
-                notes: row.get(5)?,
-                date_recieved: row.get(6)?,
-                required_on: row.get(7)?,
-                required_on_signature: row.get(8)?,
-                date_returned: row.get(9)?,
-                date_returned_signature: row.get(10)?,
-                deleted: row.get(11)?,
+                case_type: row.get(2)?,
+                purpose: row.get(3)?,
+                uploaded_by: row.get(4)?,
+                current_location: row.get(5)?,
+                notes: row.get(6)?,
+                date_recieved: row.get(7)?,
+                required_on: row.get(8)?,
+                required_on_signature: row.get(9)?,
+                date_returned: row.get(10)?,
+                date_returned_signature: row.get(11)?,
+                deleted: row.get(12)?,
             })
         })
         .map_err(|e| format!("Failed to fetch files: {}", e))?;

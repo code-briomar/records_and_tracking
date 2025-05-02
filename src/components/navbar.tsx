@@ -1,20 +1,29 @@
 import { BreadcrumbItem, Breadcrumbs } from "@heroui/react";
-import { Bell, Moon, RotateCcwIcon, Sun } from "lucide-react";
+import { Bell, Moon, RotateCw, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/auth_context";
 import { CustomSearchBar } from "./search_bar";
 
 const NavbarSection = ({ breadcrumbs }: { breadcrumbs: string[] }) => {
+  const { authData } = useAuth();
+
   const [darkMode, setDarkMode] = useState(
     localStorage.getItem("theme") === "dark" || !localStorage.getItem("theme")
   );
   const [spinning, setSpinning] = useState(false);
+
   const navigate = useNavigate();
 
   const handleClick = () => {
     setSpinning(true); // Start animation
-    setTimeout(() => setSpinning(false), 500); // Remove animation after 500ms
-    window.location.reload(); // Refresh page
+    setTimeout(() => setSpinning(false), 1000); // Remove animation after 500ms
+    // Get the current URL
+    const currentUrl = window.location.href;
+    // Create a new URL object
+    const url = new URL(currentUrl);
+    // navigate to the same URL to refresh the page
+    navigate(url.pathname + url.search, { replace: true });
   };
 
   const notifications = () => {
@@ -54,11 +63,13 @@ const NavbarSection = ({ breadcrumbs }: { breadcrumbs: string[] }) => {
             <Sun className="w-6 h-6" />
           )}
         </div>
-        <RotateCcwIcon
+        <RotateCw
           className={`w-6 h-6 cursor-pointer ${spinning ? "animate-spin" : ""}`}
           onClick={handleClick}
         />
-        <Bell className="w-6 h-6" onClick={notifications} />
+        {authData?.role == "Super Admin" && (
+          <Bell className="w-6 h-6" onClick={notifications} />
+        )}
       </div>
     </div>
   );

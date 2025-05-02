@@ -429,14 +429,14 @@ export default function StaffTable() {
                 ))}
               </DropdownMenu>
             </Dropdown>
-            <Button
+            {/* <Button
               className="bg-foreground text-background"
               endContent={<PlusIcon />}
               size="sm"
               onPress={onOpen}
             >
               Add New
-            </Button>
+            </Button> */}
           </div>
         </div>
         <div className="flex justify-between items-center">

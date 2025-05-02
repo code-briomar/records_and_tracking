@@ -14,6 +14,7 @@ import Tools from "./tools/index.tsx";
 
 import { Navigate } from "react-router-dom";
 import { useAuth } from "./context/auth_context.tsx";
+import Diary from "./diary/index.tsx";
 
 const PrivateRoute = ({
   authData,
@@ -55,6 +56,14 @@ function App() {
           element={
             <PrivateRoute authData={authData}>
               <CTS />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/diary"
+          element={
+            <PrivateRoute authData={authData}>
+              <Diary />
             </PrivateRoute>
           }
         />

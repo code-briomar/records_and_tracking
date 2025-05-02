@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 interface AuthContextType {
   authData: any;
@@ -6,23 +6,33 @@ interface AuthContextType {
   logout: () => void;
 }
 
-// Create the context
 const AuthContext = createContext<AuthContextType>({
   authData: null,
   login: () => {},
   logout: () => {},
 });
 
-// Create the provider
+const LOCAL_STORAGE_KEY = "authData";
+
 export const AuthProvider = ({ children }: { children: any }) => {
-  const [authData, setAuthData] = useState(null); // Store login values
+  const [authData, setAuthData] = useState<any>(null);
+
+  // Load from localStorage on first render
+  useEffect(() => {
+    const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedData) {
+      setAuthData(JSON.parse(storedData));
+    }
+  }, []);
 
   const login = (values: any) => {
-    setAuthData(values); // Save login info (e.g., token, username, etc.)
+    setAuthData(values);
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(values));
   };
 
   const logout = () => {
     setAuthData(null);
+    // localStorage.removeItem(LOCAL_STORAGE_KEY);
   };
 
   return (
@@ -32,5 +42,4 @@ export const AuthProvider = ({ children }: { children: any }) => {
   );
 };
 
-// Custom hook to use the context
 export const useAuth = () => useContext(AuthContext);

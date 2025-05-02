@@ -3,9 +3,11 @@ import LeftPanel from "../components/left_panel";
 import NavbarSection from "../components/navbar";
 import RightPanel from "../components/right_panel";
 import StaffDeepDive from "../components/staff_deep_dive";
+import { useAuth } from "../context/auth_context";
 
 export default function Staff() {
-  const breadcrumbs = ["Super-Admin","Staff"];
+  const { authData } = useAuth();
+  const breadcrumbs = [authData?.role, "Staff"];
   return (
     <>
       <Card

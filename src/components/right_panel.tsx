@@ -1,10 +1,13 @@
 import { Accordion, AccordionItem, Card, CardBody } from "@heroui/react";
 import { UserRound, X } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "../context/auth_context";
 import { markNotificationAsRead } from "../services/notifications";
 import { notifications as Notifications } from "./notifications_data";
+import { staff } from "./staff_data";
 
 const RightPanel = () => {
+  const { authData } = useAuth();
   const [notifications, setNotifications] = useState<any[]>(Notifications);
   const markNotification = async (notification_id: number) => {
     try {
@@ -27,54 +30,60 @@ const RightPanel = () => {
   return (
     <div className="p-2 space-y-4">
       {/* Notifications */}
-      <h1 className="m-2 text-gray-500">Notifications</h1>
-      <div className="overflow-y-auto max-h-[calc(96vh-200px)]">
-        {notifications.length == 0 && (
-          <>
-            <div className={"p-2"}>
-              <p>No notifications right now</p>
-            </div>
-          </>
-        )}
+      {authData?.role == "Super Admin" && (
+        <>
+          <h1 className="m-2 text-gray-500">Notifications</h1>
+          <div className="overflow-y-auto max-h-[calc(96vh-200px)]">
+            {notifications.length == 0 && (
+              <>
+                <div className={"p-2"}>
+                  <p>No notifications right now</p>
+                </div>
+              </>
+            )}
 
-        {notifications
-          .filter((n) => !n.read_status)
-          .map((n) => (
-            <Card
-              key={n.notification_id}
-              className="p-2 border dark:border-background/40 shadow-sm backdrop-blur-sm my-2"
-            >
-              <CardBody className="relative">
-                <div
-                  className={"flex justify-end absolute right-0 -top-0 z-99"}
+            {notifications
+              .filter((n) => !n.read_status)
+              .map((n) => (
+                <Card
+                  key={n.notification_id}
+                  className="p-2 border dark:border-background/40 shadow-sm backdrop-blur-sm my-2"
                 >
-                  <button
-                    onClick={() => markNotification(n.notification_id)}
-                    className="w-6 right-0 p-1 rounded-full hover:bg-foreground/10 transition"
-                    aria-label="Dismiss notification"
-                  >
-                    <X className="w-4 h-4 text-foreground/60 hover:text-foreground" />
-                  </button>
-                </div>
-                <div>
-                  <p className="text-sm font-medium">{n.message}</p>
-                  <p className="text-xs text-gray-500">
-                    {new Date(n.date_created).toLocaleDateString("en-US", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                    })}
-                  </p>
-                </div>
-              </CardBody>
-            </Card>
-          ))}
-      </div>
+                  <CardBody className="relative">
+                    <div
+                      className={
+                        "flex justify-end absolute right-0 -top-0 z-99"
+                      }
+                    >
+                      <button
+                        onClick={() => markNotification(n.notification_id)}
+                        className="w-6 right-0 p-1 rounded-full hover:bg-foreground/10 transition"
+                        aria-label="Dismiss notification"
+                      >
+                        <X className="w-4 h-4 text-foreground/60 hover:text-foreground" />
+                      </button>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{n.message}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(n.date_created).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                  </CardBody>
+                </Card>
+              ))}
+          </div>
+        </>
+      )}
 
       {/* Contacts (Example Placeholder) */}
       <div>
         <h1 className="m-2 text-gray-500">Contacts</h1>
-        <Accordion selectionMode="multiple">
+        {/* <Accordion selectionMode="multiple">
           <AccordionItem
             key="1"
             aria-label="Court Admin - Alex"
@@ -88,6 +97,25 @@ const RightPanel = () => {
               ))}
             </ul>
           </AccordionItem>
+        </Accordion> */}
+        <Accordion className="overflow-y-auto max-h-[400px]">
+          {staff.map((s) => (
+            <AccordionItem
+              key={s.staff_id}
+              aria-label={`${s.name} - ${s.role}`}
+              startContent={<UserRound />}
+              subtitle={`${s.phone_number}`}
+              title={`${s.role} - ${s.name}`}
+            >
+              <p>
+                <span className="font-semibold">Email:</span> {s.email}
+              </p>
+              <p>
+                <span className="font-semibold">Phone Number:</span>{" "}
+                {s.phone_number}
+              </p>
+            </AccordionItem>
+          ))}
         </Accordion>
       </div>
     </div>

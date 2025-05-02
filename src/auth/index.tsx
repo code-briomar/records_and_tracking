@@ -1,4 +1,4 @@
-import { Input } from "@heroui/react";
+import { addToast, Input } from "@heroui/react";
 import bcrypt from "bcryptjs";
 import { useFormik } from "formik";
 import { SearchIcon } from "lucide-react";
@@ -8,7 +8,9 @@ import * as Yup from "yup";
 import AuthForm from "../components/auth_form.tsx";
 import AuthFormCarousel from "../components/auth_form_carousel.tsx";
 import { useAuth } from "../context/auth_context.tsx";
-import { getUserByEmail } from "../services/users.ts";
+import { createNotification } from "../services/notifications.ts";
+import { addStaff } from "../services/staff.ts";
+import { createUser, getUserByEmail } from "../services/users.ts";
 
 const saltRounds = 10;
 
@@ -33,7 +35,7 @@ function Auth() {
     if (authData) {
       navigate("/dashboard");
     }
-  }, []);
+  }, [authData]);
 
   const navigate = useNavigate();
   const login_formik = useFormik({
@@ -50,37 +52,155 @@ function Auth() {
         .required("Required"),
     }),
     onSubmit: async (values) => {
-      // Handle login logic here
       const response = await getUserByEmail(values.login_email);
 
-      // Check if user password and password hash match use md5 hash
-      const passwordHash = await hashPassword(values.login_password);
+      if (!response || !response.password_hash) {
+        addToast({
+          title: "User not found",
+          description: "Please check your email.",
+          color: "danger",
+        });
+        return;
+      }
 
-      // console.log("Password Hash: ", passwordHash);
-
-      // console.log("Password Hash: ", passwordHash);
-      // console.log("Password Hash from DB: ", response);
       const isMatch = await validatePassword(
         values.login_password,
-        passwordHash
+        response.password_hash
       );
+
       if (!isMatch) {
-        console.log("Password is invalid");
-        alert("Invalid password. Please try again.");
+        addToast({
+          title: "Invalid password",
+          description: "Please try again.",
+          color: "danger",
+        });
         return;
       }
 
-      // // Check if user is active
-      if (response.status !== "Active") {
-        alert("User is not active. Please contact admin.");
-        return;
-      }
+      addToast({
+        title: "Login successful",
+        description: "",
+        color: "success",
+        shouldShowTimeoutProgress: true,
+      });
 
-      // Set context and redirect to dashboard
-      login(response);
+      // If match, login user
+      login(response); // Store user data in auth context
       navigate("/dashboard");
     },
   });
+
+  const signup_formik = useFormik({
+    initialValues: {
+      signup_first_name: "",
+      signup_last_name: "",
+      signup_phone_number: "",
+      signup_role: "" as "Super Admin" | "Court Admin" | "Staff",
+      signup_email: "",
+      signup_password: "",
+      signup_confirm_password: "",
+    },
+    validationSchema: Yup.object({
+      signup_email: Yup.string()
+        .email("Invalid email address")
+        .required("Required"),
+      signup_password: Yup.string()
+        .min(8, "Password must be at least 8 characters")
+        .required("Required"),
+      signup_confirm_password: Yup.string()
+        .oneOf([Yup.ref("signup_password"), undefined], "Passwords must match")
+        .required("Required"),
+    }),
+    onSubmit: async (values) => {
+      // Handle signup logic here
+      // console.log(values);
+
+      // Hash the password before sending it to the server
+      const hashedPassword = await hashPassword(values.signup_password);
+      console.log("Hashed Password: ", hashedPassword);
+
+      // Send the hashed password to the server
+      const response = await createUser({
+        name: `${values.signup_first_name} ${values.signup_last_name}`,
+        role: values.signup_role as "Super Admin" | "Court Admin" | "Staff",
+        email: values.signup_email,
+        phoneNumber: values.signup_phone_number,
+        passwordHash: hashedPassword,
+      });
+
+      if (!response) {
+        console.log("Error creating user");
+        addToast({
+          title: "Internal Error",
+          description: "Please try again.",
+          color: "danger",
+          shouldShowTimeoutProgress: true,
+        });
+        return;
+      }
+
+      // Response is the user ID
+      const staff_response = await addStaff(
+        response,
+        values.signup_role as "Super Admin" | "Court Admin" | "Staff",
+        values.signup_phone_number,
+        "Active"
+      );
+
+      if (!staff_response) {
+        console.log("Error creating staff member");
+        addToast({
+          title: "Internal Error",
+          description: "Please try again.",
+          color: "danger",
+          shouldShowTimeoutProgress: true,
+        });
+        return;
+      }
+
+      console.log("User created successfully with ID:", response);
+
+      const notification_response = await createNotification(
+        `${values.signup_last_name} ${values.signup_first_name} has signed up`,
+        "Info"
+      );
+
+      if (!notification_response) {
+        console.log("Error creating notification");
+        addToast({
+          title: "Internal Error",
+          description: "Please try again.",
+          color: "danger",
+          shouldShowTimeoutProgress: true,
+        });
+        return;
+      }
+
+      console.log(
+        "Notification created successfully with ID:",
+        notification_response
+      );
+
+      addToast({
+        title: "User created successfully",
+        description: "",
+        color: "success",
+        shouldShowTimeoutProgress: true,
+      });
+
+      // Set context and redirect to dashboard
+      login({
+        id: response,
+        name: `${values.signup_first_name} ${values.signup_last_name}`,
+        role: values.signup_role as "Super Admin" | "Court Admin" | "Staff",
+        email: values.signup_email,
+        phoneNumber: values.signup_phone_number,
+        passwordHash: hashedPassword,
+      });
+      navigate("/dashboard");
+    },
+  });
+
   return (
     <div
       className={
@@ -88,11 +208,11 @@ function Auth() {
       }
     >
       <div
-        className="col-span-1 shadow-sm rounded-none h-full w-full border-none
+        className="col-span-1 shadow-sm rounded-none h-screen w-full border-none
     bg-background/60 dark:bg-default-100/50 flex items-center justify-center
     backdrop-blur-md"
       >
-        <AuthForm login_formik={login_formik} />
+        <AuthForm login_formik={login_formik} signup_formik={signup_formik} />
       </div>
 
       <div className="col-span-2">
