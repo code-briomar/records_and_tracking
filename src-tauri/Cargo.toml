@@ -38,3 +38,4 @@ urlencoding = "2"
 
 # DateTime
 chrono = "0.4.41"
+tokio = "1.44.2"

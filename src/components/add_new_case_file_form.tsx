@@ -224,7 +224,6 @@ import { createNotification } from "../services/notifications";
 import { fetchFileData } from "./files_data";
 import CustomModal from "./modal";
 import RequiredOnDatePicker from "./required_on_date_picker";
-import { staff } from "./staff_data";
 
 // Validation Schema
 const fileSchema = Yup.object().shape({
@@ -325,7 +324,7 @@ export default function AddNewFileForm({
           case_number: "",
           case_type: "",
           purpose: "",
-          uploaded_by: staff[0]?.staff_id, // Default to the first staff member TODO::Remove this in a future refactored version
+          uploaded_by: 0, // Default to the first staff member TODO::Remove this in a future refactored version
           current_location: "",
           notes: "",
           required_on: "",
@@ -333,8 +332,14 @@ export default function AddNewFileForm({
         validationSchema={fileSchema}
         onSubmit={handleSubmit}
       >
-        {({ isValid, dirty }) => (
+        {({ isValid, dirty, errors }) => (
           <Form className="flex flex-col gap-4">
+            {(!isValid || !dirty) &&
+              (() => {
+                console.log("Form is not valid or dirty", errors);
+                return null;
+              })()}
+
             <div>
               <Field
                 as={Input}
