@@ -3,8 +3,13 @@
 use rusqlite::Connection;
 use std::fs;
 use std::sync::{Arc, Mutex};
+use tauri::AppHandle;
+use tauri::Manager;
+use tokio::time::{sleep, Duration}; // ✅ Explicitly use tokio::sleep
 
+mod config;
 mod methods;
+use config::supabase::SupabaseClient;
 use methods::attendance::*;
 use methods::cases::*;
 use methods::files::*;
@@ -14,6 +19,8 @@ use methods::users::*;
 
 struct AppState {
     conn: Arc<Mutex<Connection>>,
+    // supabase: Option<SupabaseClient>,
+    supabase: SupabaseClient,
 }
 
 use std::path::Path;
@@ -38,13 +45,53 @@ fn init_db() -> Result<Arc<Mutex<Connection>>, rusqlite::Error> {
     Ok(Arc::new(Mutex::new(conn)))
 }
 
+// Data Syncing
+async fn is_online() -> bool {
+    reqwest::get("https://www.google.com")
+        .await
+        .map(|res| res.status().is_success())
+        .unwrap_or(false)
+}
+
+async fn start_sync_loop(app_handle: AppHandle) {
+    loop {
+        if is_online().await {
+            let state = app_handle.state::<AppState>().clone();
+            if let Err(e) = sync_files(state).await {
+                eprintln!("Sync failed: {}", e);
+            }
+        } else {
+            println!("Offline, skipping sync.");
+        }
+
+        sleep(Duration::from_secs(300)).await;
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Load .env
+    dotenv::dotenv().expect("Failed to load .env file");
+
+    // Configure Supabase
+    let supabase = SupabaseClient::new(
+        &std::env::var("SUPABASE_URL").expect("SUPABASE_URL not set"),
+        &std::env::var("SUPABASE_KEY").expect("SUPABASE_KEY not set"),
+        &std::env::var("SUPABASE_TOKEN").expect("SUPABASE_TOKEN not set"),
+    );
+
     let conn = init_db().expect("Failed to initialize database");
-    let app_state = AppState { conn };
+    let app_state = AppState { conn, supabase };
 
     tauri::Builder::default()
         .manage(app_state)
+        .setup(|app| {
+            let handle = app.handle().clone();
+
+            tauri::async_runtime::spawn(start_sync_loop(handle.clone()));
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             create_user,
             get_user,
@@ -69,6 +116,7 @@ pub fn run() {
             update_case_status,
             assign_staff_to_case,
             delete_case,
+            sync_files,
             get_all_files,
             add_new_file,
             update_file,

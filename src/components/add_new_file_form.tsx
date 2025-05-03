@@ -100,6 +100,13 @@ export default function AddNewFileForm({
         >
           {({ errors, touched, isValid, dirty }) => (
             <Form className="flex flex-col gap-4">
+              {(!isValid || dirty) &&
+                (() => {
+                  console.log("Form is valid and dirty");
+                  return null;
+                })()}
+
+              {/* Form Fields */}
               <div>
                 <Field as={Input} label="File Name" name="file_name" />
                 <ErrorMessage
@@ -191,7 +198,7 @@ export default function AddNewFileForm({
                 <Button
                   color="primary"
                   type="submit"
-                  disabled={!(isValid && dirty)}
+                  // disabled={!(isValid && dirty)}
                 >
                   Upload
                 </Button>
