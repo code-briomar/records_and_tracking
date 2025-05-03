@@ -1,26 +1,245 @@
+use chrono::{DateTime, SecondsFormat, Utc};
 use rusqlite::params;
+use rusqlite::Connection;
 use rusqlite::OptionalExtension;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::str::FromStr;
 use tauri::State;
 
 use crate::AppState; // Import AppState
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
+#[serde(default)]
 pub struct File {
     pub file_id: i32,
-    pub case_number: Option<String>,
-    pub case_type: Option<String>,
-    pub purpose: Option<String>,
-    pub uploaded_by: Option<i32>,
-    pub current_location: Option<String>,
+    pub case_number: String,
+    pub case_type: String,
+    pub purpose: String,
+    pub uploaded_by: i32,
+    pub current_location: String,
     pub notes: Option<String>,
     pub date_recieved: Option<String>,
     pub required_on: Option<String>,
     pub required_on_signature: Option<String>,
     pub date_returned: Option<String>,
     pub date_returned_signature: Option<String>,
-    pub deleted: Option<bool>,
+    pub deleted: Option<i32>, // ensure type matches Supabase: 0
+}
+
+#[tauri::command]
+pub async fn sync_files(state: tauri::State<'_, AppState>) -> Result<serde_json::Value, String> {
+    use chrono::Utc;
+    use rusqlite::params;
+    use serde_json::json;
+
+    println!("Starting sync_files");
+
+    // 1. Get pending changes from DB
+    let pending_changes = {
+        println!("Fetching pending local files from database...");
+        let conn = state.conn.lock().unwrap();
+        let mut stmt = conn
+            .prepare("SELECT * FROM files WHERE sync_status = 'pending'")
+            .map_err(|e| format!("DB prepare error: {}", e))?;
+
+        let rows = stmt
+            .query_map([], |row| {
+                Ok(File {
+                    file_id: row.get(0)?,
+                    case_number: row.get(1)?,
+                    case_type: row.get(2)?,
+                    purpose: row.get(3)?,
+                    uploaded_by: row.get(4)?,
+                    current_location: row.get(5)?,
+                    notes: row.get(6)?,
+                    date_recieved: row.get(7)?,
+                    required_on: row.get(8)?,
+                    required_on_signature: row.get(9)?,
+                    date_returned: row.get(10)?,
+                    date_returned_signature: row.get(11)?,
+                    deleted: row.get(12)?,
+                })
+            })
+            .map_err(|e| format!("DB query_map error: {}", e))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("DB collect error: {}", e))?;
+
+        println!("Found {} pending files to sync.", rows.len());
+        rows
+    };
+
+    // 2. Push to Supabase and mark as synced
+    for file in &pending_changes {
+        println!("Pushing file ID {} to Supabase...", file.file_id);
+        let file_data =
+            serde_json::to_value(file).map_err(|e| format!("Serialization error: {}", e))?;
+
+        state
+            .supabase
+            .insert("files", &file_data)
+            .await
+            .map_err(|e| format!("Supabase insert error: {}", e))?;
+
+        println!(
+            "Successfully pushed file ID {}, marking as synced.",
+            file.file_id
+        );
+
+        {
+            let conn = state.conn.lock().unwrap();
+            conn.execute(
+                "UPDATE files SET sync_status = 'synced' WHERE file_id = ?",
+                params![file.file_id],
+            )
+            .map_err(|e| format!("DB update sync_status error: {}", e))?;
+        }
+    }
+
+    // 3. Get last sync time
+    println!("Fetching last sync time...");
+    let last_sync = {
+        let conn = state.conn.lock().unwrap();
+        get_last_sync_time(&conn).unwrap_or_else(|_| {
+            println!("No last sync time found, using current timestamp.");
+            Utc::now()
+        })
+    };
+
+    // 4. Format timestamp for Supabase (PostgreSQL expects this format)
+    let formatted_last_sync = last_sync.format("%Y-%m-%d %H:%M:%S%.6f+00").to_string();
+    let last_sync_param = format!("gt.{}", formatted_last_sync);
+    println!("Last sync param: {}", last_sync_param);
+
+    // 5. Fetch updated files from Supabase
+    println!("Fetching updated files from Supabase...");
+    let remote_files = state
+        .supabase
+        .select::<File>("files", &[("last_modified", &last_sync_param)])
+        .await
+        .map_err(|e| format!("Supabase select error: {}", e))?;
+
+    println!(
+        "✅ Successfully deserialized {} remote files",
+        remote_files.len()
+    );
+
+    println!("Fetched {} files from Supabase.", remote_files.len());
+
+    // 6. Save remote files locally
+    // {
+    // let conn = state.conn.lock().unwrap();
+
+    let conn = state.conn.lock().unwrap();
+
+    for file in &remote_files {
+        println!("\n-- Attempting to save file ID: {} --", file.file_id);
+        println!("Data: {:?}", file); // Log full file for debugging
+
+        // let affected = conn
+        //     .execute(
+        //         "INSERT INTO files (
+        //     file_id, case_number, case_type, purpose, uploaded_by, current_location,
+        //     notes, date_recieved, required_on, required_on_signature,
+        //     date_returned, date_returned_signature, deleted, sync_status
+        // ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, 'synced')",
+        //         params![
+        //             file.file_id,
+        //             file.case_number,
+        //             file.case_type,
+        //             file.purpose,
+        //             file.uploaded_by,
+        //             file.current_location,
+        //             file.notes,
+        //             file.date_recieved,
+        //             file.required_on,
+        //             file.required_on_signature,
+        //             file.date_returned,
+        //             file.date_returned_signature,
+        //             file.deleted
+        //         ],
+        //     )
+        //     .map_err(|e| format!("DB insert error for file {}: {}", file.file_id, e))?;
+
+        // println!(
+        //     "Inserted/Updated file ID {}. Rows affected: {}",
+        //     file.file_id, affected
+        // );
+
+        // println!(
+        //     "✔️ Saved file {}, rows affected: {}",
+        //     file.file_id, affected
+        // );
+
+        match conn.execute(
+            "INSERT OR REPLACE INTO files (
+                file_id, case_number, case_type, purpose, uploaded_by, current_location,
+                notes, date_recieved, required_on, required_on_signature,
+                date_returned, date_returned_signature, deleted
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+            params![
+                file.file_id,
+                file.case_number,
+                file.case_type,
+                file.purpose,
+                file.uploaded_by,
+                file.current_location,
+                file.notes,
+                file.date_recieved,
+                file.required_on,
+                file.required_on_signature,
+                file.date_returned,
+                file.date_returned_signature,
+                file.deleted
+            ],
+        ) {
+            Ok(rows_affected) => {
+                println!(
+                    "Inserted/Updated file ID {}. Rows affected: {}",
+                    file.file_id, rows_affected
+                );
+            }
+            Err(e) => {
+                eprintln!("Failed to insert/update file ID {}: {}", file.file_id, e);
+            }
+        }
+    }
+    // }
+
+    // 7. Update last sync timestamp
+    println!("Updating last sync time...");
+    {
+        let now = Utc::now();
+        let conn = state.conn.lock().unwrap();
+        update_last_sync_time(&conn, now)
+            .map_err(|e| format!("DB update_last_sync_time error: {}", e))?;
+    }
+
+    println!("Sync complete.");
+    Ok(json!({ "synced": true }))
+}
+
+// Helper Functions
+fn get_last_sync_time(conn: &Connection) -> Result<DateTime<Utc>, rusqlite::Error> {
+    conn.query_row(
+        "SELECT last_sync FROM sync_metadata WHERE id = 1",
+        [],
+        |row| {
+            let timestamp: String = row.get(0)?;
+            Ok(DateTime::parse_from_rfc3339(&timestamp)
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(|_| Utc::now()))
+        },
+    )
+}
+
+fn update_last_sync_time(conn: &Connection, time: DateTime<Utc>) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "INSERT OR REPLACE INTO sync_metadata (id, last_sync) VALUES (1, ?)",
+        params![time.to_rfc3339()],
+    )?;
+    Ok(())
 }
 
 //  Get All Files
@@ -98,6 +317,7 @@ pub fn add_new_file(
     ) {
         Ok(_) => {
             let new_file_id = conn.last_insert_rowid();
+
             Ok(json!({
                 "message": "File uploaded successfully",
                 "status": "success",

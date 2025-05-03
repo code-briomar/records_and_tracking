@@ -1,10 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use rusqlite::Connection;
+use serde_json::json;
 use std::fs;
 use std::sync::{Arc, Mutex};
 
+mod config;
 mod methods;
+use config::supabase::SupabaseClient;
 use methods::attendance::*;
 use methods::cases::*;
 use methods::files::*;
@@ -14,6 +17,8 @@ use methods::users::*;
 
 struct AppState {
     conn: Arc<Mutex<Connection>>,
+    // supabase: Option<SupabaseClient>,
+    supabase: SupabaseClient,
 }
 
 use std::path::Path;
@@ -40,8 +45,18 @@ fn init_db() -> Result<Arc<Mutex<Connection>>, rusqlite::Error> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Load .env
+    dotenv::dotenv().expect("Failed to load .env file");
+
+    // Configure Supabase
+    let supabase = SupabaseClient::new(
+        &std::env::var("SUPABASE_URL").expect("SUPABASE_URL not set"),
+        &std::env::var("SUPABASE_KEY").expect("SUPABASE_KEY not set"),
+        &std::env::var("SUPABASE_TOKEN").expect("SUPABASE_TOKEN not set"),
+    );
+
     let conn = init_db().expect("Failed to initialize database");
-    let app_state = AppState { conn };
+    let app_state = AppState { conn, supabase };
 
     tauri::Builder::default()
         .manage(app_state)
@@ -69,6 +84,7 @@ pub fn run() {
             update_case_status,
             assign_staff_to_case,
             delete_case,
+            sync_files,
             get_all_files,
             add_new_file,
             update_file,

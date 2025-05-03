@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS files(
     case_number TEXT NOT NULL,
     case_type TEXT CHECK(case_type IN ('Civil', 'Criminal','Other')) NOT NULL, -- type of case
     purpose TEXT CHECK(purpose IN ('Ruling', 'Judgement', 'Hearing','Mention','Other')) NOT NULL, -- for
-    uploaded_by INTEGER NOT NULL, -- ID of the user who uploaded the file
+    uploaded_by INTEGER, -- ID of the user who uploaded the file
     current_location TEXT NOT NULL, -- Current location of the file (e.g., court, archive, etc.)
     notes TEXT NOT NULL, -- Notes or comments about the file
     date_recieved TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Date the file was recorded/uploaded
@@ -70,8 +70,7 @@ CREATE TABLE IF NOT EXISTS files(
     required_on_signature TEXT, -- Signature of the person who recorded the file
     date_returned TIMESTAMP, -- Date the file was returned
     date_returned_signature TEXT, -- Signature of the person who returned the file
-    deleted INT DEFAULT 0, -- 1 for true, 0 for false
-    FOREIGN KEY (uploaded_by) REFERENCES users(user_id) ON DELETE CASCADE
+    deleted INT DEFAULT 0 -- 1 for true, 0 for false
 );
 
 -- Indexes for faster searching and filtering on the files table
@@ -162,6 +161,117 @@ CREATE TABLE IF NOT EXISTS history_notes_in_files (
 );
 
 
+-- Add to users table
+ALTER TABLE users ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE users ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE users ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN sync_version INTEGER DEFAULT 1;
+ALTER TABLE users ADD COLUMN supabase_id TEXT; -- Will store UUID strings
+
+-- Add to staff table
+ALTER TABLE staff ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE staff ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE staff ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE staff ADD COLUMN sync_version INTEGER DEFAULT 1;
+ALTER TABLE staff ADD COLUMN supabase_id TEXT;
+
+-- Add to attendance table
+ALTER TABLE attendance ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE attendance ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE attendance ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE attendance ADD COLUMN sync_version INTEGER DEFAULT 1;
+ALTER TABLE attendance ADD COLUMN supabase_id TEXT;
+
+-- Add to cases table
+ALTER TABLE cases ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE cases ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE cases ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE cases ADD COLUMN sync_version INTEGER DEFAULT 1;
+ALTER TABLE cases ADD COLUMN supabase_id TEXT;
+
+-- Add to files table
+ALTER TABLE files ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE files ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE files ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE files ADD COLUMN sync_version INTEGER DEFAULT 1;
+ALTER TABLE files ADD COLUMN supabase_id TEXT;
+
+-- Add to notifications table
+ALTER TABLE notifications ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE notifications ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE notifications ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE notifications ADD COLUMN sync_version INTEGER DEFAULT 1;
+ALTER TABLE notifications ADD COLUMN supabase_id TEXT;
+
+-- Add to contacts table
+ALTER TABLE contacts ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE contacts ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE contacts ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE contacts ADD COLUMN sync_version INTEGER DEFAULT 1;
+ALTER TABLE contacts ADD COLUMN supabase_id TEXT;
+
+-- Add to reports_analytics table
+ALTER TABLE reports_analytics ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE reports_analytics ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE reports_analytics ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE reports_analytics ADD COLUMN sync_version INTEGER DEFAULT 1;
+ALTER TABLE reports_analytics ADD COLUMN supabase_id TEXT;
+
+-- Add to news table
+ALTER TABLE news ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE news ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE news ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE news ADD COLUMN sync_version INTEGER DEFAULT 1;
+ALTER TABLE news ADD COLUMN supabase_id TEXT;
+
+-- Add to themes table
+ALTER TABLE themes ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE themes ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE themes ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE themes ADD COLUMN sync_version INTEGER DEFAULT 1;
+ALTER TABLE themes ADD COLUMN supabase_id TEXT;
+
+-- Add to summaries table
+ALTER TABLE summaries ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE summaries ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE summaries ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE summaries ADD COLUMN sync_version INTEGER DEFAULT 1;
+ALTER TABLE summaries ADD COLUMN supabase_id TEXT;
+
+
+-- Track sync sessions
+CREATE TABLE IF NOT EXISTS sync_sessions (
+    session_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    completed_at TIMESTAMP,
+    direction TEXT NOT NULL CHECK(direction IN ('upload', 'download')),
+    records_processed INTEGER DEFAULT 0,
+    status TEXT CHECK(status IN ('in-progress', 'completed', 'failed')),
+    error_message TEXT
+);
+
+-- Track conflicts that need manual resolution
+CREATE TABLE IF NOT EXISTS sync_conflicts (
+    conflict_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    table_name TEXT NOT NULL,
+    record_id INTEGER NOT NULL,
+    online_data TEXT,
+    local_data TEXT,
+    conflict_type TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP,
+    resolution TEXT CHECK(resolution IN ('keep_online', 'keep_local', 'merged')),
+    resolved_by INTEGER REFERENCES users(user_id)
+);
+
+-- Track last sync times
+CREATE TABLE IF NOT EXISTS sync_metadata (
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    last_sync TIMESTAMP,
+    CONSTRAINT one_row CHECK (id = 1)
+);
+
+
 -- TRIGGERS
 -- Trigger to insert into history_required_on_in_files when required_on is updated
 -- Trigger to insert into history_notes_in_files when notes are updated
@@ -181,6 +291,56 @@ BEGIN
     WHERE NEW.notes IS NOT NULL
       AND NEW.notes <> OLD.notes;
 END;
+
+-- Update the history_of_files trigger to handle sync fields
+DROP TRIGGER IF EXISTS history_of_files;
+
+CREATE TRIGGER history_of_files
+AFTER UPDATE ON files
+FOR EACH ROW
+BEGIN
+    -- Record changes to required_on
+    INSERT INTO history_required_on_in_files (file_id, required_on, note)
+    SELECT NEW.file_id, NEW.required_on, 'required_on changed'
+    WHERE NEW.required_on IS NOT NULL
+      AND (OLD.required_on IS NULL OR NEW.required_on <> OLD.required_on);
+
+    -- Record changes to notes
+    INSERT INTO history_notes_in_files (file_id, note, created_at, created_by)
+    SELECT NEW.file_id, NEW.notes, CURRENT_TIMESTAMP, NEW.uploaded_by
+    WHERE NEW.notes IS NOT NULL
+      AND NEW.notes <> OLD.notes;
+      
+    -- Update last_modified when relevant fields change
+    UPDATE files SET last_modified = CURRENT_TIMESTAMP
+    WHERE file_id = NEW.file_id AND (
+        OLD.case_number <> NEW.case_number OR
+        OLD.case_type <> NEW.case_type OR
+        OLD.purpose <> NEW.purpose OR
+        OLD.current_location <> NEW.current_location OR
+        OLD.notes <> NEW.notes OR
+        OLD.required_on <> NEW.required_on OR
+        OLD.deleted <> NEW.deleted
+    );
+END;
+
+-- Create triggers for other tables to update last_modified
+CREATE TRIGGER IF NOT EXISTS update_user_modtime
+AFTER UPDATE ON users
+FOR EACH ROW
+BEGIN
+    UPDATE users SET last_modified = CURRENT_TIMESTAMP
+    WHERE user_id = NEW.user_id AND (
+        OLD.name <> NEW.name OR
+        OLD.role <> NEW.role OR
+        OLD.email <> NEW.email OR
+        OLD.phone_number <> NEW.phone_number OR
+        OLD.status <> NEW.status OR
+        OLD.is_deleted <> NEW.is_deleted
+    );
+END;
+
+-- Similar triggers for other tables...
 
 
 -- INDEXES
@@ -204,3 +364,19 @@ BEGIN
 END;
 
 
+-- Create indexes for sync performance
+CREATE INDEX IF NOT EXISTS idx_users_sync ON users(sync_status, last_modified);
+CREATE INDEX IF NOT EXISTS idx_staff_sync ON staff(sync_status, last_modified);
+CREATE INDEX IF NOT EXISTS idx_attendance_sync ON attendance(sync_status, last_modified);
+CREATE INDEX IF NOT EXISTS idx_cases_sync ON cases(sync_status, last_modified);
+CREATE INDEX IF NOT EXISTS idx_files_sync ON files(sync_status, last_modified);
+CREATE INDEX IF NOT EXISTS idx_notifications_sync ON notifications(sync_status, last_modified);
+CREATE INDEX IF NOT EXISTS idx_contacts_sync ON contacts(sync_status, last_modified);
+CREATE INDEX IF NOT EXISTS idx_reports_sync ON reports_analytics(sync_status, last_modified);
+CREATE INDEX IF NOT EXISTS idx_news_sync ON news(sync_status, last_modified);
+CREATE INDEX IF NOT EXISTS idx_themes_sync ON themes(sync_status, last_modified);
+CREATE INDEX IF NOT EXISTS idx_summaries_sync ON summaries(sync_status, last_modified);
+
+-- Insert initial sync metadata
+INSERT OR IGNORE INTO sync_metadata (id, last_sync) VALUES (1, NULL);
+ALTER TABLE sync_conflicts ADD COLUMN resolved BOOLEAN DEFAULT FALSE;
