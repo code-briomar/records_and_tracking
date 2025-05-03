@@ -128,84 +128,84 @@ pub async fn sync_files(state: tauri::State<'_, AppState>) -> Result<serde_json:
     println!("Fetched {} files from Supabase.", remote_files.len());
 
     // 6. Save remote files locally
-    // {
-    // let conn = state.conn.lock().unwrap();
+    {
+        // let conn = state.conn.lock().unwrap();
 
-    let conn = state.conn.lock().unwrap();
+        let conn = state.conn.lock().unwrap();
 
-    for file in &remote_files {
-        println!("\n-- Attempting to save file ID: {} --", file.file_id);
-        println!("Data: {:?}", file); // Log full file for debugging
+        for file in &remote_files {
+            println!("\n-- Attempting to save file ID: {} --", file.file_id);
+            println!("Data: {:?}", file); // Log full file for debugging
 
-        // let affected = conn
-        //     .execute(
-        //         "INSERT INTO files (
-        //     file_id, case_number, case_type, purpose, uploaded_by, current_location,
-        //     notes, date_recieved, required_on, required_on_signature,
-        //     date_returned, date_returned_signature, deleted, sync_status
-        // ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, 'synced')",
-        //         params![
-        //             file.file_id,
-        //             file.case_number,
-        //             file.case_type,
-        //             file.purpose,
-        //             file.uploaded_by,
-        //             file.current_location,
-        //             file.notes,
-        //             file.date_recieved,
-        //             file.required_on,
-        //             file.required_on_signature,
-        //             file.date_returned,
-        //             file.date_returned_signature,
-        //             file.deleted
-        //         ],
-        //     )
-        //     .map_err(|e| format!("DB insert error for file {}: {}", file.file_id, e))?;
+            // let affected = conn
+            //     .execute(
+            //         "INSERT INTO files (
+            //     file_id, case_number, case_type, purpose, uploaded_by, current_location,
+            //     notes, date_recieved, required_on, required_on_signature,
+            //     date_returned, date_returned_signature, deleted, sync_status
+            // ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, 'synced')",
+            //         params![
+            //             file.file_id,
+            //             file.case_number,
+            //             file.case_type,
+            //             file.purpose,
+            //             file.uploaded_by,
+            //             file.current_location,
+            //             file.notes,
+            //             file.date_recieved,
+            //             file.required_on,
+            //             file.required_on_signature,
+            //             file.date_returned,
+            //             file.date_returned_signature,
+            //             file.deleted
+            //         ],
+            //     )
+            //     .map_err(|e| format!("DB insert error for file {}: {}", file.file_id, e))?;
 
-        // println!(
-        //     "Inserted/Updated file ID {}. Rows affected: {}",
-        //     file.file_id, affected
-        // );
+            // println!(
+            //     "Inserted/Updated file ID {}. Rows affected: {}",
+            //     file.file_id, affected
+            // );
 
-        // println!(
-        //     "✔️ Saved file {}, rows affected: {}",
-        //     file.file_id, affected
-        // );
+            // println!(
+            //     "✔️ Saved file {}, rows affected: {}",
+            //     file.file_id, affected
+            // );
 
-        match conn.execute(
-            "INSERT OR REPLACE INTO files (
+            match conn.execute(
+                "INSERT OR REPLACE INTO files (
                 file_id, case_number, case_type, purpose, uploaded_by, current_location,
                 notes, date_recieved, required_on, required_on_signature,
                 date_returned, date_returned_signature, deleted
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
-            params![
-                file.file_id,
-                file.case_number,
-                file.case_type,
-                file.purpose,
-                file.uploaded_by,
-                file.current_location,
-                file.notes,
-                file.date_recieved,
-                file.required_on,
-                file.required_on_signature,
-                file.date_returned,
-                file.date_returned_signature,
-                file.deleted
-            ],
-        ) {
-            Ok(rows_affected) => {
-                println!(
-                    "Inserted/Updated file ID {}. Rows affected: {}",
-                    file.file_id, rows_affected
-                );
-            }
-            Err(e) => {
-                eprintln!("Failed to insert/update file ID {}: {}", file.file_id, e);
+                params![
+                    file.file_id,
+                    file.case_number,
+                    file.case_type,
+                    file.purpose,
+                    file.uploaded_by,
+                    file.current_location,
+                    file.notes,
+                    file.date_recieved,
+                    file.required_on,
+                    file.required_on_signature,
+                    file.date_returned,
+                    file.date_returned_signature,
+                    file.deleted
+                ],
+            ) {
+                Ok(rows_affected) => {
+                    println!(
+                        "Inserted/Updated file ID {}. Rows affected: {}",
+                        file.file_id, rows_affected
+                    );
+                }
+                Err(e) => {
+                    eprintln!("Failed to insert/update file ID {}: {}", file.file_id, e);
+                }
             }
         }
     }
-    // }
 
     // 7. Update last sync timestamp
     println!("Updating last sync time...");
