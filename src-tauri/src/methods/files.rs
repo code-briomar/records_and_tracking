@@ -26,6 +26,9 @@ pub struct File {
     pub date_returned: Option<String>,
     pub date_returned_signature: Option<String>,
     pub deleted: Option<i32>, // ensure type matches Supabase: 0
+
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_deleted: Option<bool>,
 }
 
 #[tauri::command]
@@ -60,6 +63,7 @@ pub async fn sync_files(state: tauri::State<'_, AppState>) -> Result<serde_json:
                     date_returned: row.get(10)?,
                     date_returned_signature: row.get(11)?,
                     deleted: row.get(12)?,
+                    is_deleted: None,
                 })
             })
             .map_err(|e| format!("DB query_map error: {}", e))?
@@ -76,16 +80,19 @@ pub async fn sync_files(state: tauri::State<'_, AppState>) -> Result<serde_json:
         let file_data =
             serde_json::to_value(file).map_err(|e| format!("Serialization error: {}", e))?;
 
-        state
-            .supabase
-            .insert("files", &file_data)
-            .await
-            .map_err(|e| format!("Supabase insert error: {}", e))?;
+        print!("File data: {:?}", file_data); // Log the file data for debugging
 
-        println!(
-            "Successfully pushed file ID {}, marking as synced.",
-            file.file_id
-        );
+        let result = state.supabase.insert("files", &file_data).await;
+        if let Err(e) = result {
+            eprintln!("Supabase insert error: {}", e);
+        } else {
+            println!("Successfully pushed file ID {} to Supabase.", file.file_id);
+        }
+
+        // println!(
+        //     "Successfully pushed file ID {}, marking as synced.",
+        //     file.file_id
+        // );
 
         {
             let conn = state.conn.lock().unwrap();
@@ -135,7 +142,7 @@ pub async fn sync_files(state: tauri::State<'_, AppState>) -> Result<serde_json:
 
         for file in &remote_files {
             println!("\n-- Attempting to save file ID: {} --", file.file_id);
-            println!("Data: {:?}", file); // Log full file for debugging
+            // println!("Data: {:?}", file); // Log full file for debugging
 
             // let affected = conn
             //     .execute(
@@ -176,8 +183,8 @@ pub async fn sync_files(state: tauri::State<'_, AppState>) -> Result<serde_json:
                 "INSERT OR REPLACE INTO files (
                 file_id, case_number, case_type, purpose, uploaded_by, current_location,
                 notes, date_recieved, required_on, required_on_signature,
-                date_returned, date_returned_signature, deleted
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                date_returned, date_returned_signature, deleted, is_deleted
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
                 params![
                     file.file_id,
                     file.case_number,
@@ -191,7 +198,8 @@ pub async fn sync_files(state: tauri::State<'_, AppState>) -> Result<serde_json:
                     file.required_on_signature,
                     file.date_returned,
                     file.date_returned_signature,
-                    file.deleted
+                    file.deleted,
+                    file.is_deleted,
                 ],
             ) {
                 Ok(rows_affected) => {
@@ -270,6 +278,7 @@ pub fn get_all_files(state: State<AppState>) -> Result<Vec<File>, String> {
                 date_returned: row.get(10)?,
                 date_returned_signature: row.get(11)?,
                 deleted: row.get(12)?,
+                is_deleted: None,
             };
             Ok(file_result)
         })
@@ -356,6 +365,7 @@ pub fn get_file_by_id(state: State<AppState>, file_id: i32) -> Result<Option<Fil
                 date_returned: row.get(10)?,
                 date_returned_signature: row.get(11)?,
                 deleted: row.get(12)?,
+                is_deleted: None,
             })
         })
         .optional()
@@ -518,7 +528,7 @@ pub fn mark_file_returned(
 pub fn delete_file(state: State<AppState>, file_id: i32) -> Result<String, String> {
     let conn = state.conn.lock().unwrap();
     match conn.execute(
-        "UPDATE files SET deleted = 1 WHERE file_id = ?1",
+        "UPDATE files SET deleted = 1, is_deleted = 1 WHERE file_id = ?1",
         params![file_id],
     ) {
         Ok(_) => Ok("File deleted successfully".to_string()),
@@ -557,6 +567,7 @@ pub fn search_files_by_case_number(
                 date_returned: row.get(10)?,
                 date_returned_signature: row.get(11)?,
                 deleted: row.get(12)?,
+                is_deleted: None,
             })
         })
         .map_err(|e| format!("Failed to fetch files: {}", e))?;
@@ -590,6 +601,7 @@ pub fn filter_files_by_user(state: State<AppState>, user_id: i32) -> Result<Vec<
                 date_returned: row.get(10)?,
                 date_returned_signature: row.get(11)?,
                 deleted: row.get(12)?,
+                is_deleted: None,
             })
         })
         .map_err(|e| format!("Failed to fetch files: {}", e))?;
@@ -623,6 +635,7 @@ pub fn get_files_by_purpose(state: State<AppState>, purpose: String) -> Result<V
                 date_returned: row.get(10)?,
                 date_returned_signature: row.get(11)?,
                 deleted: row.get(12)?,
+                is_deleted: None,
             })
         })
         .map_err(|e| format!("Failed to fetch files: {}", e))?;
