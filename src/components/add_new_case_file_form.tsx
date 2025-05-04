@@ -324,7 +324,7 @@ export default function AddNewFileForm({
           case_number: "",
           case_type: "",
           purpose: "",
-          uploaded_by: 0, // Default to the first staff member TODO::Remove this in a future refactored version
+          uploaded_by: 1, // Default to the first staff member TODO::Remove this in a future refactored version
           current_location: "",
           notes: "",
           required_on: "",
