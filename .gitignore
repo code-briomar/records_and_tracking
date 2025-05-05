@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 src-tauri/records_and_tracking.db
 src-tauri/.env
+.env
+.gitignore
+src-tauri/public_key.pem
+src-tauri/private_key.pem
+updates/latest.json
