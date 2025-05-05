@@ -53,7 +53,7 @@ const LeftPanel = () => {
 
       {/* Menu */}
       <div>
-        <Accordion variant="shadow">
+        <Accordion variant={"shadow"}>
           {/*Dashboard*/}
           <AccordionItem
             key="1"
@@ -117,7 +117,7 @@ const LeftPanel = () => {
           </AccordionItem>
 
           {/* Staff */}
-          {authData.role == "Super Admin" && (
+          {authData.role == "Super Admin" ? (
             <AccordionItem
               key="4"
               aria-label="Staff"
@@ -136,7 +136,7 @@ const LeftPanel = () => {
                 </Button>
               </div>
             </AccordionItem>
-          )}
+          ) : null}
 
           {/*Files*/}
           {/* <AccordionItem
@@ -159,7 +159,7 @@ const LeftPanel = () => {
           </AccordionItem> */}
 
           {/*Audit Logs*/}
-          {authData.role == "Super Admin" && (
+          {authData.role == "Super Admin" ? (
             <AccordionItem
               key="5"
               aria-label="Audit-Logs"
@@ -178,7 +178,7 @@ const LeftPanel = () => {
                 </Button>
               </div>
             </AccordionItem>
-          )}
+          ) : null}
 
           {/*Messaging*/}
           {/* <AccordionItem

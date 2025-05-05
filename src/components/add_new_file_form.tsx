@@ -77,7 +77,7 @@ export default function AddNewFileForm({
   //   }
   // };
 
-  const handleSubmit = async (values: any, { resetForm }: any) => {
+  const handleSubmit = async (values: any) => {
     console.log("Uploading file:", values);
   };
   return (

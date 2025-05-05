@@ -44,6 +44,7 @@ pub fn run() {
     let app_state = AppState { conn };
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             create_user,

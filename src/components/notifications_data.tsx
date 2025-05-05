@@ -12,21 +12,21 @@ export let notifications: Notification[] = [];
 export const fetchNotifications = async () => {
   try {
     notifications = await getNotifications();
-    notifications = notifications.filter((each)=> !each.read_status);
-
+    notifications = notifications.filter((each) => !each.read_status);
   } catch (error) {
     console.error("Error fetching notifications:", error);
   } finally {
-
     console.log("Fetched Notifications:", notifications);
   }
 };
 
-try {
-  await fetchNotifications();
-} catch (error) {
-  console.error("Error refreshing staff data:", error);
-}
+(async () => {
+  try {
+    await fetchNotifications();
+  } catch (error) {
+    console.error("Error refreshing staff data:", error);
+  }
+})();
 
 // export const notifications: Notification[] = [
 //   {

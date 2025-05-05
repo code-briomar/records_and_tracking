@@ -5,7 +5,6 @@ import { DateRangePicker } from "@heroui/react";
 import React from "react";
 
 export default function ControlledRangeDatePicker({
-  value,
   setValue,
 }: {
   value: RangeValue<DateValue> | null;

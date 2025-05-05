@@ -4,8 +4,11 @@ import LeftPanel from "../components/left_panel";
 import NavbarSection from "../components/navbar";
 import NotificationsSection from "../components/notifications_section";
 import RightPanel from "../components/right_panel";
+import { useAuth } from "../context/auth_context";
 
 export default function Notifications() {
+  const { authData } = useAuth();
+  const breadcrumbs = [authData?.name, "Notifications"];
   return (
     <>
       <Card
@@ -18,7 +21,7 @@ export default function Notifications() {
           <LeftPanel />
           <div className="border-r-small border-divider">
             {/* Navbar Section */}
-            <NavbarSection />
+            <NavbarSection breadcrumbs={breadcrumbs} />
 
             {/* All Notifications */}
             <div className="p-2">

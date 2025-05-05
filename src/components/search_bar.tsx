@@ -15,8 +15,8 @@ import { queryDataWithAI } from "../services/ai_functions.ts";
 import AIResponseCard from "./ai_response_card.tsx";
 
 export const CustomSearchBar = () => {
-  const [searchTerm, setSearchTerm] = useState<string>("");
-  const [filteredResults, setFilteredResults] = useState<any[]>([]);
+  // const [searchTerm, setSearchTerm] = useState<string>("");
+  // const [filteredResults, setFilteredResults] = useState<any[]>([]);
 
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
 
