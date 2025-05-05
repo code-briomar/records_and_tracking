@@ -191,7 +191,7 @@ ALTER TABLE cases ADD COLUMN supabase_id TEXT;
 
 -- Add to files table
 ALTER TABLE files ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-ALTER TABLE files ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE files ADD COLUMN sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
 ALTER TABLE files ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE files ADD COLUMN sync_version INTEGER DEFAULT 1;
 ALTER TABLE files ADD COLUMN supabase_id TEXT;

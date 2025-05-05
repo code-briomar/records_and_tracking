@@ -1,5 +1,6 @@
-import { BreadcrumbItem, Breadcrumbs } from "@heroui/react";
-import { Bell, Moon, RotateCw, Sun } from "lucide-react";
+import { addToast, BreadcrumbItem, Breadcrumbs } from "@heroui/react";
+import { invoke } from "@tauri-apps/api/core";
+import { Bell, LucideFolderSync, Moon, RotateCw, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/auth_context";
@@ -70,6 +71,26 @@ const NavbarSection = ({ breadcrumbs }: { breadcrumbs: string[] }) => {
         {authData?.role == "Super Admin" && (
           <Bell className="w-6 h-6" onClick={notifications} />
         )}
+        {/* Sync Data */}
+        <LucideFolderSync
+          className="w-6 h-6 cursor-pointer"
+          onClick={() => {
+            addToast({
+              title: "Syncing data...",
+              description: "Your data is being synced with the server.",
+              promise: new Promise((resolve) => {
+                console.log("Online detected — syncing data...");
+                invoke("sync_files").catch((err) =>
+                  console.error("Sync failed:", err)
+                );
+
+                setTimeout(() => {
+                  resolve("Sync complete!");
+                }, 2000); // Simulate a delay for the promise
+              }),
+            });
+          }}
+        />
       </div>
     </div>
   );
