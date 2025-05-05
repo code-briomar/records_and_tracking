@@ -45,7 +45,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVEMjg3ODFDN0M1NTc3NUQKUldSZGQxVjhISGdvWGI4akNTNS9xaWxiMkRQa1F2Qm1GeDZZVjBBQlNvVi9wL21GRHZrazBoMG8K",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDREMjhGNURBOUE2M0Y1RUEKUldUcTlXT2EydlVvVFFrTlZZc2k1SGNrTVdTZHg1UDgxaG01QVRlL2RaTmFGdHU2Z0lGL3padUwK",
       "endpoints": [
         "https://github.com/code-briomar/records-and-tracking/releases/latest/download/latest.json"
       ],

@@ -27,3 +27,5 @@ src-tauri/.env
 
 
 /updates
+
+.env
