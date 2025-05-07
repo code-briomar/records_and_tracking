@@ -112,6 +112,12 @@ function Auth() {
         .required("Required"),
     }),
     onSubmit: async (values) => {
+      addToast({
+        title: "Creating user...",
+        description: "",
+        color: "default",
+        shouldShowTimeoutProgress: true,
+      });
       // Handle signup logic here
       // console.log(values);
 
@@ -126,6 +132,13 @@ function Auth() {
         email: values.signup_email,
         phoneNumber: values.signup_phone_number,
         passwordHash: hashedPassword,
+      });
+
+      addToast({
+        title: response.toString(),
+        description: "",
+        color: "success",
+        shouldShowTimeoutProgress: true,
       });
 
       if (!response) {

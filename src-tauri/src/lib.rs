@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use rusqlite::Connection;
 use std::fs;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 mod methods;
@@ -12,35 +13,99 @@ use methods::notifications::*;
 use methods::staff::*;
 use methods::users::*;
 
+use std::path::Path;
+
+use chrono::Local;
+use dirs::data_dir;
+use std::fs::OpenOptions;
+use std::io::Write;
+
+use tauri::utils::platform::resource_dir;
+use tauri::{generate_context, Env};
+
 struct AppState {
     conn: Arc<Mutex<Connection>>,
 }
 
-use std::path::Path;
+fn log_startup(message: &str) {
+    let log_path = Path::new("app.log");
+    let mut log_file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)
+        .expect("❌ Failed to open app.log");
+
+    let timestamp = Local::now();
+    writeln!(
+        log_file,
+        "[{}] {}",
+        timestamp.format("%Y-%m-%d %H:%M:%S"),
+        message
+    )
+    .expect("❌ Failed to write to app.log");
+}
+
+fn get_app_dir() -> PathBuf {
+    let app_name = env!("CARGO_PKG_NAME");
+    let mut dir = data_dir().expect("❌ Could not find user data directory");
+    dir.push(app_name);
+    fs::create_dir_all(&dir).expect("❌ Failed to create app data directory");
+    dir
+}
 
 fn init_db() -> Result<Arc<Mutex<Connection>>, rusqlite::Error> {
-    let package_name = env!("CARGO_PKG_NAME");
-    let db_path = format!("{}.db", package_name);
-    let is_new_db = !Path::new(&db_path).exists();
+    let app_dir = get_app_dir();
 
-    let conn = Connection::open(&db_path)?;
+    let db_path = app_dir.join("records_and_tracking.db");
+    let log_path = app_dir.join("app.log");
+
+    let mut log = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path)
+        .expect("❌ Failed to create/open log file");
+
+    let is_new_db = !db_path.exists();
 
     if is_new_db {
-        // Initialize schema only if DB doesn't exist
-        let schema = fs::read_to_string("./schema.sql").expect("Failed to read schema.sql");
+        let context: tauri::Context<tauri::Wry> = generate_context!();
+        let env = Env::default();
+        let res_dir =
+            resource_dir(context.package_info(), &env).expect("❌ Failed to get resource dir");
+
+        let schema_path = res_dir.join("schema.sql");
+
+        writeln!(log, "📄 Reading schema from: {}", schema_path.display()).ok();
+
+        let schema =
+            fs::read_to_string(&schema_path).expect("❌ Failed to read bundled schema.sql");
+
+        let conn = Connection::open(&db_path)?;
         conn.execute_batch(&schema)?;
-
-        // Optionally seed initial data
-        let seed = fs::read_to_string("./seed.sql").expect("Failed to read seed.sql");
-        conn.execute_batch(&seed)?;
+        writeln!(log, "✅ New DB created and initialized").ok();
+        Ok(Arc::new(Mutex::new(conn)))
+    } else {
+        let conn = Connection::open(&db_path)?;
+        writeln!(log, "✅ Opened existing DB").ok();
+        Ok(Arc::new(Mutex::new(conn)))
     }
-
-    Ok(Arc::new(Mutex::new(conn)))
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    log_startup("🔄 Application starting...");
     let conn = init_db().expect("Failed to initialize database");
+
+    writeln!(
+        OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("app.log")
+            .expect("❌ Failed to open app.log"),
+        "🔄 Application started successfully."
+    )
+    .expect("❌ Failed to write to app.log");
+
     let app_state = AppState { conn };
 
     tauri::Builder::default()
