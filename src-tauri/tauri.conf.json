@@ -26,7 +26,23 @@
     }
   },
   "bundle": {
-    "resources": ["schema.sql"],
+    "windows": {
+      "allowDowngrades": true,
+      "certificateThumbprint": null,
+      "digestAlgorithm": null,
+      "nsis": {
+        "installerHooks": "custom-config.nsh"
+      },
+      "signCommand": null,
+      "timestampUrl": null,
+      "tsp": false,
+      "webviewInstallMode": {
+        "silent": true,
+        "type": "downloadBootstrapper"
+      },
+      "wix": null
+    },
+    "resources": ["schema.sql", "launch-app.ps1"],
     "createUpdaterArtifacts": true,
     "active": true,
     "targets": "all",

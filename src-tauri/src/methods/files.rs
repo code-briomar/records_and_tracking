@@ -312,8 +312,8 @@ pub fn add_new_file(
     match conn.execute(
         "INSERT INTO files (
             case_number, case_type, purpose, uploaded_by, current_location, notes,
-            required_on 
-        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            required_on, sync_status
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
         params![
             case_number,
             case_type,
@@ -321,7 +321,8 @@ pub fn add_new_file(
             uploaded_by,
             current_location,
             notes,
-            required_on
+            required_on,
+            "pending"
         ],
     ) {
         Ok(_) => {
@@ -415,7 +416,8 @@ pub fn update_file(
                 purpose = ?3,
                 current_location = ?4,
                 notes = ?5,
-                required_on = ?6
+                required_on = ?6,
+                sync_status = 'pending'
 
          WHERE file_id = ?7",
         params![
@@ -528,7 +530,7 @@ pub fn mark_file_returned(
 pub fn delete_file(state: State<AppState>, file_id: i32) -> Result<String, String> {
     let conn = state.conn.lock().unwrap();
     match conn.execute(
-        "UPDATE files SET deleted = 1, is_deleted = 1 WHERE file_id = ?1",
+        "UPDATE files SET deleted = 1, is_deleted = 1, sync_status='pending' WHERE file_id = ?1",
         params![file_id],
     ) {
         Ok(_) => Ok("File deleted successfully".to_string()),

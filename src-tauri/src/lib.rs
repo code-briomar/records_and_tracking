@@ -28,6 +28,7 @@ use std::io::Write;
 use tauri::utils::platform::resource_dir;
 use tauri::{generate_context, Env};
 
+extern crate embed_resource;
 struct AppState {
     conn: Arc<Mutex<Connection>>,
     // supabase: Option<SupabaseClient>,
@@ -141,13 +142,12 @@ pub fn run() {
 
     // Configure Supabase
     let supabase = SupabaseClient::new(
-        &std::env::var("SUPABASE_URL").expect("SUPABASE_URL not set"),
-        &std::env::var("SUPABASE_KEY").expect("SUPABASE_KEY not set"),
+        "https://jdvxrimlhomteuwydvvh.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkdnhyaW1saG9tdGV1d3lkdnZoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjE4ODk3MiwiZXhwIjoyMDYxNzY0OTcyfQ.c0gLkOARG17I1hP_Hl1wzJlceE0_4uaqLsKnNL5XltI",
         &std::env::var("SUPABASE_TOKEN").expect("SUPABASE_TOKEN not set"),
     );
 
     let app_state = AppState { conn, supabase };
-
 
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())

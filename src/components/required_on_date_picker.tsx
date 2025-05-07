@@ -20,7 +20,7 @@ const RequiredOnDatePicker = () => {
         <DatePicker
           label="Required On"
           variant="bordered"
-          value={field.value ? parseDate(field.value) : null}
+          value={field.value ? parseDate(field.value.split("T")[0]) : null}
           onChange={(date) => {
             if (date) {
               form.setFieldValue(field.name, date.toString());
