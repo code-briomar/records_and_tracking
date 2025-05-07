@@ -18,7 +18,7 @@
         "transparent": true,
         "width": 800,
         "height": 600,
-        "devtools": false
+        "devtools": true
       }
     ],
     "security": {
@@ -26,6 +26,8 @@
     }
   },
   "bundle": {
+    "resources": ["schema.sql"],
+    "createUpdaterArtifacts": true,
     "active": true,
     "targets": "all",
     "icon": [
@@ -35,11 +37,22 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "publisher": "Briomar.FTW",
-    "shortDescription": "A Short DEscription",
+    "publisher": "Briomar",
+    "shortDescription": "Records & Tracking is a simple and easy to use application for tracking your records.",
     "category": "Utility",
-    "copyright": "Copyright (c) 2022",
+    "copyright": "Copyright (c) 2025",
     "license": "MIT",
-    "homepage": "https://example.com"
+    "homepage": "https://briomar.me"
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDREMjhGNURBOUE2M0Y1RUEKUldUcTlXT2EydlVvVFFrTlZZc2k1SGNrTVdTZHg1UDgxaG01QVRlL2RaTmFGdHU2Z0lGL3padUwK",
+      "endpoints": [
+        "https://github.com/code-briomar/records-and-tracking/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

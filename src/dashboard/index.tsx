@@ -23,20 +23,20 @@ export default function Dashboard() {
 
   const [selected, setSelected] = React.useState("upcoming_cases");
 
-  const this_week_date_range = {
-    start: new Date(
-      new Date().setDate(new Date().getDate() - 7)
-    ).toLocaleDateString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-    }),
-    end: new Date().toLocaleDateString("en-US", {
-      month: "2-digit",
-      day: "2-digit",
-      year: "numeric",
-    }),
-  };
+  // const this_week_date_range = {
+  //   start: new Date(
+  //     new Date().setDate(new Date().getDate() - 7)
+  //   ).toLocaleDateString("en-US", {
+  //     month: "2-digit",
+  //     day: "2-digit",
+  //     year: "numeric",
+  //   }),
+  //   end: new Date().toLocaleDateString("en-US", {
+  //     month: "2-digit",
+  //     day: "2-digit",
+  //     year: "numeric",
+  //   }),
+  // };
 
   const today = new Date().toLocaleDateString("en-US", {
     month: "2-digit",

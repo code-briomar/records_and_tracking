@@ -1,5 +1,5 @@
 import { Card, CardBody } from "@heroui/react";
-import FileFilters from "../components/files_data_filters";
+// import FileFilters from "../components/files_data_filters";
 import LeftPanel from "../components/left_panel";
 import NavbarSection from "../components/navbar";
 import RightPanel from "../components/right_panel";
@@ -23,9 +23,7 @@ export default function File() {
             <NavbarSection breadcrumbs={breadcrumbs} />
 
             {/* Case Files Tracking */}
-            <div className="p-2">
-              <FileFilters />
-            </div>
+            <div className="p-2">{/* <FileFilters /> */}</div>
           </div>
 
           {/* RIGHT PANEL */}

@@ -18,29 +18,29 @@ import StaffAutoCompleteInput from "./staff_autocomplete_input";
 import StaffReport from "./staff_report";
 import StaffTable from "./staff_table";
 
-const staffData = [
-  {
-    name: "Chung Miller",
-    role: "Software Engineer",
-    department: "IT Department",
-    email: "chung.miller@example.com",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d",
-  },
-  {
-    name: "Janelle Lenard",
-    role: "HR Manager",
-    department: "Human Resources",
-    email: "janelle.lenard@example.com",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-  },
-  {
-    name: "Zoey Lang",
-    role: "Project Manager",
-    department: "Operations",
-    email: "zoey.lang@example.com",
-    avatar: "https://i.pravatar.cc/150?u=a04258114e29026702d",
-  },
-];
+// const staffData = [
+//   {
+//     name: "Chung Miller",
+//     role: "Software Engineer",
+//     department: "IT Department",
+//     email: "chung.miller@example.com",
+//     avatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d",
+//   },
+//   {
+//     name: "Janelle Lenard",
+//     role: "HR Manager",
+//     department: "Human Resources",
+//     email: "janelle.lenard@example.com",
+//     avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
+//   },
+//   {
+//     name: "Zoey Lang",
+//     role: "Project Manager",
+//     department: "Operations",
+//     email: "zoey.lang@example.com",
+//     avatar: "https://i.pravatar.cc/150?u=a04258114e29026702d",
+//   },
+// ];
 
 export default function StaffDeepDive() {
   const validationSchema = Yup.object().shape({

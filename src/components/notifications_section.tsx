@@ -15,7 +15,6 @@ import {
 
 import { Archive, Eye, Trash2 } from "lucide-react";
 import React from "react";
-import CustomModal from "./modal";
 import { notifications } from "./notifications_data";
 
 export const columns = [
@@ -34,7 +33,7 @@ const statusColorMap: Record<string | number, ChipProps["color"]> = {
 type Notification = (typeof notifications)[0];
 
 export default function NotificationsSection() {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const { onOpen } = useDisclosure();
 
   const renderCell = React.useCallback(
     (notification: Notification, columnKey: React.Key) => {
@@ -149,11 +148,7 @@ export default function NotificationsSection() {
       </Table>
 
       {/* Custom Modal Placement */}
-      <CustomModal
-          onOpen={onOpen}
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-      />
+      {/* <CustomModal isOpen={isOpen} onOpenChange={onOpenChange} /> */}
     </>
   );
 }

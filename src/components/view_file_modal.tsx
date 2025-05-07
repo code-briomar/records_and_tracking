@@ -1,6 +1,5 @@
 import { Card, Spinner } from "@heroui/react";
 import { useEffect, useState } from "react";
-import { caseFiles } from "./case_files_data";
 import { fileSectionData } from "./files_data";
 import CustomModal from "./modal";
 import { staff } from "./staff_data";
@@ -96,9 +95,9 @@ export default function ViewFileModal({
                   </th>
                   <td className="border border-gray-300 px-4 py-2">
                     {
-                      caseFiles.find(
-                        (caseFile) => caseFile.case_id === caseFileData.case_id
-                      )?.title
+                      // caseFiles.find(
+                      //   (caseFile) => caseFile.case_id === caseFileData.case_id
+                      // )?.title
                     }
                   </td>
                 </tr>

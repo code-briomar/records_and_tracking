@@ -9,7 +9,7 @@ import { useLocale } from "@react-aria/i18n";
 import { Field } from "formik";
 
 const RequiredOnDatePicker = () => {
-  const now = today(getLocalTimeZone());
+  // const now = today(getLocalTimeZone());
   const { locale } = useLocale();
 
   const isDateUnavailable = (date: any) => isWeekend(date, locale);

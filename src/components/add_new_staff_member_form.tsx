@@ -21,7 +21,6 @@ const staffSchema = Yup.object().shape({
 export default function AddNewStaffMemberForm({
   isOpen,
   onOpenChange,
-  onOpen,
 }: {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;

@@ -24,6 +24,13 @@ dist-ssr
 *.sw?
 src-tauri/records_and_tracking.db
 src-tauri/.env
+
+.env
+src-tauri/resources/records_and_tracking.db
+src-tauri/seed.sql
+src-tauri/schema.sql
+dev_docs/hope/image.png
+src-tauri/schema.sql
 .env
 .gitignore
 src-tauri/public_key.pem

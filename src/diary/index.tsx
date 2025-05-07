@@ -1,5 +1,5 @@
 import { Calendar, Card, CardBody } from "@heroui/react";
-import { getLocalTimeZone, isWeekend, today } from "@internationalized/date";
+import { isWeekend } from "@internationalized/date";
 import { useLocale } from "@react-aria/i18n";
 import { useState } from "react";
 import { fileSectionData as caseFiles } from "../components/files_data";
@@ -27,7 +27,7 @@ import { useAuth } from "../context/auth_context";
 
 function CalendarItem() {
   const [selectedDate, setSelectedDate] = useState<any>(null);
-  let now = today(getLocalTimeZone());
+  // let now = today(getLocalTimeZone());
   let { locale } = useLocale();
 
   // Disable Fridays with a max of 7 judgements and 3 rulings

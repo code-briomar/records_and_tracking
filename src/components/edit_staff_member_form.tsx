@@ -20,7 +20,6 @@ export default function EditStaffMemberForm({
   staff_id,
   isOpen,
   onOpenChange,
-  onOpen,
 }: {
   staff_id: number;
   isOpen: boolean;
@@ -129,7 +128,7 @@ export default function EditStaffMemberForm({
           validationSchema={staffSchema}
           onSubmit={handleSubmit}
         >
-          {({ values, errors, touched, isValid, dirty, setFieldValue }) => (
+          {({ values, errors, touched, setFieldValue }) => (
             <Form className="flex flex-col gap-4">
               <div>
                 <Field
