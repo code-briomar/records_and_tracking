@@ -28,10 +28,20 @@ rusqlite = { version = "0.34.0", features = ["bundled"] }
 #     "runtime-tokio-native-tls",
 # ] }
 
-# Verification via email
 reqwest = { version = "0.11", features = ["json", "blocking"] }
+
 chrono = "0.4.41"
 dirs = "6.0.0"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
+
+# Supabase
+supabase_rs = "0.4.2"
+dotenv = "0.15"
+urlencoding = "2"
+
+
+# DateTime
+chrono = "0.4.41"
+tokio = "1.44.2"

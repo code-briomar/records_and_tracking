@@ -12,8 +12,14 @@ import Notifications from "./notifications";
 import Staff from "./staff";
 import Tools from "./tools/index.tsx";
 
+
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check } from "@tauri-apps/plugin-updater";
+
+import { addToast } from "@heroui/react";
+import { invoke } from "@tauri-apps/api/core";
+import { useEffect } from "react";
+
 import { Navigate } from "react-router-dom";
 import { useAuth } from "./context/auth_context.tsx";
 import Diary from "./diary/index.tsx";
@@ -60,6 +66,37 @@ const PrivateRoute = ({
 
 function App() {
   const { authData } = useAuth();
+
+  useEffect(() => {
+    const handleOnline = () => {
+      addToast({
+        title: "Syncing data...",
+        description: "Your data is being synced with the server.",
+        promise: new Promise((resolve) => {
+          console.log("Online detected — syncing data...");
+          invoke("sync_files").catch((err) =>
+            console.error("Sync failed:", err)
+          );
+
+          setTimeout(() => {
+            resolve("Sync complete!");
+          }, 2000); // Simulate a delay for the promise
+        }),
+      });
+    };
+
+    window.addEventListener("online", handleOnline);
+
+    // Optional: trigger immediately if already online
+    if (navigator.onLine) {
+      handleOnline();
+    }
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
+
   return (
     <Router>
       <Routes>
