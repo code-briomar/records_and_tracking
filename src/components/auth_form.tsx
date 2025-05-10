@@ -37,11 +37,7 @@ export default function AuthForm({ login_formik, signup_formik }: any) {
               variant="faded"
               className={"mx-2"}
             >
-              <img
-                src={"./public/icons/google.png"}
-                alt="Google"
-                className={"p-2"}
-              />
+              <img src={"./icons/google.png"} alt="Google" className={"p-2"} />
             </Button>
 
             <Button
@@ -52,7 +48,7 @@ export default function AuthForm({ login_formik, signup_formik }: any) {
               className={"mx-2"}
             >
               <img
-                src={"./public/icons/microsoft.png"}
+                src={"./icons/microsoft.png"}
                 alt="Microsoft"
                 className={"p-2"}
               />
@@ -122,11 +118,7 @@ export default function AuthForm({ login_formik, signup_formik }: any) {
               variant="faded"
               className={"mx-2"}
             >
-              <img
-                src={"./public/icons/google.png"}
-                alt="Google"
-                className={"p-2"}
-              />
+              <img src={"./icons/google.png"} alt="Google" className={"p-2"} />
             </Button>
 
             <Button
@@ -137,7 +129,7 @@ export default function AuthForm({ login_formik, signup_formik }: any) {
               className={"mx-2"}
             >
               <img
-                src={"./public/icons/microsoft.png"}
+                src={"./icons/microsoft.png"}
                 alt="Microsoft"
                 className={"p-2"}
               />

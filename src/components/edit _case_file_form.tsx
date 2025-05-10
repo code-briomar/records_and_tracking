@@ -14,6 +14,7 @@ import { File, updateFile } from "../services/files";
 import { createNotification } from "../services/notifications";
 import { fetchFileData } from "./files_data";
 import CustomModal from "./modal";
+import RequiredOnDatePicker from "./required_on_date_picker";
 
 export default function EditCaseFileForm({
   file_id,
@@ -275,18 +276,21 @@ export default function EditCaseFileForm({
 
                 {/* Required On */}
                 <div>
-                  <Field
+                  {/* <Field
                     as={Input}
                     type="datetime-local"
                     label="Required On"
                     name="required_on"
                     variant="bordered"
-                  />
-                  <ErrorMessage
+                  /> */}
+
+                  <RequiredOnDatePicker />
+                  {/* Uncaught Error: Invalid ISO 8601 date string: 2025-05-14T00:00:00.000Z */}
+                  {/* <ErrorMessage
                     name="required_on"
                     component="p"
                     className="text-red-500 text-sm"
-                  />
+                  /> */}
                 </div>
 
                 {/* Errors */}
