@@ -13,7 +13,7 @@ export default function Notifications() {
     <>
       <Card
         isBlurred
-        className="rounded-none h-full w-full border-none bg-background/60 dark:bg-default-100/50 bg-[url('public/light-bg.png')]  dark:bg-[url('public/dark-bg.png')] bg-no-repeat bg-cover"
+        className="rounded-none h-full w-full border-none bg-background/60 dark:bg-default-100/50 bg-[url('light-bg.png')]  dark:bg-[url('dark-bg.png')] bg-no-repeat bg-cover"
         shadow="sm"
       >
         <CardBody className="grid grid-cols-[1fr_3fr_1fr] h-dvh">

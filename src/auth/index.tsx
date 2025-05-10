@@ -217,7 +217,7 @@ function Auth() {
   return (
     <div
       className={
-        "grid grid-cols-3 gap-4 h-screen overflow-hidden bg-[url('public/light-bg.png')]  dark:bg-[url('public/dark-bg.png')] bg-no-repeat bg-cover"
+        "grid grid-cols-3 gap-4 h-screen overflow-hidden bg-[url('light-bg.png')]  dark:bg-[url('dark-bg.png')] bg-no-repeat bg-cover"
       }
     >
       <div

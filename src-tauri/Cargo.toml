@@ -33,9 +33,6 @@ reqwest = { version = "0.11", features = ["json", "blocking"] }
 chrono = "0.4.41"
 dirs = "6.0.0"
 
-[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-tauri-plugin-updater = "2"
-
 # Supabase
 supabase_rs = "0.4.2"
 dotenv = "0.15"
@@ -46,10 +43,11 @@ windows = { version = "0.61.1", features = [
     "Win32_System_Threading",
     "Win32_Foundation",
 ] }
-windows-sys = "0.59.0"
-embed-resource = "3.0"
+# windows-sys = "0.59.0"
+# embed-resource = "3.0.2"
+# webview = "0.1.1"
 
-
-# DateTime
-chrono = "0.4.41"
 tokio = "1.44.2"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"

@@ -1,5 +1,5 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+// #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use rusqlite::Connection;
 use std::fs;
 use std::path::PathBuf;
@@ -28,29 +28,45 @@ use std::io::Write;
 use tauri::utils::platform::resource_dir;
 use tauri::{generate_context, Env};
 
-extern crate embed_resource;
+// extern crate embed_resource;
 struct AppState {
     conn: Arc<Mutex<Connection>>,
     // supabase: Option<SupabaseClient>,
     supabase: SupabaseClient,
 }
 
+// fn embed_resources() {
+//     #[cfg(windows)]
+//     {
+//         let host = std::env::var("HOST").unwrap_or_else(|_| {
+//             let fallback = "x86_64-pc-windows-msvc".to_string();
+//             println!("⚠️ HOST not set, using fallback: {}", &fallback);
+//             std::env::set_var("HOST", &fallback);
+//             fallback
+//         });
+
+//         let target = std::env::var("TARGET").unwrap_or_else(|_| {
+//             let fallback = "x86_64-pc-windows-msvc".to_string();
+//             println!("⚠️ TARGET not set, using fallback: {}", &fallback);
+//             std::env::set_var("TARGET", &fallback);
+//             fallback
+//         });
+
+//         println!("HOST is: {}", host);
+//         println!("TARGET is: {}", target);
+//         println!("cargo:rerun-if-changed=records_and_tracking_manifest.rc");
+//         embed_resource::compile("records_and_tracking_manifest.rc", embed_resource::NONE)
+//             .manifest_optional()
+//             .unwrap();
+//     }
+// }
+
 fn log_startup(message: &str) {
     let log_path = Path::new("app.log");
-    let mut log_file = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(log_path)
-        .expect("❌ Failed to open app.log");
-
-    let timestamp = Local::now();
-    writeln!(
-        log_file,
-        "[{}] {}",
-        timestamp.format("%Y-%m-%d %H:%M:%S"),
-        message
-    )
-    .expect("❌ Failed to write to app.log");
+    if let Ok(mut log_file) = OpenOptions::new().create(true).append(true).open(log_path) {
+        let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S");
+        writeln!(log_file, "[INFO {}] {}", timestamp, message).ok();
+    }
 }
 
 fn get_app_dir() -> PathBuf {
@@ -63,38 +79,41 @@ fn get_app_dir() -> PathBuf {
 
 fn init_db() -> Result<Arc<Mutex<Connection>>, rusqlite::Error> {
     let app_dir = get_app_dir();
-
     let db_path = app_dir.join("records_and_tracking.db");
-    let log_path = app_dir.join("app.log");
-
-    let mut log = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&log_path)
-        .expect("❌ Failed to create/open log file");
 
     let is_new_db = !db_path.exists();
+
+    println!("📂 Database path: {}", db_path.display());
+    log_startup(&format!("📂 Database path: {}", db_path.display()));
+
+    println!("📂 Is new DB: {}", is_new_db);
+    log_startup(&format!("📂 Is new DB: {}", is_new_db));
+
+    println!("📂 App directory: {}", app_dir.display());
+    log_startup(&format!("📂 App directory: {}", app_dir.display()));
 
     if is_new_db {
         let context: tauri::Context<tauri::Wry> = generate_context!();
         let env = Env::default();
         let res_dir =
             resource_dir(context.package_info(), &env).expect("❌ Failed to get resource dir");
-
         let schema_path = res_dir.join("schema.sql");
 
-        writeln!(log, "📄 Reading schema from: {}", schema_path.display()).ok();
+        log_startup(&format!(
+            "📄 Reading schema from: {}",
+            schema_path.display()
+        ));
 
         let schema =
             fs::read_to_string(&schema_path).expect("❌ Failed to read bundled schema.sql");
 
         let conn = Connection::open(&db_path)?;
         conn.execute_batch(&schema)?;
-        writeln!(log, "✅ New DB created and initialized").ok();
+        log_startup("✅ New DB created and initialized");
         Ok(Arc::new(Mutex::new(conn)))
     } else {
         let conn = Connection::open(&db_path)?;
-        writeln!(log, "✅ Opened existing DB").ok();
+        log_startup("✅ Opened existing DB");
         Ok(Arc::new(Mutex::new(conn)))
     }
 }
@@ -125,27 +144,23 @@ async fn start_sync_loop(app_handle: AppHandle) {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     log_startup("🔄 Application starting...");
-    let conn = init_db().expect("Failed to initialize database");
 
-    writeln!(
-        OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open("app.log")
-            .expect("❌ Failed to open app.log"),
-        "🔄 Application started successfully."
-    )
-    .expect("❌ Failed to write to app.log");
+    let conn = init_db().expect("❌ Failed to initialize database");
+    log_startup("✅ Database initialization complete.");
+
+    // IT WEIDLY STOPS LOGGING AFTER THIS POINT
 
     // Load .env
-    dotenv::dotenv().expect("Failed to load .env file");
+    // dotenv::dotenv().expect("❌ Failed to load .env file");
+    // log_startup("📦 Loaded .env configuration");
 
     // Configure Supabase
     let supabase = SupabaseClient::new(
         "https://jdvxrimlhomteuwydvvh.supabase.co",
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkdnhyaW1saG9tdGV1d3lkdnZoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjE4ODk3MiwiZXhwIjoyMDYxNzY0OTcyfQ.c0gLkOARG17I1hP_Hl1wzJlceE0_4uaqLsKnNL5XltI",
-        &std::env::var("SUPABASE_TOKEN").expect("SUPABASE_TOKEN not set"),
+        ""
     );
+    log_startup("✅ Supabase client configured");
 
     let app_state = AppState { conn, supabase };
 
@@ -154,9 +169,8 @@ pub fn run() {
         .manage(app_state)
         .setup(|app| {
             let handle = app.handle().clone();
-
-            tauri::async_runtime::spawn(start_sync_loop(handle.clone()));
-
+            tauri::async_runtime::spawn(start_sync_loop(handle));
+            log_startup("🔁 Sync loop started");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -197,5 +211,7 @@ pub fn run() {
             delete_notification,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Tauri application");
+        .expect("❌ Error while running Tauri application");
+
+    log_startup("🚀 Application run completed.");
 }

@@ -10,7 +10,7 @@ function Home() {
       <div className="col-span-1">
         <Card
           isBlurred
-          className="rounded-none h-full w-full border-none bg-background/60 dark:bg-default-100/50 bg-[url('public/light-bg.png')]  dark:bg-[url('public/dark-bg.png')] bg-no-repeat bg-cover"
+          className="rounded-none h-full w-full border-none bg-background/60 dark:bg-default-100/50 bg-[url('light-bg.png')]  dark:bg-[url('dark-bg.png')] bg-no-repeat bg-cover"
           shadow="sm"
         >
           <div className="flex items-center justify-center h-full">

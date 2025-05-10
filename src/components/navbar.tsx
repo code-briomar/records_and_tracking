@@ -1,8 +1,9 @@
-import { addToast, BreadcrumbItem, Breadcrumbs } from "@heroui/react";
+import { BreadcrumbItem, Breadcrumbs } from "@heroui/react";
 import { invoke } from "@tauri-apps/api/core";
 import { Bell, LucideFolderSync, Moon, RotateCw, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import { useAuth } from "../context/auth_context";
 import { CustomSearchBar } from "./search_bar";
 
@@ -75,20 +76,40 @@ const NavbarSection = ({ breadcrumbs }: { breadcrumbs: string[] }) => {
         <LucideFolderSync
           className="w-6 h-6 cursor-pointer"
           onClick={() => {
-            addToast({
-              title: "Syncing data...",
-              description: "Your data is being synced with the server.",
-              promise: new Promise((resolve) => {
-                console.log("Online detected — syncing data...");
-                invoke("sync_files").catch((err) =>
-                  console.error("Sync failed:", err)
+            useEffect(() => {
+              const handleOnline = () => {
+                toast.promise(
+                  new Promise(async (resolve, reject) => {
+                    try {
+                      console.log("Online detected — syncing data...");
+                      await invoke("sync_files");
+                      resolve("Sync complete!");
+                    } catch (err) {
+                      console.error("❌ Sync failed:", err);
+                      reject(
+                        "Sync failed. Check your internet connection and try again."
+                      );
+                    }
+                  }),
+                  {
+                    loading: "🔄 Syncing data with server...",
+                    success: (msg: any) => msg,
+                    error: (msg: any) => msg,
+                  }
                 );
+              };
 
-                setTimeout(() => {
-                  resolve("Sync complete!");
-                }, 2000); // Simulate a delay for the promise
-              }),
-            });
+              window.addEventListener("online", handleOnline);
+
+              // Optional: trigger immediately if already online
+              if (navigator.onLine) {
+                handleOnline();
+              }
+
+              return () => {
+                window.removeEventListener("online", handleOnline);
+              };
+            }, []);
           }}
         />
       </div>

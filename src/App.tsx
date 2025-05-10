@@ -24,42 +24,6 @@ import { toast } from "sonner";
 import { useAuth } from "./context/auth_context.tsx";
 import Diary from "./diary/index.tsx";
 
-(async () => {
-  const update = await check();
-  if (update) {
-    console.log(
-      `found update ${update.version} from ${update.date} with notes ${update.body}`
-    );
-    let downloaded = 0;
-    let contentLength = 0;
-
-    await update.downloadAndInstall((event) => {
-      switch (event.event) {
-        case "Started":
-          contentLength = event.data.contentLength ?? 0;
-          console.log(`started downloading ${event.data.contentLength} bytes`);
-          break;
-        case "Progress":
-          downloaded += event.data.chunkLength;
-          console.log(`downloaded ${downloaded} from ${contentLength}`);
-          break;
-        case "Finished":
-          console.log("download finished");
-          break;
-      }
-    });
-
-    console.log("update installed");
-    addToast({
-      title: "Update Installed",
-      description: `The application has been updated to version ${update.version}.`,
-      color: "success",
-      shouldShowTimeoutProgress: true,
-    });
-    await relaunch();
-  }
-})();
-
 const PrivateRoute = ({
   authData,
   children,
@@ -74,16 +38,76 @@ function App() {
   const { authData } = useAuth();
 
   useEffect(() => {
+    const checkForUpdates = async () => {
+      try {
+        const update = await check();
+        console.log("Update from check:", update);
+
+        if (update) {
+          console.log(
+            `found update ${update.version} from ${update.date} with notes ${update.body}`
+          );
+          let downloaded = 0;
+          let contentLength = 0;
+
+          await update.downloadAndInstall((event) => {
+            console.log("Download event:", event);
+            switch (event.event) {
+              case "Started":
+                contentLength = event.data.contentLength ?? 0;
+                console.log(
+                  `started downloading ${event.data.contentLength} bytes`
+                );
+                break;
+              case "Progress":
+                downloaded += event.data.chunkLength;
+                console.log(`downloaded ${downloaded} from ${contentLength}`);
+                break;
+              case "Finished":
+                console.log("download finished");
+                break;
+            }
+          });
+
+          console.log("update installed");
+          addToast({
+            title: "Update Installed",
+            description: `The application has been updated to version ${update.version}.`,
+            color: "success",
+            shouldShowTimeoutProgress: true,
+          });
+
+          console.log("Relaunching application...");
+          await relaunch();
+          console.log("Application relaunched.");
+        } else {
+          console.log("No update found.");
+        }
+      } catch (error) {
+        console.error("Error checking for update:", error);
+        // addToast({
+        //   title: "Info",
+        //   description: `No new updates found.`,
+        //   color: "default",
+        // });
+        toast.info("No new updates found.");
+      }
+    };
+
     const handleOnline = () => {
       toast.promise(
         new Promise(async (resolve, reject) => {
           try {
             console.log("Online detected — syncing data...");
             await invoke("sync_files");
-            resolve("✅ Sync complete!");
+            resolve("Sync complete!");
           } catch (err) {
             console.error("❌ Sync failed:", err);
-            reject("❌ Sync failed. Check console.");
+            reject(
+              "Sync failed. Check your internet connection and try again."
+            );
+          } finally {
+            await checkForUpdates();
           }
         }),
         {
@@ -100,6 +124,17 @@ function App() {
     if (navigator.onLine) {
       handleOnline();
     }
+
+    // Remove drag and drop events
+    window.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      return false;
+    });
+
+    window.addEventListener("drop", (event) => {
+      event.preventDefault();
+      return false;
+    });
 
     return () => {
       window.removeEventListener("online", handleOnline);
