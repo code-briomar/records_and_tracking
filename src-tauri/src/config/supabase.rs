@@ -19,22 +19,32 @@ impl SupabaseClient {
         }
     }
 
-    pub async fn insert<T: Serialize>(
-        &self,
-        table: &str,
-        data: &T,
-    ) -> Result<reqwest::Response, String> {
+    pub async fn insert<T: Serialize>(&self, table: &str, data: &T) -> Result<String, String> {
         let url = format!("{}/rest/v1/{}", self.base_url, table);
 
-        self.client
+        let response = self
+            .client
             .post(&url)
             .header("apikey", &self.api_key)
             .header("Authorization", format!("Bearer {}", &self.token))
             .header("Content-Type", "application/json")
+            .header("Prefer", "return=representation")
             .json(data)
             .send()
             .await
-            .map_err(|e| e.to_string())
+            .map_err(|e| format!("Request error: {}", e))?;
+
+        let status = response.status();
+        let body = response
+            .text()
+            .await
+            .unwrap_or_else(|_| "<no body>".to_string());
+
+        if !status.is_success() {
+            return Err(format!("HTTP {}: {}", status.as_u16(), body));
+        }
+
+        Ok(body)
     }
 
     pub async fn select<T: for<'de> serde::Deserialize<'de>>(

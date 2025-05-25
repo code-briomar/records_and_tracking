@@ -5,6 +5,7 @@ use rusqlite::OptionalExtension;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::str::FromStr;
+use tauri::ipc::IpcResponse;
 use tauri::State;
 
 use crate::AppState; // Import AppState
@@ -83,10 +84,16 @@ pub async fn sync_files(state: tauri::State<'_, AppState>) -> Result<serde_json:
         print!("File data: {:?}", file_data); // Log the file data for debugging
 
         let result = state.supabase.insert("files", &file_data).await;
-        if let Err(e) = result {
-            eprintln!("Supabase insert error: {}", e);
-        } else {
-            println!("Successfully pushed file ID {} to Supabase.", file.file_id);
+
+        eprintln!(" Result: {:?}", &result);
+        match result {
+            Ok(response) => {
+                println!("✅ Insert successful: {:?}", response);
+            }
+            Err(e) => {
+                // Just print the error string directly
+                eprintln!("❌ Supabase insert failed: {}", e);
+            }
         }
 
         // println!(
@@ -535,6 +542,19 @@ pub fn delete_file(state: State<AppState>, file_id: i32) -> Result<String, Strin
     ) {
         Ok(_) => Ok("File deleted successfully".to_string()),
         Err(e) => Err(format!("Failed to delete file: {}", e)),
+    }
+}
+
+// Restore File ( Soft Restore )
+#[tauri::command]
+pub fn restore_file(state: State<AppState>, file_id: i32) -> Result<String, String> {
+    let conn = state.conn.lock().unwrap();
+    match conn.execute(
+        "UPDATE files SET deleted = 0, is_deleted = 0, sync_status='pending' WHERE file_id = ?1",
+        params![file_id],
+    ) {
+        Ok(_) => Ok("File restored successfully".to_string()),
+        Err(e) => Err(format!("Failed to restore file: {}", e)),
     }
 }
 

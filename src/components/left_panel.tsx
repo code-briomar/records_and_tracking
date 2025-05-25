@@ -1,6 +1,7 @@
 import { Accordion, AccordionItem, Button } from "@heroui/react";
 import {
   CalendarDays,
+  Check,
   ChevronRight,
   FilePenLine,
   Gauge,
@@ -299,9 +300,10 @@ const LeftPanel = () => {
               )}
             </>
           ) : (
-            <p className="text-green-600 font-semibold">
-              ✅ Everyone is present
-            </p>
+            <div className="flex items-center justify-start space-x-2">
+              <Check className="w-5 h-5 text-lime-600" />
+              <p className="text-green-600 flex">Everyone is present</p>
+            </div>
           )}
         </div>
       ) : null}

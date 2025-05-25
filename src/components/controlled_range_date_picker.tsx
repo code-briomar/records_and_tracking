@@ -21,7 +21,7 @@ export default function ControlledRangeDatePicker({
     React.useState<RangeValue<DateValue> | null>(null);
 
   return (
-    <div className="flex flex-row gap-2">
+    <div className="flex flex-row gap-2 w-2/3">
       <div className="w-full flex flex-col gap-y-2">
         <DateRangePicker
           label="Search by date"

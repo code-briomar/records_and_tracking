@@ -1,4 +1,5 @@
 import {
+  addToast,
   Button,
   Chip,
   DateValue,
@@ -19,8 +20,9 @@ import {
   TableRow,
   useDisclosure,
 } from "@heroui/react";
+import { Check, ChevronRight } from "lucide-react";
 import React, { SVGProps } from "react";
-import { File } from "../services/files";
+import { deleteFile, File, getAllFiles, restoreFile } from "../services/files";
 import AddNewCaseFileForm from "./add_new_case_file_form";
 import ControlledRangeDatePicker from "./controlled_range_date_picker";
 import DeleteCaseFileModal from "./delete_case_file_form";
@@ -38,12 +40,13 @@ export const columns = [
   { name: "PURPOSE", uid: "purpose", sortable: true },
   //{ name: "STATUS", uid: "status", sortable: true }, // Assuming status is part of the case table
   { name: "UPLOADED BY", uid: "uploaded_by", sortable: true },
-  { name: "CURRENT LOCATION", uid: "current_location", sortable: true },
   { name: "NOTES", uid: "notes" },
   { name: "DATE RECEIVED", uid: "date_recieved", sortable: true },
-  { name: "REQUIRED ON", uid: "required_on", sortable: true },
+  { name: "DUE", uid: "required_on", sortable: true },
+  // {name: "STATUS",uid:"status",sortable:true},
   { name: "DATE RETURNED", uid: "date_returned", sortable: true },
-  { name: "ACTIONS", uid: "actions" },
+  { name: "", uid: "#" },
+  { name: "⚙️", uid: "actions" },
 ];
 
 export const statusOptions = [
@@ -175,8 +178,9 @@ const INITIAL_VISIBLE_COLUMNS = [
   "purpose",
   //"status", // Only include if it's part of your case/file schema
   // "uploaded_by",
-  "current_location",
   "required_on",
+  "notes",
+  "#",
   "actions",
 ];
 
@@ -204,12 +208,12 @@ const getDateRanges = () => {
   };
 };
 
-const dateFilterOptions = [
-  { name: "All", uid: "all" },
-  { name: "Last Week", uid: "lastWeek" },
-  { name: "This Week", uid: "thisWeek" },
-  { name: "Next Week", uid: "nextWeek" },
-];
+// const dateFilterOptions = [
+//   { name: "All", uid: "all" },
+//   { name: "Last Week", uid: "lastWeek" },
+//   { name: "This Week", uid: "thisWeek" },
+//   { name: "Next Week", uid: "nextWeek" },
+// ];
 
 export default function CaseFilters({
   caseFiles,
@@ -223,7 +227,7 @@ export default function CaseFilters({
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
-  const [dateFilter, setDateFilter] = React.useState<string>("all");
+  const [dateFilter] = React.useState<string>("all");
 
   const dateRanges = getDateRanges();
 
@@ -241,13 +245,13 @@ export default function CaseFilters({
     onOpenChange: onOpenChangeDelete,
   } = useDisclosure();
 
-  const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
+  const [visibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
   const [statusFilter] = React.useState<Selection>("all");
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: "age",
+    column: "required_on",
     direction: "ascending",
   });
   const [page, setPage] = React.useState(1);
@@ -363,7 +367,11 @@ export default function CaseFilters({
             size="sm"
             variant="flat"
           >
-            {file.case_type}
+            {file.case_type === "Civil"
+              ? "⚖️ Civil"
+              : file.case_type === "Criminal"
+              ? "🚨 Criminal"
+              : file.case_type}
           </Chip>
         );
 
@@ -399,7 +407,7 @@ export default function CaseFilters({
         return <span>{file.current_location}</span>;
 
       case "notes":
-        return <span className="text-sm text-default-600">{file.notes}</span>;
+        return <span className="text-base text-default-600">{file.notes}</span>;
 
       case "date_recieved":
         return (
@@ -411,8 +419,8 @@ export default function CaseFilters({
       case "required_on":
         const requiredDate = new Date(file.required_on);
         return (
-          <span className="text-xs font-semibold">
-            {requiredDate.toLocaleDateString("en-US", {
+          <span className="text-sm font-semibold">
+            {requiredDate.toLocaleDateString("en-UK", {
               day: "numeric",
               month: "numeric",
               year: "numeric",
@@ -434,6 +442,56 @@ export default function CaseFilters({
 
       case "date_returned_signature":
         return <span>{file.date_returned_signature || "—"}</span>;
+
+      case "#":
+        return (
+          <Button
+            isIconOnly
+            size="sm"
+            variant="ghost"
+            onPress={async () => {
+              // Soft delete the file
+              const result = await deleteFile(file.file_id);
+              if (result) {
+                // Update the caseFiles state to remove the deleted file
+                setCaseFiles((prevFiles) =>
+                  prevFiles.filter((f) => f.file_id !== file.file_id)
+                );
+              }
+
+              // Optionally, you can show a success message or perform other actions
+              addToast({
+                title: "File Closed",
+                description: `${file.case_number} has been closed.`,
+                endContent: (
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    onPress={async () => {
+                      const response = await restoreFile(file.file_id);
+                      if (response) {
+                        // Update the caseFiles state to restore the file
+                        const caseFiles = await getAllFiles();
+
+                        setCaseFiles(caseFiles);
+                      }
+
+                      addToast({
+                        title: "File Restored",
+                        description: `${file.case_number} has been restored.`,
+                        endContent: null,
+                      });
+                    }}
+                  >
+                    Undo
+                  </Button>
+                ),
+              });
+            }}
+          >
+            <Check className="w-4 h-4 text-lime-500" />
+          </Button>
+        );
 
       case "actions":
         const launchViewModal = () => {
@@ -502,12 +560,12 @@ export default function CaseFilters({
   const topContent = React.useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex justify-between gap-3 items-end">
+        <div className="flex justify-between gap-3 items-center">
           <Input
             isClearable
             classNames={{
               base: "w-full sm:max-w-[44%]",
-              inputWrapper: "border-1",
+              inputWrapper: "border-1 py-[26px]",
             }}
             placeholder="Search by Case No..."
             size="sm"
@@ -522,7 +580,8 @@ export default function CaseFilters({
             setValue={handleDateRangeChange}
           />
           <div className="flex gap-3">
-            <Dropdown>
+            {/* REQUIRED ON FILTER - CURRENTLY NOT NEEDED */}
+            {/* <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
                   endContent={<ChevronDownIcon className="text-small" />}
@@ -547,9 +606,10 @@ export default function CaseFilters({
                   </DropdownItem>
                 ))}
               </DropdownMenu>
-            </Dropdown>
+            </Dropdown> */}
 
-            <Dropdown>
+            {/* COLUMNS - CURRENTLY NOT NEEDED */}
+            {/* <Dropdown>
               <DropdownTrigger className="hidden sm:flex">
                 <Button
                   endContent={<ChevronDownIcon className="text-small" />}
@@ -573,7 +633,7 @@ export default function CaseFilters({
                   </DropdownItem>
                 ))}
               </DropdownMenu>
-            </Dropdown>
+            </Dropdown> */}
             <Button
               className="bg-foreground text-background"
               endContent={<PlusIcon />}
@@ -586,31 +646,91 @@ export default function CaseFilters({
         </div>
         <div className="flex justify-between items-center">
           <div className="flex gap-2 items-center">
-            <span className="text-default-400 text-small">
-              Total {caseFiles.length} case files,
-            </span>
+            <h1>This week</h1>
+            <ChevronRight className="w-5 h-5" />
             <Chip
-              className="capitalize border-none gap-1 text-default-600"
+              className="capitalize border-none gap-1 text-default-600 p-4 text-lg font-bold"
+              size="sm"
+              variant="flat"
+              color="secondary"
+            >
+              {/* All Cases This Week */}
+              {/* Filter by "required_on" ( format is : 5/29/2025 ) */}
+              {
+                caseFiles.filter((eachCase) => {
+                  const requiredDate = new Date(eachCase.required_on);
+                  const today = new Date();
+                  const startOfWeek = new Date(today);
+                  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+
+                  // Reset time to 00:00:00 for all dates
+                  requiredDate.setHours(0, 0, 0, 0);
+                  today.setHours(0, 0, 0, 0);
+                  startOfWeek.setHours(0, 0, 0, 0);
+
+                  return requiredDate >= startOfWeek && requiredDate <= today;
+                }).length
+              }{" "}
+              files
+            </Chip>
+            <Chip
+              className="capitalize border-none gap-1 text-default-600 p-4 text-lg font-bold"
               size="sm"
               variant="flat"
               color="warning"
             >
               {/* Criminal Case Types */}
               {
-                caseFiles.filter((file) => file.case_type === "Criminal").length
+                // caseFiles.filter((file) => file.case_type === "Criminal").length
+
+                caseFiles.filter((eachCase) => {
+                  const requiredDate = new Date(eachCase.required_on);
+                  const today = new Date();
+                  const startOfWeek = new Date(today);
+                  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+
+                  // Reset time to 00:00:00 for all dates
+                  requiredDate.setHours(0, 0, 0, 0);
+                  today.setHours(0, 0, 0, 0);
+                  startOfWeek.setHours(0, 0, 0, 0);
+
+                  return (
+                    requiredDate >= startOfWeek &&
+                    requiredDate <= today &&
+                    eachCase.case_type === "Criminal"
+                  );
+                }).length
               }{" "}
               - Criminal
             </Chip>
 
             <Chip
-              className="capitalize border-none gap-1 text-default-600"
+              className="capitalize border-none gap-1 text-default-600 p-4 text-lg font-bold"
               size="sm"
               variant="flat"
               color="default"
             >
               {/* Civil Case Types */}
-              {caseFiles.filter((file) => file.case_type === "Civil").length} -
-              Civil
+              {
+                caseFiles.filter((eachCase) => {
+                  const requiredDate = new Date(eachCase.required_on);
+                  const today = new Date();
+                  const startOfWeek = new Date(today);
+                  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+
+                  // Reset time to 00:00:00 for all dates
+                  requiredDate.setHours(0, 0, 0, 0);
+                  today.setHours(0, 0, 0, 0);
+                  startOfWeek.setHours(0, 0, 0, 0);
+
+                  return (
+                    requiredDate >= startOfWeek &&
+                    requiredDate <= today &&
+                    eachCase.case_type === "Civil"
+                  );
+                }).length
+              }{" "}
+              - Civil
             </Chip>
           </div>
           <label className="flex items-center text-default-400 text-small">
@@ -619,8 +739,8 @@ export default function CaseFilters({
               className="bg-transparent outline-none text-default-400 text-small"
               onChange={onRowsPerPageChange}
             >
-              <option value="5">5</option>
               <option value="10">10</option>
+              <option value="5">5</option>
               <option value="15">15</option>
             </select>
           </label>
@@ -652,11 +772,11 @@ export default function CaseFilters({
           variant="light"
           onChange={setPage}
         />
-        <span className="text-small text-default-400">
+        {/* <span className="text-small text-default-400">
           {selectedKeys === "all"
             ? "All items selected"
             : `${selectedKeys.size} of ${items.length} selected`}
-        </span>
+        </span> */}
       </div>
     );
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
@@ -683,20 +803,20 @@ export default function CaseFilters({
   return (
     <>
       <Table
-        isCompact
+        isStriped
         removeWrapper
         aria-label="Example table with custom cells, pagination and sorting"
         bottomContent={bottomContent}
         bottomContentPlacement="outside"
-        checkboxesProps={{
-          classNames: {
-            wrapper:
-              "after:bg-foreground after:text-background text-background",
-          },
-        }}
+        // checkboxesProps={{
+        //   classNames: {
+        //     wrapper:
+        //       "after:bg-foreground after:text-background text-background",
+        //   },
+        // }}
         classNames={classNames}
-        selectedKeys={selectedKeys}
-        selectionMode="multiple"
+        // selectedKeys={selectedKeys}
+        // selectionMode="multiple"
         sortDescriptor={sortDescriptor}
         topContent={topContent}
         topContentPlacement="outside"

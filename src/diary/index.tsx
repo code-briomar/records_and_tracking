@@ -1,4 +1,4 @@
-import { Calendar, Card, CardBody } from "@heroui/react";
+import { Calendar, Card, CardBody, Link, useDisclosure } from "@heroui/react";
 import { isWeekend } from "@internationalized/date";
 import { useLocale } from "@react-aria/i18n";
 import { useState } from "react";
@@ -6,6 +6,7 @@ import { fileSectionData as caseFiles } from "../components/files_data";
 import LeftPanel from "../components/left_panel";
 import NavbarSection from "../components/navbar";
 import RightPanel from "../components/right_panel";
+import ViewCaseFileModal from "../components/view_case_file_modal";
 import { useAuth } from "../context/auth_context";
 // export interface File {
 //     case_number?: any;
@@ -29,6 +30,7 @@ function CalendarItem() {
   const [selectedDate, setSelectedDate] = useState<any>(null);
   // let now = today(getLocalTimeZone());
   let { locale } = useLocale();
+  const [fileID, setFileID] = useState<number>(0);
 
   // Disable Fridays with a max of 7 judgements and 3 rulings
   // let disabledRanges = [
@@ -62,9 +64,15 @@ function CalendarItem() {
   let isDateUnavailable = (date: any) => isWeekend(date, locale);
 
   // Filter cases for the selected date
-  const matchingCases = caseFiles.filter(
-    (file) => selectedDate && file.required_on === selectedDate.toString()
+  const matchingCases = caseFiles?.filter(
+    (file) =>
+      selectedDate &&
+      new Date(file.required_on).toISOString().split("T")[0] ===
+        selectedDate.toString()
   );
+
+  const { isOpen: isOpenView, onOpenChange: onOpenChangeView } =
+    useDisclosure();
 
   return (
     <>
@@ -83,17 +91,29 @@ function CalendarItem() {
       <div className="m-2">
         <h2 className="text-2xl mb-2">Cases</h2>
         {selectedDate ? (
-          matchingCases.length > 0 ? (
+          matchingCases?.length > 0 ? (
             <div className="list-disc ml-5 space-y-2">
-              {matchingCases.map((file, index) => (
+              {matchingCases?.map((file, index) => (
                 <>
                   <div
                     key={index}
-                    className="flex items-center space-x-2  p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md outline outline-1 rounded-md outline-gray-300 dark:outline-gray-600"
+                    className="flex items-center justify-between space-x-2  p-2 cursor-pointer rounded-md outline outline-1 rounded-md outline-gray-300 dark:outline-gray-600"
                   >
                     {/* Display the index of the case */}
-                    <span className="text-sm text-gray-500">{++index}</span>
-                    <span>{file.case_number || "Untitled Case"}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-gray-500">{++index}</span>
+                      <span>{file?.case_number || "Untitled Case"}</span>
+                    </div>
+                    <Link
+                      href="javascript:void(0)"
+                      underline="hover"
+                      onPress={() => {
+                        setFileID(file.file_id);
+                        onOpenChangeView();
+                      }}
+                    >
+                      View Details
+                    </Link>
                   </div>
                 </>
               ))}
@@ -105,6 +125,12 @@ function CalendarItem() {
           <p>Click on a date to see cases.</p>
         )}
       </div>
+
+      <ViewCaseFileModal
+        file_id={fileID}
+        isOpen={isOpenView}
+        onOpenChange={onOpenChangeView}
+      />
     </>
   );
 }

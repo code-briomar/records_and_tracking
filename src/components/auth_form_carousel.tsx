@@ -1,5 +1,35 @@
-import { Moon, Sun } from "lucide-react";
+import { Moon, Scale, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
+
+const imageNames = ["4.jpg", "5.jpg", "6.jpg"];
+
+// Generate random dimensions within a nice-looking range
+const getRandomDimensions = () => {
+  const width = Math.floor(Math.random() * 100) + 350; // 150–250 px
+  const height = Math.floor(Math.random() * 80) + 200; // 150–230 px
+  return { width, height };
+};
+
+const Gallery = () => {
+  return (
+    <div className="flex flex-wrap justify-center">
+      {imageNames.map((name, index) => {
+        const { width, height } = getRandomDimensions();
+        return (
+          <div key={index} className="m-2" style={{ width, height }}>
+            <div className="flex flex-col relative text-foreground box-border bg-content1 outline-none shadow-2xl rounded-xl overflow-hidden w-full h-full">
+              <img
+                src={`/splash/${name}`} // Assuming these are in /public/images
+                alt={`Image ${index + 1}`}
+                className="object-cover w-full h-full rounded-lg"
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export default function AuthFormCarousel() {
   const [darkMode, setDarkMode] = useState(
@@ -19,8 +49,9 @@ export default function AuthFormCarousel() {
     <div className="relative w-full flex flex-col items-center p-4 overflow-y-auto">
       <div className={"flex items-center justify-center space-x-2 mb-4"}>
         <h2 className="text-2xl font-semibold flex items-center space-x-4 justify-center">
-          <img src={"./icons/balance.png"} className={"w-8 h-8"} />
-          <span>Kilungu Law Courts</span>
+          {/* <img src={"./icons/balance.png"} className={"w-8 h-8"} /> */}
+          <Scale className="w-8 h-8" />
+          <span>Records & Tracking - Kilungu Law Courts</span>
         </h2>
         <div
           onClick={() => setDarkMode(!darkMode)}
@@ -33,7 +64,7 @@ export default function AuthFormCarousel() {
           )}
         </div>
       </div>
-      <div className="flex flex-wrap justify-center">
+      {/* <div className="flex flex-wrap justify-center">
         <div className="m-2" style={{ width: 186, height: 211 }}>
           <div className="flex flex-col relative text-foreground box-border bg-content1 outline-none shadow-lg rounded-lg overflow-hidden w-full h-full">
             <img
@@ -113,7 +144,8 @@ export default function AuthFormCarousel() {
             />
           </div>
         </div>
-      </div>
+      </div> */}
+      <Gallery />
     </div>
   );
 }

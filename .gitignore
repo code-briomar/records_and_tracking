@@ -36,3 +36,4 @@ src-tauri/schema.sql
 src-tauri/public_key.pem
 src-tauri/private_key.pem
 updates/latest.json
+updates/records-and-tracking_0.1.1_x64-setup.exe

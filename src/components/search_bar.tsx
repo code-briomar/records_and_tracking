@@ -233,7 +233,7 @@ export const CustomSearchBar = () => {
               </div>
             )}
 
-            {!loadingAIResponse && <Divider className="my-4" />}
+            {ai_response && <Divider className="my-4" />}
           </ModalBody>{" "}
           {/* ✅ Form & buttons are passed here */}
         </ModalContent>
