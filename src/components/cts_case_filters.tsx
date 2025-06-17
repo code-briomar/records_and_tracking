@@ -1,4 +1,5 @@
 import {
+  addToast,
   Button,
   Chip,
   DateValue,
@@ -11,16 +12,21 @@ import {
   RangeValue,
   Selection,
   SortDescriptor,
+  Tab,
   Table,
   TableBody,
   TableCell,
   TableColumn,
   TableHeader,
   TableRow,
+  Tabs,
   useDisclosure,
 } from "@heroui/react";
-import React, { SVGProps } from "react";
-import { File } from "../services/files";
+import { saveAs } from "file-saver";
+import { Check, ChevronRight } from "lucide-react";
+import React, { SVGProps, useEffect, useState } from "react";
+import { Bar } from "react-chartjs-2";
+import { deleteFile, File, getAllFiles, restoreFile } from "../services/files";
 import AddNewCaseFileForm from "./add_new_case_file_form";
 import ControlledRangeDatePicker from "./controlled_range_date_picker";
 import DeleteCaseFileModal from "./delete_case_file_form";
@@ -38,12 +44,13 @@ export const columns = [
   { name: "PURPOSE", uid: "purpose", sortable: true },
   //{ name: "STATUS", uid: "status", sortable: true }, // Assuming status is part of the case table
   { name: "UPLOADED BY", uid: "uploaded_by", sortable: true },
-  { name: "CURRENT LOCATION", uid: "current_location", sortable: true },
   { name: "NOTES", uid: "notes" },
   { name: "DATE RECEIVED", uid: "date_recieved", sortable: true },
-  { name: "REQUIRED ON", uid: "required_on", sortable: true },
+  { name: "DUE", uid: "required_on", sortable: true },
+  // {name: "STATUS",uid:"status",sortable:true},
   { name: "DATE RETURNED", uid: "date_returned", sortable: true },
-  { name: "ACTIONS", uid: "actions" },
+  { name: "", uid: "#" },
+  { name: "⚙️", uid: "actions" },
 ];
 
 export const statusOptions = [
@@ -175,8 +182,9 @@ const INITIAL_VISIBLE_COLUMNS = [
   "purpose",
   //"status", // Only include if it's part of your case/file schema
   // "uploaded_by",
-  "current_location",
   "required_on",
+  "notes",
+  "#",
   "actions",
 ];
 
@@ -204,12 +212,12 @@ const getDateRanges = () => {
   };
 };
 
-const dateFilterOptions = [
-  { name: "All", uid: "all" },
-  { name: "Last Week", uid: "lastWeek" },
-  { name: "This Week", uid: "thisWeek" },
-  { name: "Next Week", uid: "nextWeek" },
-];
+// const dateFilterOptions = [
+//   { name: "All", uid: "all" },
+//   { name: "Last Week", uid: "lastWeek" },
+//   { name: "This Week", uid: "thisWeek" },
+//   { name: "Next Week", uid: "nextWeek" },
+// ];
 
 export default function CaseFilters({
   caseFiles,
@@ -223,7 +231,8 @@ export default function CaseFilters({
   const [selectedKeys, setSelectedKeys] = React.useState<Selection>(
     new Set([])
   );
-  const [dateFilter, setDateFilter] = React.useState<string>("all");
+  const [dateFilter] = React.useState<string>("all");
+  const [showOverdueOnly, setShowOverdueOnly] = React.useState(false);
 
   const dateRanges = getDateRanges();
 
@@ -241,16 +250,17 @@ export default function CaseFilters({
     onOpenChange: onOpenChangeDelete,
   } = useDisclosure();
 
-  const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
+  const [visibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
   const [statusFilter] = React.useState<Selection>("all");
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
-    column: "age",
+    column: "required_on",
     direction: "ascending",
   });
   const [page, setPage] = React.useState(1);
+  const [selectedTab, setSelectedTab] = React.useState("dashboard");
 
   // Filter By Date
   const [dateSearchValue, setDateSearchValue] =
@@ -263,6 +273,14 @@ export default function CaseFilters({
       setPage(1);
     }
   };
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const overdueCases = caseFiles.filter((file) => {
+    const requiredDate = new Date(file.required_on);
+    requiredDate.setHours(0, 0, 0, 0);
+    return !file.deleted && requiredDate < today && !file.date_returned;
+  });
 
   const pages = Math.ceil(caseFiles.length / rowsPerPage);
 
@@ -281,6 +299,14 @@ export default function CaseFilters({
 
     // Exclude deleted files
     filteredCaseFiles = filteredCaseFiles.filter((file) => !file.deleted);
+
+    if (showOverdueOnly) {
+      filteredCaseFiles = filteredCaseFiles.filter((file) => {
+        const requiredDate = new Date(file.required_on);
+        requiredDate.setHours(0, 0, 0, 0);
+        return requiredDate < today && !file.date_returned;
+      });
+    }
 
     if (hasSearchFilter) {
       filteredCaseFiles = filteredCaseFiles.filter((file) =>
@@ -316,7 +342,7 @@ export default function CaseFilters({
     }
 
     return filteredCaseFiles;
-  }, [caseFiles, filterValue, dateFilter, dateSearchValue]);
+  }, [caseFiles, filterValue, dateFilter, dateSearchValue, showOverdueOnly]);
 
   const items = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -347,7 +373,25 @@ export default function CaseFilters({
 
     switch (columnKey) {
       case "case_number":
-        return <p className="text-bold text-small">{file?.case_number}</p>;
+        const isOverdue = (() => {
+          const requiredDate = new Date(file.required_on);
+          requiredDate.setHours(0, 0, 0, 0);
+          return requiredDate < today && !file.date_returned;
+        })();
+        return (
+          <p
+            className={`text-bold text-small ${
+              isOverdue ? "bg-red-100 text-red-700 px-2 rounded" : ""
+            }`}
+          >
+            {file?.case_number}
+            {isOverdue && (
+              <span title="Overdue" className="ml-1">
+                ⚠️
+              </span>
+            )}
+          </p>
+        );
 
       case "case_type":
         return (
@@ -363,7 +407,11 @@ export default function CaseFilters({
             size="sm"
             variant="flat"
           >
-            {file.case_type}
+            {file.case_type === "Civil"
+              ? "⚖️ Civil"
+              : file.case_type === "Criminal"
+              ? "🚨 Criminal"
+              : file.case_type}
           </Chip>
         );
 
@@ -399,7 +447,7 @@ export default function CaseFilters({
         return <span>{file.current_location}</span>;
 
       case "notes":
-        return <span className="text-sm text-default-600">{file.notes}</span>;
+        return <span className="text-base text-default-600">{file.notes}</span>;
 
       case "date_recieved":
         return (
@@ -411,8 +459,8 @@ export default function CaseFilters({
       case "required_on":
         const requiredDate = new Date(file.required_on);
         return (
-          <span className="text-xs font-semibold">
-            {requiredDate.toLocaleDateString("en-US", {
+          <span className="text-sm font-semibold">
+            {requiredDate.toLocaleDateString("en-UK", {
               day: "numeric",
               month: "numeric",
               year: "numeric",
@@ -434,6 +482,56 @@ export default function CaseFilters({
 
       case "date_returned_signature":
         return <span>{file.date_returned_signature || "—"}</span>;
+
+      case "#":
+        return (
+          <Button
+            isIconOnly
+            size="sm"
+            variant="ghost"
+            onPress={async () => {
+              // Soft delete the file
+              const result = await deleteFile(file.file_id);
+              if (result) {
+                // Update the caseFiles state to remove the deleted file
+                setCaseFiles((prevFiles) =>
+                  prevFiles.filter((f) => f.file_id !== file.file_id)
+                );
+              }
+
+              // Optionally, you can show a success message or perform other actions
+              addToast({
+                title: "File Closed",
+                description: `${file.case_number} has been closed.`,
+                endContent: (
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    onPress={async () => {
+                      const response = await restoreFile(file.file_id);
+                      if (response) {
+                        // Update the caseFiles state to restore the file
+                        const caseFiles = await getAllFiles();
+
+                        setCaseFiles(caseFiles);
+                      }
+
+                      addToast({
+                        title: "File Restored",
+                        description: `${file.case_number} has been restored.`,
+                        endContent: null,
+                      });
+                    }}
+                  >
+                    Undo
+                  </Button>
+                ),
+              });
+            }}
+          >
+            <Check className="w-4 h-4 text-lime-500" />
+          </Button>
+        );
 
       case "actions":
         const launchViewModal = () => {
@@ -502,12 +600,12 @@ export default function CaseFilters({
   const topContent = React.useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
-        <div className="flex justify-between gap-3 items-end">
+        <div className="flex justify-between gap-3 items-center">
           <Input
             isClearable
             classNames={{
               base: "w-full sm:max-w-[44%]",
-              inputWrapper: "border-1",
+              inputWrapper: "border-1 py-[26px]",
             }}
             placeholder="Search by Case No..."
             size="sm"
@@ -521,59 +619,27 @@ export default function CaseFilters({
             value={dateSearchValue}
             setValue={handleDateRangeChange}
           />
-          <div className="flex gap-3">
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  size="sm"
-                  variant="flat"
-                >
-                  Required On
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                aria-label="Required On Filter"
-                selectedKeys={new Set([dateFilter])}
-                selectionMode="single"
-                onSelectionChange={(keys) => {
-                  const selectedKey = String(Array.from(keys)[0]);
-                  setDateFilter(selectedKey);
-                }}
-              >
-                {dateFilterOptions.map((option) => (
-                  <DropdownItem key={option.uid} className="capitalize">
-                    {capitalize(option.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  size="sm"
-                  variant="flat"
-                >
-                  Columns
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Table Columns"
-                closeOnSelect={false}
-                selectedKeys={visibleColumns}
-                selectionMode="multiple"
-                onSelectionChange={setVisibleColumns}
-              >
-                {columns.map((column) => (
-                  <DropdownItem key={column.uid} className="capitalize">
-                    {capitalize(column.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
+          <div className="flex gap-3 items-center">
+            <Chip
+              className="capitalize border-none gap-1 text-danger-600 p-4 text-lg font-bold"
+              size="sm"
+              variant="flat"
+              color="danger"
+            >
+              {overdueCases.length} Overdue
+            </Chip>
+            <Button
+              className={
+                showOverdueOnly
+                  ? "bg-danger text-background"
+                  : "bg-foreground text-background"
+              }
+              size="sm"
+              variant="flat"
+              onPress={() => setShowOverdueOnly((v) => !v)}
+            >
+              {showOverdueOnly ? "Show All" : "Show Overdue Only"}
+            </Button>
             <Button
               className="bg-foreground text-background"
               endContent={<PlusIcon />}
@@ -586,31 +652,91 @@ export default function CaseFilters({
         </div>
         <div className="flex justify-between items-center">
           <div className="flex gap-2 items-center">
-            <span className="text-default-400 text-small">
-              Total {caseFiles.length} case files,
-            </span>
+            <h1>This week</h1>
+            <ChevronRight className="w-5 h-5" />
             <Chip
-              className="capitalize border-none gap-1 text-default-600"
+              className="capitalize border-none gap-1 text-default-600 p-4 text-lg font-bold"
+              size="sm"
+              variant="flat"
+              color="secondary"
+            >
+              {/* All Cases This Week */}
+              {/* Filter by "required_on" ( format is : 5/29/2025 ) */}
+              {
+                caseFiles.filter((eachCase) => {
+                  const requiredDate = new Date(eachCase.required_on);
+                  const today = new Date();
+                  const startOfWeek = new Date(today);
+                  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+
+                  // Reset time to 00:00:00 for all dates
+                  requiredDate.setHours(0, 0, 0, 0);
+                  today.setHours(0, 0, 0, 0);
+                  startOfWeek.setHours(0, 0, 0, 0);
+
+                  return requiredDate >= startOfWeek && requiredDate <= today;
+                }).length
+              }{" "}
+              files
+            </Chip>
+            <Chip
+              className="capitalize border-none gap-1 text-default-600 p-4 text-lg font-bold"
               size="sm"
               variant="flat"
               color="warning"
             >
               {/* Criminal Case Types */}
               {
-                caseFiles.filter((file) => file.case_type === "Criminal").length
+                // caseFiles.filter((file) => file.case_type === "Criminal").length
+
+                caseFiles.filter((eachCase) => {
+                  const requiredDate = new Date(eachCase.required_on);
+                  const today = new Date();
+                  const startOfWeek = new Date(today);
+                  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+
+                  // Reset time to 00:00:00 for all dates
+                  requiredDate.setHours(0, 0, 0, 0);
+                  today.setHours(0, 0, 0, 0);
+                  startOfWeek.setHours(0, 0, 0, 0);
+
+                  return (
+                    requiredDate >= startOfWeek &&
+                    requiredDate <= today &&
+                    eachCase.case_type === "Criminal"
+                  );
+                }).length
               }{" "}
               - Criminal
             </Chip>
 
             <Chip
-              className="capitalize border-none gap-1 text-default-600"
+              className="capitalize border-none gap-1 text-default-600 p-4 text-lg font-bold"
               size="sm"
               variant="flat"
               color="default"
             >
               {/* Civil Case Types */}
-              {caseFiles.filter((file) => file.case_type === "Civil").length} -
-              Civil
+              {
+                caseFiles.filter((eachCase) => {
+                  const requiredDate = new Date(eachCase.required_on);
+                  const today = new Date();
+                  const startOfWeek = new Date(today);
+                  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+
+                  // Reset time to 00:00:00 for all dates
+                  requiredDate.setHours(0, 0, 0, 0);
+                  today.setHours(0, 0, 0, 0);
+                  startOfWeek.setHours(0, 0, 0, 0);
+
+                  return (
+                    requiredDate >= startOfWeek &&
+                    requiredDate <= today &&
+                    eachCase.case_type === "Civil"
+                  );
+                }).length
+              }{" "}
+              - Civil
             </Chip>
           </div>
           <label className="flex items-center text-default-400 text-small">
@@ -619,8 +745,8 @@ export default function CaseFilters({
               className="bg-transparent outline-none text-default-400 text-small"
               onChange={onRowsPerPageChange}
             >
-              <option value="5">5</option>
               <option value="10">10</option>
+              <option value="5">5</option>
               <option value="15">15</option>
             </select>
           </label>
@@ -635,6 +761,8 @@ export default function CaseFilters({
     onRowsPerPageChange,
     caseFiles.length,
     hasSearchFilter,
+    overdueCases.length,
+    showOverdueOnly,
   ]);
 
   const bottomContent = React.useMemo(() => {
@@ -652,11 +780,11 @@ export default function CaseFilters({
           variant="light"
           onChange={setPage}
         />
-        <span className="text-small text-default-400">
+        {/* <span className="text-small text-default-400">
           {selectedKeys === "all"
             ? "All items selected"
             : `${selectedKeys.size} of ${items.length} selected`}
-        </span>
+        </span> */}
       </div>
     );
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
@@ -680,50 +808,719 @@ export default function CaseFilters({
     []
   );
 
+  // Bulk selection state
+  const [selectedBulk, setSelectedBulk] = useState<Set<number>>(new Set());
+  const [selectAll, setSelectAll] = useState(false);
+
+  // Analytics state
+  const [analytics, setAnalytics] = useState({
+    total: 0,
+    overdue: 0,
+    closed: 0,
+    avgProcessing: 0,
+    byType: { Civil: 0, Criminal: 0 },
+    byPurpose: {},
+    byUploader: {},
+    weekly: [] as { week: string; count: number }[],
+    monthly: [] as { month: string; count: number }[],
+    overdueTrend: [] as { week: string; count: number }[],
+  });
+
+  // --- Custom Views State ---
+  const [customViews, setCustomViews] = useState(() => {
+    // Load from localStorage or start with empty
+    try {
+      return JSON.parse(localStorage.getItem("customViews") || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [newViewName, setNewViewName] = useState("");
+  const [pinnedAnalytics, setPinnedAnalytics] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("pinnedAnalytics") || "[]");
+    } catch {
+      return [];
+    }
+  });
+
+  // Save custom views and pins to localStorage
+  useEffect(() => {
+    localStorage.setItem("customViews", JSON.stringify(customViews));
+  }, [customViews]);
+  useEffect(() => {
+    localStorage.setItem("pinnedAnalytics", JSON.stringify(pinnedAnalytics));
+  }, [pinnedAnalytics]);
+
+  // Save current filter as a custom view
+  const saveCurrentView = () => {
+    if (!newViewName.trim()) return;
+    setCustomViews((prev) => [
+      ...prev,
+      {
+        name: newViewName,
+        filterValue,
+        showOverdueOnly,
+        visibleColumns: Array.from(visibleColumns),
+        sortDescriptor,
+        rowsPerPage,
+      },
+    ]);
+    setNewViewName("");
+  };
+
+  // Apply a saved view
+  const applyCustomView = (view: any) => {
+    setFilterValue(view.filterValue);
+    setShowOverdueOnly(view.showOverdueOnly);
+    // setVisibleColumns(new Set(view.visibleColumns)); // Uncomment if you allow column selection
+    setSortDescriptor(view.sortDescriptor);
+    setRowsPerPage(view.rowsPerPage);
+  };
+
+  // Remove a saved view
+  const removeCustomView = (idx: number) => {
+    setCustomViews((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  // Pin/unpin analytics widgets
+  const analyticsOptions = [
+    { key: "weekly", label: "Cases Created Per Week" },
+    { key: "monthly", label: "Cases Created Per Month" },
+    { key: "byPurpose", label: "Cases by Purpose" },
+    { key: "byUploader", label: "Cases by Uploader" },
+    { key: "overdueTrend", label: "Overdue Cases Per Week" },
+  ];
+  const togglePin = (key: string) => {
+    setPinnedAnalytics((prev: string[]) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
+
+  // Calculate analytics
+  useEffect(() => {
+    const total = caseFiles.length;
+    const overdue = overdueCases.length;
+    const closed = caseFiles.filter((f) => !!f.date_returned).length;
+    const processingTimes = caseFiles
+      .filter((f) => f.date_returned)
+      .map((f) => {
+        const start = new Date(f.date_recieved).getTime();
+        const end = f.date_returned
+          ? new Date(f.date_returned).getTime()
+          : start;
+        return (end - start) / (1000 * 60 * 60 * 24);
+      });
+    const avgProcessing =
+      processingTimes.length > 0
+        ? Math.round(
+            processingTimes.reduce((a, b) => a + b, 0) / processingTimes.length
+          )
+        : 0;
+    const byType = { Civil: 0, Criminal: 0 };
+    const byPurpose: Record<string, number> = {};
+    const byUploader: Record<string, number> = {};
+    caseFiles.forEach((f) => {
+      if (f.case_type === "Civil") byType.Civil++;
+      if (f.case_type === "Criminal") byType.Criminal++;
+      byPurpose[f.purpose] = (byPurpose[f.purpose] || 0) + 1;
+      byUploader[f.uploaded_by] = (byUploader[f.uploaded_by] || 0) + 1;
+    });
+    // Weekly stats (by required_on week)
+    const weekMap: Record<string, number> = {};
+    const overdueTrendMap: Record<string, number> = {};
+    caseFiles.forEach((f) => {
+      const d = new Date(f.required_on);
+      const week = `${d.getFullYear()}-W${Math.ceil(
+        (d.getDate() + 6 - d.getDay()) / 7
+      )}`;
+      weekMap[week] = (weekMap[week] || 0) + 1;
+      // Overdue trend
+      if (!f.date_returned && new Date(f.required_on) < today) {
+        overdueTrendMap[week] = (overdueTrendMap[week] || 0) + 1;
+      }
+    });
+    const weekly = Object.entries(weekMap).map(([week, count]) => ({
+      week,
+      count,
+    }));
+    const overdueTrend = Object.entries(overdueTrendMap).map(
+      ([week, count]) => ({
+        week,
+        count,
+      })
+    );
+    // Monthly stats
+    const monthMap: Record<string, number> = {};
+    caseFiles.forEach((f) => {
+      const d = new Date(f.required_on);
+      const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}`;
+      monthMap[month] = (monthMap[month] || 0) + 1;
+    });
+    const monthly = Object.entries(monthMap).map(([month, count]) => ({
+      month,
+      count,
+    }));
+    setAnalytics({
+      total,
+      overdue,
+      closed,
+      avgProcessing,
+      byType,
+      byPurpose,
+      byUploader,
+      weekly,
+      monthly,
+      overdueTrend,
+    });
+  }, [caseFiles, overdueCases.length]);
+
+  // Bulk actions handlers
+  const handleBulkSelect = (id: number) => {
+    setSelectedBulk((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedBulk(new Set());
+      setSelectAll(false);
+    } else {
+      setSelectedBulk(new Set(filteredItems.map((f) => f.file_id)));
+      setSelectAll(true);
+    }
+  };
+  const handleBulkClose = () => {
+    // Example: mark all selected as closed (simulate)
+    setCaseFiles((prev) =>
+      prev.map((f) =>
+        selectedBulk.has(f.file_id)
+          ? { ...f, date_returned: new Date().toISOString() }
+          : f
+      )
+    );
+    setSelectedBulk(new Set());
+    setSelectAll(false);
+  };
+  const handleBulkExport = () => {
+    // Simple CSV export
+    const rows = filteredItems.filter((f) => selectedBulk.has(f.file_id));
+    const csv = [Object.keys(rows[0] || {}).join(",")]
+      .concat(rows.map((f) => Object.values(f).join(",")))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cases_export.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Analytics panel (above table)
+  const analyticsPanel = (
+    <div className="flex flex-col gap-6 mb-4 p-4 rounded shadow transition-colors duration-300 bg-gray-50 dark:bg-neutral-900 text-black dark:text-white">
+      <div className="flex flex-wrap gap-4">
+        <div>
+          <span className="font-semibold">Total Cases:</span>{" "}
+          <b>{analytics.total}</b>
+        </div>
+        <div>
+          <span className="font-semibold">Overdue Cases:</span>{" "}
+          <b className="text-danger-600">{analytics.overdue}</b>
+        </div>
+        <div>
+          <span className="font-semibold">Closed Cases:</span>{" "}
+          <b>{analytics.closed}</b>
+        </div>
+        <div>
+          <span className="font-semibold">Average Processing Time (days):</span>{" "}
+          <b>{analytics.avgProcessing}</b>
+        </div>
+        <div>
+          <span className="font-semibold">Civil Cases:</span>{" "}
+          <b>{analytics.byType.Civil}</b>
+        </div>
+        <div>
+          <span className="font-semibold">Criminal Cases:</span>{" "}
+          <b>{analytics.byType.Criminal}</b>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-8">
+        <div className="w-80 h-48">
+          <div className="mb-2 font-semibold text-center">
+            Cases Created Per Week
+          </div>
+          <Bar
+            data={{
+              labels: analytics.weekly.map((w) => w.week),
+              datasets: [
+                {
+                  label: "Cases/Week",
+                  data: analytics.weekly.map((w) => w.count),
+                  backgroundColor: "#6366f1",
+                },
+              ],
+            }}
+            options={{
+              plugins: { legend: { display: false } },
+              scales: { y: { beginAtZero: true } },
+              responsive: true,
+              maintainAspectRatio: false,
+            }}
+          />
+        </div>
+        <div className="w-80 h-48">
+          <div className="mb-2 font-semibold text-center">
+            Cases Created Per Month
+          </div>
+          <Bar
+            data={{
+              labels: analytics.monthly.map((m) => m.month),
+              datasets: [
+                {
+                  label: "Cases/Month",
+                  data: analytics.monthly.map((m) => m.count),
+                  backgroundColor: "#f59e42",
+                },
+              ],
+            }}
+            options={{
+              plugins: { legend: { display: false } },
+              scales: { y: { beginAtZero: true } },
+              responsive: true,
+              maintainAspectRatio: false,
+            }}
+          />
+        </div>
+        <div className="w-80 h-48">
+          <div className="mb-2 font-semibold text-center">Cases by Purpose</div>
+          <Bar
+            data={{
+              labels: Object.keys(analytics.byPurpose),
+              datasets: [
+                {
+                  label: "Cases by Purpose",
+                  data: Object.values(analytics.byPurpose),
+                  backgroundColor: "#10b981",
+                },
+              ],
+            }}
+            options={{
+              plugins: { legend: { display: false } },
+              scales: { y: { beginAtZero: true } },
+              responsive: true,
+              maintainAspectRatio: false,
+            }}
+          />
+        </div>
+        <div className="w-80 h-48">
+          <div className="mb-2 font-semibold text-center">
+            Cases by Uploader
+          </div>
+          <Bar
+            data={{
+              labels: Object.keys(analytics.byUploader),
+              datasets: [
+                {
+                  label: "Cases by Uploader",
+                  data: Object.values(analytics.byUploader),
+                  backgroundColor: "#e11d48",
+                },
+              ],
+            }}
+            options={{
+              plugins: { legend: { display: false } },
+              scales: { y: { beginAtZero: true } },
+              responsive: true,
+              maintainAspectRatio: false,
+            }}
+          />
+        </div>
+        <div className="w-80 h-48">
+          <div className="mb-2 font-semibold text-center">
+            Overdue Cases Per Week
+          </div>
+          <Bar
+            data={{
+              labels: analytics.overdueTrend.map((w) => w.week),
+              datasets: [
+                {
+                  label: "Overdue/Week",
+                  data: analytics.overdueTrend.map((w) => w.count),
+                  backgroundColor: "#f43f5e",
+                },
+              ],
+            }}
+            options={{
+              plugins: { legend: { display: false } },
+              scales: { y: { beginAtZero: true } },
+              responsive: true,
+              maintainAspectRatio: false,
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+
+  // Bulk actions bar (above table)
+  const bulkBar = React.useMemo(
+    () =>
+      selectedBulk.size > 0 && (
+        <div className="flex gap-2 mb-2 p-2 bg-blue-50 rounded items-center">
+          <span>{selectedBulk.size} selected</span>
+          <Button size="sm" color="danger" onPress={handleBulkClose}>
+            Close
+          </Button>
+          <Button size="sm" color="primary" onPress={handleBulkExport}>
+            Export
+          </Button>
+          {/* Add more bulk actions as needed */}
+        </div>
+      ),
+    [selectedBulk, handleBulkClose, handleBulkExport]
+  );
+
   return (
     <>
-      <Table
-        isCompact
-        removeWrapper
-        aria-label="Example table with custom cells, pagination and sorting"
-        bottomContent={bottomContent}
-        bottomContentPlacement="outside"
-        checkboxesProps={{
-          classNames: {
-            wrapper:
-              "after:bg-foreground after:text-background text-background",
-          },
-        }}
-        classNames={classNames}
-        selectedKeys={selectedKeys}
-        selectionMode="multiple"
-        sortDescriptor={sortDescriptor}
-        topContent={topContent}
-        topContentPlacement="outside"
-        onSelectionChange={setSelectedKeys}
-        onSortChange={setSortDescriptor}
+      <Tabs
+        aria-label="Case Tracking Tabs"
+        selectedKey={selectedTab}
+        onSelectionChange={setSelectedTab}
+        fullWidth
+        size="lg"
+        className="mb-6"
       >
-        <TableHeader columns={headerColumns}>
-          {(column) => (
-            <TableColumn
-              key={column.uid}
-              align={column.uid === "actions" ? "center" : "start"}
-              allowsSorting={column.sortable}
+        <Tab key="cases" title="Cases Table">
+          {bulkBar}
+          <Table
+            isStriped
+            removeWrapper
+            aria-label="Case Table"
+            bottomContent={bottomContent}
+            bottomContentPlacement="outside"
+            classNames={classNames}
+            sortDescriptor={sortDescriptor}
+            topContent={topContent}
+            topContentPlacement="outside"
+            onSelectionChange={setSelectedKeys}
+            onSortChange={setSortDescriptor}
+            renderRow={(item) => (
+              <TableRow key={item.file_id}>
+                <TableCell>
+                  <input
+                    type="checkbox"
+                    checked={selectedBulk.has(item.file_id)}
+                    onChange={() => handleBulkSelect(item.file_id)}
+                  />
+                </TableCell>
+                {headerColumns.map((column) => (
+                  <TableCell key={column.uid}>
+                    {renderCell(item, column.uid)}
+                  </TableCell>
+                ))}
+              </TableRow>
+            )}
+          >
+            <TableHeader
+              columns={[{ name: "", uid: "select" }, ...headerColumns]}
             >
-              {column.name}
-            </TableColumn>
-          )}
-        </TableHeader>
-        <TableBody emptyContent={"No case files found"} items={sortedItems}>
-          {(item) => (
-            <TableRow key={item.file_id}>
-              {(columnKey) => (
-                <TableCell>{renderCell(item, columnKey)}</TableCell>
+              {(column) => (
+                <TableColumn
+                  key={column.uid}
+                  align={column.uid === "actions" ? "center" : "start"}
+                  allowsSorting={column.sortable}
+                >
+                  {column.uid === "select" ? (
+                    <input
+                      type="checkbox"
+                      checked={selectAll}
+                      onChange={handleSelectAll}
+                    />
+                  ) : (
+                    column.name
+                  )}
+                </TableColumn>
               )}
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+            </TableHeader>
+            <TableBody emptyContent={"No case files found"} items={sortedItems}>
+              {(item) => (
+                <TableRow key={item.file_id}>
+                  {(columnKey) => (
+                    <TableCell>{renderCell(item, columnKey)}</TableCell>
+                  )}
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Tab>
+        <Tab key="insights" title="Case Insights">
+          {analyticsPanel}
+        </Tab>
+        <Tab key="custom" title="Custom Views">
+          <div className="p-4 flex flex-col gap-6">
+            <div className="mb-4">
+              <div className="font-bold mb-2">Save Current Table View</div>
+              <div className="flex gap-2 items-center">
+                <Input
+                  size="sm"
+                  placeholder="View name..."
+                  value={newViewName}
+                  onValueChange={setNewViewName}
+                />
+                <Button size="sm" onPress={saveCurrentView}>
+                  Save View
+                </Button>
+              </div>
+              <div className="mt-2">
+                {customViews.length === 0 && (
+                  <span className="text-default-400">No saved views yet.</span>
+                )}
+                {customViews.map((view, idx) => (
+                  <div key={idx} className="flex gap-2 items-center mt-2">
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      onPress={() => applyCustomView(view)}
+                    >
+                      {view.name}
+                    </Button>
+                    <Button
+                      size="sm"
+                      color="danger"
+                      variant="light"
+                      onPress={() => removeCustomView(idx)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="font-bold mb-2">Pin Analytics Widgets</div>
+              <div className="flex flex-wrap gap-2">
+                {analyticsOptions.map((opt) => (
+                  <Button
+                    key={opt.key}
+                    size="sm"
+                    variant={
+                      pinnedAnalytics.includes(opt.key) ? "solid" : "flat"
+                    }
+                    onPress={() => togglePin(opt.key)}
+                  >
+                    {pinnedAnalytics.includes(opt.key) ? "Unpin" : "Pin"}{" "}
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-8 mt-4">
+                {pinnedAnalytics.includes("weekly") && (
+                  <div className="w-80 h-48">
+                    <div className="mb-2 font-semibold text-center">
+                      Cases Created Per Week
+                    </div>
+                    <Bar
+                      data={{
+                        labels: analytics.weekly.map((w) => w.week),
+                        datasets: [
+                          {
+                            label: "Cases/Week",
+                            data: analytics.weekly.map((w) => w.count),
+                            backgroundColor: "#6366f1",
+                          },
+                        ],
+                      }}
+                      options={{
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } },
+                        responsive: true,
+                        maintainAspectRatio: false,
+                      }}
+                    />
+                  </div>
+                )}
+                {pinnedAnalytics.includes("monthly") && (
+                  <div className="w-80 h-48">
+                    <div className="mb-2 font-semibold text-center">
+                      Cases Created Per Month
+                    </div>
+                    <Bar
+                      data={{
+                        labels: analytics.monthly.map((m) => m.month),
+                        datasets: [
+                          {
+                            label: "Cases/Month",
+                            data: analytics.monthly.map((m) => m.count),
+                            backgroundColor: "#f59e42",
+                          },
+                        ],
+                      }}
+                      options={{
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } },
+                        responsive: true,
+                        maintainAspectRatio: false,
+                      }}
+                    />
+                  </div>
+                )}
+                {pinnedAnalytics.includes("byPurpose") && (
+                  <div className="w-80 h-48">
+                    <div className="mb-2 font-semibold text-center">
+                      Cases by Purpose
+                    </div>
+                    <Bar
+                      data={{
+                        labels: Object.keys(analytics.byPurpose),
+                        datasets: [
+                          {
+                            label: "Cases by Purpose",
+                            data: Object.values(analytics.byPurpose),
+                            backgroundColor: "#10b981",
+                          },
+                        ],
+                      }}
+                      options={{
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } },
+                        responsive: true,
+                        maintainAspectRatio: false,
+                      }}
+                    />
+                  </div>
+                )}
+                {pinnedAnalytics.includes("byUploader") && (
+                  <div className="w-80 h-48">
+                    <div className="mb-2 font-semibold text-center">
+                      Cases by Uploader
+                    </div>
+                    <Bar
+                      data={{
+                        labels: Object.keys(analytics.byUploader),
+                        datasets: [
+                          {
+                            label: "Cases by Uploader",
+                            data: Object.values(analytics.byUploader),
+                            backgroundColor: "#e11d48",
+                          },
+                        ],
+                      }}
+                      options={{
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } },
+                        responsive: true,
+                        maintainAspectRatio: false,
+                      }}
+                    />
+                  </div>
+                )}
+                {pinnedAnalytics.includes("overdueTrend") && (
+                  <div className="w-80 h-48">
+                    <div className="mb-2 font-semibold text-center">
+                      Overdue Cases Per Week
+                    </div>
+                    <Bar
+                      data={{
+                        labels: analytics.overdueTrend.map((w) => w.week),
+                        datasets: [
+                          {
+                            label: "Overdue/Week",
+                            data: analytics.overdueTrend.map((w) => w.count),
+                            backgroundColor: "#f43f5e",
+                          },
+                        ],
+                      }}
+                      options={{
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true } },
+                        responsive: true,
+                        maintainAspectRatio: false,
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </Tab>
+        <Tab key="integrations" title="Integrations">
+          <div className="p-4 flex flex-col gap-6">
+            <div className="font-bold mb-2">Calendar Integration</div>
+            <div className="mb-4">
+              <Button
+                size="sm"
+                onPress={() => {
+                  // Export all upcoming case deadlines to .ics (iCalendar) file
+                  const events = caseFiles
+                    .filter((f) => !f.deleted && f.required_on)
+                    .map((f) => {
+                      const start = new Date(f.required_on);
+                      const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour event
+                      return `BEGIN:VEVENT\nSUMMARY:Case ${
+                        f.case_number
+                      } Due\nDESCRIPTION:${f.purpose || ""}\nDTSTART:${start
+                        .toISOString()
+                        .replace(/[-:]/g, "")
+                        .replace(/\.\d+Z$/, "Z")
+                        .replace("T", "T")
+                        .slice(0, 15)}\nDTEND:${end
+                        .toISOString()
+                        .replace(/[-:]/g, "")
+                        .replace(/\.\d+Z$/, "Z")
+                        .replace("T", "T")
+                        .slice(0, 15)}\nEND:VEVENT`;
+                    })
+                    .join("\n");
+                  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\n${events}\nEND:VCALENDAR`;
+                  const blob = new Blob([ics], { type: "text/calendar" });
+                  saveAs(blob, "case_deadlines.ics");
+                }}
+              >
+                Export All Deadlines to Calendar (.ics)
+              </Button>
+              <div className="text-default-400 mt-2">
+                Download and import into Google Calendar, Outlook, or any
+                calendar app.
+              </div>
+            </div>
+            <div className="font-bold mb-2">Communication Integration</div>
+            <div className="mb-4">
+              <Button
+                size="sm"
+                onPress={() => {
+                  const mailto = `mailto:?subject=Case%20Deadlines&body=${encodeURIComponent(
+                    caseFiles
+                      .filter((f) => !f.deleted)
+                      .map((f) => `Case ${f.case_number}: Due ${f.required_on}`)
+                      .join("\n")
+                  )}`;
+                  window.open(mailto, "_blank");
+                }}
+              >
+                Email All Deadlines
+              </Button>
+              <div className="text-default-400 mt-2">
+                Send a summary of all deadlines to your email client.
+              </div>
+            </div>
+            <div className="font-bold mb-2">Webhooks (Advanced)</div>
+            <div className="mb-4">
+              <div className="text-default-400">
+                (Coming soon) Notify Slack, Teams, or custom endpoints when a
+                case is updated.
+              </div>
+            </div>
+          </div>
+        </Tab>
+      </Tabs>
 
       <ViewCaseFileModal
         file_id={file_id}
@@ -753,6 +1550,17 @@ export default function CaseFilters({
         isOpen={isOpenDelete}
         onOpenChange={onOpenChangeDelete}
       />
+
+      {/* Automated reminders/alerts (in-app): */}
+      {React.useEffect(() => {
+        if (overdueCases.length > 0) {
+          addToast({
+            title: "Overdue Cases Alert!",
+            description: `You have ${overdueCases.length} overdue cases.`,
+            color: "danger",
+          });
+        }
+      }, [overdueCases.length])}
     </>
   );
 }

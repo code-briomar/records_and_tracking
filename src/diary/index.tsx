@@ -1,34 +1,20 @@
-import { Calendar, Card, CardBody } from "@heroui/react";
+import { Calendar, Card, CardBody, Link, useDisclosure } from "@heroui/react";
 import { isWeekend } from "@internationalized/date";
 import { useLocale } from "@react-aria/i18n";
+import { saveAs } from "file-saver";
 import { useState } from "react";
 import { fileSectionData as caseFiles } from "../components/files_data";
 import LeftPanel from "../components/left_panel";
 import NavbarSection from "../components/navbar";
 import RightPanel from "../components/right_panel";
+import ViewCaseFileModal from "../components/view_case_file_modal";
 import { useAuth } from "../context/auth_context";
-// export interface File {
-//     case_number?: any;
-//     case_type?: any;
-//     file_id: number;
-//     caseNumber: string
-//     caseType?: string;
-//     purpose: string;
-//     uploaded_by: number;
-//     current_location: string;
-//     notes: string;
-//     date_recieved: string;
-//     required_on: string;
-//     required_on_signature: string;
-//     date_returned: string | null;
-//     date_returned_signature: string | null;
-//     deleted: boolean;
-// }
 
 function CalendarItem() {
   const [selectedDate, setSelectedDate] = useState<any>(null);
   // let now = today(getLocalTimeZone());
   let { locale } = useLocale();
+  const [fileID, setFileID] = useState<number>(0);
 
   // Disable Fridays with a max of 7 judgements and 3 rulings
   // let disabledRanges = [
@@ -62,9 +48,49 @@ function CalendarItem() {
   let isDateUnavailable = (date: any) => isWeekend(date, locale);
 
   // Filter cases for the selected date
-  const matchingCases = caseFiles.filter(
-    (file) => selectedDate && file.required_on === selectedDate.toString()
+  const matchingCases = caseFiles?.filter(
+    (file) =>
+      selectedDate &&
+      new Date(file.required_on).toISOString().split("T")[0] ===
+        selectedDate.toString()
   );
+
+  const { isOpen: isOpenView, onOpenChange: onOpenChangeView } =
+    useDisclosure();
+
+  function exportCasesToCSV(cases: any[], date: any) {
+    if (!cases || cases.length === 0) return;
+    const header = Object.keys(cases[0]).join(",");
+    const rows = cases.map((c) => Object.values(c).join(","));
+    const csv = [header, ...rows].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    saveAs(blob, `cases_${date}.csv`);
+  }
+
+  function printCases(cases: any[], date: any) {
+    const win = window.open("", "_blank");
+    win?.document.write(
+      `<h2>Cases for ${date}</h2><ul>${cases
+        .map(
+          (file: any) =>
+            `<li>${file.case_number || "Untitled Case"} - ${file.purpose} - ${
+              file.required_on
+            }</li>`
+        )
+        .join("")}</ul>`
+    );
+    win?.print();
+  }
+
+  // Add WhatsApp/SMS reminder logic (simulate with a button for now)
+  const sendReminders = () => {
+    if (!matchingCases || matchingCases.length === 0) return;
+    const message = `Reminder: You have ${matchingCases.length} case(s) scheduled for ${selectedDate}.`;
+    // Simulate WhatsApp/SMS by opening WhatsApp Web with prefilled message
+    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+    // For SMS, you could use: window.open(`sms:?body=${encodeURIComponent(message)}`);
+  };
 
   return (
     <>
@@ -83,21 +109,55 @@ function CalendarItem() {
       <div className="m-2">
         <h2 className="text-2xl mb-2">Cases</h2>
         {selectedDate ? (
-          matchingCases.length > 0 ? (
-            <div className="list-disc ml-5 space-y-2">
-              {matchingCases.map((file, index) => (
-                <>
-                  <div
-                    key={index}
-                    className="flex items-center space-x-2  p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md outline outline-1 rounded-md outline-gray-300 dark:outline-gray-600"
-                  >
-                    {/* Display the index of the case */}
-                    <span className="text-sm text-gray-500">{++index}</span>
-                    <span>{file.case_number || "Untitled Case"}</span>
-                  </div>
-                </>
-              ))}
-            </div>
+          matchingCases?.length > 0 ? (
+            <>
+              <div className="flex gap-2 mb-2">
+                <button
+                  className="bg-green-600 text-white px-3 py-1 rounded text-sm"
+                  onClick={sendReminders}
+                >
+                  Send WhatsApp Reminder
+                </button>
+                <button
+                  className="bg-blue-600 text-white px-3 py-1 rounded text-sm"
+                  onClick={() => exportCasesToCSV(matchingCases, selectedDate)}
+                >
+                  Export to CSV
+                </button>
+                <button
+                  className="bg-gray-700 text-white px-3 py-1 rounded text-sm"
+                  onClick={() => printCases(matchingCases, selectedDate)}
+                >
+                  Print
+                </button>
+              </div>
+              <div className="list-disc ml-5 space-y-2">
+                {matchingCases?.map((file, index) => (
+                  <>
+                    <div
+                      key={index}
+                      className="flex items-center justify-between space-x-2  p-2 cursor-pointer rounded-md outline outline-1 rounded-md outline-gray-300 dark:outline-gray-600"
+                    >
+                      {/* Display the index of the case */}
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-500">{++index}</span>
+                        <span>{file?.case_number || "Untitled Case"}</span>
+                      </div>
+                      <Link
+                        href="javascript:void(0)"
+                        underline="hover"
+                        onPress={() => {
+                          setFileID(file.file_id);
+                          onOpenChangeView();
+                        }}
+                      >
+                        View Details
+                      </Link>
+                    </div>
+                  </>
+                ))}
+              </div>
+            </>
           ) : (
             <p>No cases found for this date.</p>
           )
@@ -105,6 +165,12 @@ function CalendarItem() {
           <p>Click on a date to see cases.</p>
         )}
       </div>
+
+      <ViewCaseFileModal
+        file_id={fileID}
+        isOpen={isOpenView}
+        onOpenChange={onOpenChangeView}
+      />
     </>
   );
 }

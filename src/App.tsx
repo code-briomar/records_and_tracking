@@ -11,18 +11,22 @@ import Messaging from "./messaging";
 import Notifications from "./notifications";
 import Staff from "./staff";
 import Tools from "./tools/index.tsx";
-
-import { relaunch } from "@tauri-apps/plugin-process";
-import { check } from "@tauri-apps/plugin-updater";
+import WhyUseThis from "./why_use_this";
 
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect } from "react";
 
-import { addToast } from "@heroui/react";
 import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "./context/auth_context.tsx";
 import Diary from "./diary/index.tsx";
+
+import { relaunch } from "@tauri-apps/plugin-process";
+import { check } from "@tauri-apps/plugin-updater";
+
+import { addToast } from "@heroui/react";
+import { info, error as log_error } from "@tauri-apps/plugin-log";
+import TitleBar from "./components/title_bar.tsx";
 
 const PrivateRoute = ({
   authData,
@@ -44,6 +48,7 @@ function App() {
         console.log("Update from check:", update);
 
         if (update) {
+          info(`Found update: ${update.version}`);
           console.log(
             `found update ${update.version} from ${update.date} with notes ${update.body}`
           );
@@ -51,6 +56,7 @@ function App() {
           let contentLength = 0;
 
           await update.downloadAndInstall((event) => {
+            info(`Update event: ${event.event}`);
             console.log("Download event:", event);
             switch (event.event) {
               case "Started":
@@ -69,6 +75,8 @@ function App() {
             }
           });
 
+          info("Update installed successfully.");
+
           console.log("update installed");
           addToast({
             title: "Update Installed",
@@ -81,16 +89,16 @@ function App() {
           await relaunch();
           console.log("Application relaunched.");
         } else {
+          info("No updates available.");
           console.log("No update found.");
+          toast.info("No new updates found.");
         }
       } catch (error) {
         console.error("Error checking for update:", error);
-        // addToast({
-        //   title: "Info",
-        //   description: `No new updates found.`,
-        //   color: "default",
-        // });
-        toast.info("No new updates found.");
+        toast.error(
+          "Error checking for update. Please check your internet connection."
+        );
+        log_error(`Error checking for updates: ${error}`);
       }
     };
 
@@ -142,110 +150,123 @@ function App() {
   }, []);
 
   return (
-    <Router>
-      <Routes>
-        {/* Public route */}
-        <Route path="/" element={<Auth />} />
+    <>
+      <TitleBar />
+      <Router>
+        <Routes>
+          {/* Public route */}
+          <Route path="/" element={<Auth />} />
+          {/* INCLUDE IN FUTURE RELEASE */}
+          {/* <Route path="/splashscreen" element={<SplashScreen />} /> */}
 
-        {/* Protected routes */}
-        <Route
-          path="/home"
-          element={
-            <PrivateRoute authData={authData}>
-              <Home />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute authData={authData}>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/cts"
-          element={
-            <PrivateRoute authData={authData}>
-              <CTS />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/diary"
-          element={
-            <PrivateRoute authData={authData}>
-              <Diary />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/staff"
-          element={
-            <PrivateRoute authData={authData}>
-              <Staff />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/files"
-          element={
-            <PrivateRoute authData={authData}>
-              <File />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/notifications"
-          element={
-            <PrivateRoute authData={authData}>
-              <Notifications />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/all_notifications"
-          element={
-            <PrivateRoute authData={authData}>
-              <NotificationsSection />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/messaging"
-          element={
-            <PrivateRoute authData={authData}>
-              <Messaging />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/tools"
-          element={
-            <PrivateRoute authData={authData}>
-              <Tools />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/audit_logs"
-          element={
-            <PrivateRoute authData={authData}>
-              <AuditLogs />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/customize"
-          element={
-            <PrivateRoute authData={authData}>
-              <Customize />
-            </PrivateRoute>
-          }
-        />
-      </Routes>
-    </Router>
+          {/* Protected routes */}
+          <Route
+            path="/home"
+            element={
+              <PrivateRoute authData={authData}>
+                <Home />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute authData={authData}>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/cts"
+            element={
+              <PrivateRoute authData={authData}>
+                <CTS />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/diary"
+            element={
+              <PrivateRoute authData={authData}>
+                <Diary />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/staff"
+            element={
+              <PrivateRoute authData={authData}>
+                <Staff />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/files"
+            element={
+              <PrivateRoute authData={authData}>
+                <File />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <PrivateRoute authData={authData}>
+                <Notifications />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/all_notifications"
+            element={
+              <PrivateRoute authData={authData}>
+                <NotificationsSection />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/messaging"
+            element={
+              <PrivateRoute authData={authData}>
+                <Messaging />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/tools"
+            element={
+              <PrivateRoute authData={authData}>
+                <Tools />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/audit_logs"
+            element={
+              <PrivateRoute authData={authData}>
+                <AuditLogs />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/customize"
+            element={
+              <PrivateRoute authData={authData}>
+                <Customize />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/why-use-this"
+            element={
+              <PrivateRoute authData={authData}>
+                <WhyUseThis />
+              </PrivateRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </>
   );
 }
 

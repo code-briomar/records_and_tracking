@@ -1,6 +1,6 @@
 import { BreadcrumbItem, Breadcrumbs } from "@heroui/react";
 import { invoke } from "@tauri-apps/api/core";
-import { Bell, LucideFolderSync, Moon, RotateCw, Sun } from "lucide-react";
+import { LucideFolderSync, Moon, RotateCw, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -24,13 +24,14 @@ const NavbarSection = ({ breadcrumbs }: { breadcrumbs: string[] }) => {
     const currentUrl = window.location.href;
     // Create a new URL object
     const url = new URL(currentUrl);
+
     // navigate to the same URL to refresh the page
-    navigate(url.pathname + url.search, { replace: true });
+    navigate(url.pathname + url.search);
   };
 
-  const notifications = () => {
-    navigate("/notifications");
-  };
+  // const notifications = () => {
+  //   navigate("/notifications");
+  // };
 
   useEffect(() => {
     if (darkMode) {
@@ -57,26 +58,26 @@ const NavbarSection = ({ breadcrumbs }: { breadcrumbs: string[] }) => {
         {/* <CustomSearchBar /> */}
         <div
           onClick={() => setDarkMode(!darkMode)}
-          className="cursor-pointer w-6 h-6"
+          className="cursor-pointer w-5 h-5"
         >
           {darkMode ? (
-            <Moon className="w-6 h-6" />
+            <Moon className="w-5 h-5" />
           ) : (
-            <Sun className="w-6 h-6" />
+            <Sun className="w-5 h-5" />
           )}
         </div>
         <RotateCw
-          className={`w-6 h-6 cursor-pointer ${spinning ? "animate-spin" : ""}`}
+          className={`w-5 h-5 cursor-pointer ${spinning ? "animate-spin" : ""}`}
           onClick={handleClick}
         />
-        {authData?.role == "Super Admin" && (
+        {/* {authData?.role == "Super Admin" && (
           <Bell className="w-6 h-6" onClick={notifications} />
-        )}
+        )} */}
         {/* Sync Data */}
-        <LucideFolderSync
-          className="w-6 h-6 cursor-pointer"
-          onClick={() => {
-            useEffect(() => {
+        {authData?.role == "Super Admin" || "Court Admin" ? (
+          <LucideFolderSync
+            className="w-5 h-5 cursor-pointer"
+            onClick={() => {
               const handleOnline = () => {
                 toast.promise(
                   new Promise(async (resolve, reject) => {
@@ -98,20 +99,16 @@ const NavbarSection = ({ breadcrumbs }: { breadcrumbs: string[] }) => {
                   }
                 );
               };
-
-              window.addEventListener("online", handleOnline);
-
-              // Optional: trigger immediately if already online
               if (navigator.onLine) {
                 handleOnline();
+              } else {
+                toast.error(
+                  "You are offline. Please check your internet connection."
+                );
               }
-
-              return () => {
-                window.removeEventListener("online", handleOnline);
-              };
-            }, []);
-          }}
-        />
+            }}
+          />
+        ) : null}
       </div>
     </div>
   );

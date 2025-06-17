@@ -380,3 +380,12 @@ CREATE INDEX IF NOT EXISTS idx_summaries_sync ON summaries(sync_status, last_mod
 -- Insert initial sync metadata
 INSERT OR IGNORE INTO sync_metadata (id, last_sync) VALUES (1, NULL);
 ALTER TABLE sync_conflicts ADD COLUMN resolved BOOLEAN DEFAULT FALSE;
+
+
+
+
+-------------------------------------
+-- USERS
+-------------------------------------
+INSERT INTO users (name, role, email, phone_number, password_hash, status) VALUES
+                                                                               ('Hon. C Kemei', 'Super Admin', 'cheptoock@gmail.com', '0795056287', '$2b$10$DWlaIIDDTGyPGMaEnZwct.QX5Tq5KrZ8KxHEeOrcSiD51gs9JhZzi', 'Active');

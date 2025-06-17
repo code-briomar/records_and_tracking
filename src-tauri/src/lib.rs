@@ -27,6 +27,8 @@ use std::io::Write;
 
 use tauri::utils::platform::resource_dir;
 use tauri::{generate_context, Env};
+// use tauri_plugin_log::{Target, TargetKind};
+use tauri_plugin_updater::UpdaterExt;
 
 // extern crate embed_resource;
 struct AppState {
@@ -141,6 +143,36 @@ async fn start_sync_loop(app_handle: AppHandle) {
     }
 }
 
+async fn update(app: tauri::AppHandle) -> tauri_plugin_updater::Result<()> {
+    if let Some(update) = app.updater()?.check().await? {
+        let mut downloaded = 0;
+
+        // alternatively we could also call update.download() and update.install() separately
+        update
+            .download_and_install(
+                |chunk_length, content_length| {
+                    downloaded += chunk_length;
+                    println!("downloaded {downloaded} from {content_length:?}");
+                    log_startup(&format!("downloaded {downloaded} from {content_length:?}"));
+                },
+                || {
+                    println!("download finished");
+                    log_startup("download finished");
+                },
+            )
+            .await?;
+
+        println!("update installed");
+        log_startup("update installed");
+        app.restart();
+    } else {
+        println!("no update available");
+        log_startup("no update available");
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     log_startup("🔄 Application starting...");
@@ -155,21 +187,36 @@ pub fn run() {
     // log_startup("📦 Loaded .env configuration");
 
     // Configure Supabase
-    let supabase = SupabaseClient::new(
-        "URL",
-        "PUB_KEY",
-        "SERVICE_KEY",
-    );
+    let supabase = SupabaseClient::new();
     log_startup("✅ Supabase client configured");
 
     let app_state = AppState { conn, supabase };
 
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
+        // .plugin(
+        //     tauri_plugin_log::Builder::new()
+        //         .targets([
+        //             Target::new(TargetKind::Stdout),
+        //             Target::new(TargetKind::LogDir { file_name: None }),
+        //             Target::new(TargetKind::Webview),
+        //         ])
+        //         .build(),
+        // )
         .manage(app_state)
         .setup(|app| {
             let handle = app.handle().clone();
-            tauri::async_runtime::spawn(start_sync_loop(handle));
+            tauri::async_runtime::spawn(async move {
+                // Start the synchronization loop
+                start_sync_loop(handle.clone()).await;
+
+                // Proceed to update after the sync loop completes
+                if let Err(e) = update(handle).await {
+                    log_startup(&format!("Update failed: {:?}", e));
+                    eprintln!("Update failed: {:?}", e);
+                }
+            });
+
             log_startup("🔁 Sync loop started");
             Ok(())
         })
@@ -204,6 +251,7 @@ pub fn run() {
             update_file_date,
             get_file_by_id,
             delete_file,
+            restore_file,
             create_notification,
             get_all_notifications,
             get_notification,

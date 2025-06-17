@@ -139,6 +139,18 @@ export async function deleteFile(fileId: number): Promise<string> {
     }
 }
 
+// ✅ Restore a File (Soft Restore)
+export async function restoreFile(fileId: number): Promise<string> {
+    try {
+        const response: string = await invoke("restore_file", { fileId });
+        console.log("File restored:", response);
+        return response;
+    } catch (error) {
+        console.error("Error restoring file:", error);
+        throw error;
+    }
+}
+
 // ✅ Search Files By Case Number
 export async function searchFilesByCaseNumber(caseNumber: string): Promise<File[]> {
     try {
