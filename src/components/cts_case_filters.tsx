@@ -22,6 +22,7 @@ import {
   Tabs,
   useDisclosure,
 } from "@heroui/react";
+import { saveAs } from "file-saver";
 import { Check, ChevronRight } from "lucide-react";
 import React, { SVGProps, useEffect, useState } from "react";
 import { Bar } from "react-chartjs-2";
@@ -1446,6 +1447,75 @@ export default function CaseFilters({
                     />
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        </Tab>
+        <Tab key="integrations" title="Integrations">
+          <div className="p-4 flex flex-col gap-6">
+            <div className="font-bold mb-2">Calendar Integration</div>
+            <div className="mb-4">
+              <Button
+                size="sm"
+                onPress={() => {
+                  // Export all upcoming case deadlines to .ics (iCalendar) file
+                  const events = caseFiles
+                    .filter((f) => !f.deleted && f.required_on)
+                    .map((f) => {
+                      const start = new Date(f.required_on);
+                      const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour event
+                      return `BEGIN:VEVENT\nSUMMARY:Case ${
+                        f.case_number
+                      } Due\nDESCRIPTION:${f.purpose || ""}\nDTSTART:${start
+                        .toISOString()
+                        .replace(/[-:]/g, "")
+                        .replace(/\.\d+Z$/, "Z")
+                        .replace("T", "T")
+                        .slice(0, 15)}\nDTEND:${end
+                        .toISOString()
+                        .replace(/[-:]/g, "")
+                        .replace(/\.\d+Z$/, "Z")
+                        .replace("T", "T")
+                        .slice(0, 15)}\nEND:VEVENT`;
+                    })
+                    .join("\n");
+                  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\n${events}\nEND:VCALENDAR`;
+                  const blob = new Blob([ics], { type: "text/calendar" });
+                  saveAs(blob, "case_deadlines.ics");
+                }}
+              >
+                Export All Deadlines to Calendar (.ics)
+              </Button>
+              <div className="text-default-400 mt-2">
+                Download and import into Google Calendar, Outlook, or any
+                calendar app.
+              </div>
+            </div>
+            <div className="font-bold mb-2">Communication Integration</div>
+            <div className="mb-4">
+              <Button
+                size="sm"
+                onPress={() => {
+                  const mailto = `mailto:?subject=Case%20Deadlines&body=${encodeURIComponent(
+                    caseFiles
+                      .filter((f) => !f.deleted)
+                      .map((f) => `Case ${f.case_number}: Due ${f.required_on}`)
+                      .join("\n")
+                  )}`;
+                  window.open(mailto, "_blank");
+                }}
+              >
+                Email All Deadlines
+              </Button>
+              <div className="text-default-400 mt-2">
+                Send a summary of all deadlines to your email client.
+              </div>
+            </div>
+            <div className="font-bold mb-2">Webhooks (Advanced)</div>
+            <div className="mb-4">
+              <div className="text-default-400">
+                (Coming soon) Notify Slack, Teams, or custom endpoints when a
+                case is updated.
               </div>
             </div>
           </div>

@@ -11,6 +11,7 @@ import Messaging from "./messaging";
 import Notifications from "./notifications";
 import Staff from "./staff";
 import Tools from "./tools/index.tsx";
+import WhyUseThis from "./why_use_this";
 
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect } from "react";
@@ -252,6 +253,14 @@ function App() {
             element={
               <PrivateRoute authData={authData}>
                 <Customize />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/why-use-this"
+            element={
+              <PrivateRoute authData={authData}>
+                <WhyUseThis />
               </PrivateRoute>
             }
           />

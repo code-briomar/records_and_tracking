@@ -5,6 +5,7 @@ import {
   ChevronRight,
   FilePenLine,
   Gauge,
+  HelpCircle,
   Logs,
   UserRound,
   Wrench,
@@ -54,6 +55,18 @@ const LeftPanel = () => {
 
       {/* Menu */}
       <div>
+        {/* Why Use This */}
+        <div className="flex justify-end mt-6">
+          <Button
+            isIconOnly
+            variant="light"
+            aria-label="Why use this?"
+            onPress={() => redirect("/why-use-this")}
+            className="rounded-full"
+          >
+            <HelpCircle className="w-6 h-6 text-gray-500" />
+          </Button>
+        </div>
         <Accordion variant={"shadow"}>
           {/*Dashboard*/}
           <AccordionItem
@@ -263,7 +276,6 @@ const LeftPanel = () => {
           </AccordionItem> */}
         </Accordion>
       </div>
-
       {/* Absent Staff */}
       {authData.role == "Super Admin" || authData.role == "Court Admin" ? (
         <div>
