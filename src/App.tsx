@@ -25,6 +25,7 @@ import { check } from "@tauri-apps/plugin-updater";
 
 import { addToast } from "@heroui/react";
 import { info, error as log_error } from "@tauri-apps/plugin-log";
+import TitleBar from "./components/title_bar.tsx";
 
 const PrivateRoute = ({
   authData,
@@ -148,112 +149,115 @@ function App() {
   }, []);
 
   return (
-    <Router>
-      <Routes>
-        {/* Public route */}
-        <Route path="/" element={<Auth />} />
-        {/* INCLUDE IN FUTURE RELEASE */}
-        {/* <Route path="/splashscreen" element={<SplashScreen />} /> */}
+    <>
+      <TitleBar />
+      <Router>
+        <Routes>
+          {/* Public route */}
+          <Route path="/" element={<Auth />} />
+          {/* INCLUDE IN FUTURE RELEASE */}
+          {/* <Route path="/splashscreen" element={<SplashScreen />} /> */}
 
-        {/* Protected routes */}
-        <Route
-          path="/home"
-          element={
-            <PrivateRoute authData={authData}>
-              <Home />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute authData={authData}>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/cts"
-          element={
-            <PrivateRoute authData={authData}>
-              <CTS />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/diary"
-          element={
-            <PrivateRoute authData={authData}>
-              <Diary />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/staff"
-          element={
-            <PrivateRoute authData={authData}>
-              <Staff />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/files"
-          element={
-            <PrivateRoute authData={authData}>
-              <File />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/notifications"
-          element={
-            <PrivateRoute authData={authData}>
-              <Notifications />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/all_notifications"
-          element={
-            <PrivateRoute authData={authData}>
-              <NotificationsSection />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/messaging"
-          element={
-            <PrivateRoute authData={authData}>
-              <Messaging />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/tools"
-          element={
-            <PrivateRoute authData={authData}>
-              <Tools />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/audit_logs"
-          element={
-            <PrivateRoute authData={authData}>
-              <AuditLogs />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/customize"
-          element={
-            <PrivateRoute authData={authData}>
-              <Customize />
-            </PrivateRoute>
-          }
-        />
-      </Routes>
-    </Router>
+          {/* Protected routes */}
+          <Route
+            path="/home"
+            element={
+              <PrivateRoute authData={authData}>
+                <Home />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute authData={authData}>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/cts"
+            element={
+              <PrivateRoute authData={authData}>
+                <CTS />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/diary"
+            element={
+              <PrivateRoute authData={authData}>
+                <Diary />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/staff"
+            element={
+              <PrivateRoute authData={authData}>
+                <Staff />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/files"
+            element={
+              <PrivateRoute authData={authData}>
+                <File />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <PrivateRoute authData={authData}>
+                <Notifications />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/all_notifications"
+            element={
+              <PrivateRoute authData={authData}>
+                <NotificationsSection />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/messaging"
+            element={
+              <PrivateRoute authData={authData}>
+                <Messaging />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/tools"
+            element={
+              <PrivateRoute authData={authData}>
+                <Tools />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/audit_logs"
+            element={
+              <PrivateRoute authData={authData}>
+                <AuditLogs />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/customize"
+            element={
+              <PrivateRoute authData={authData}>
+                <Customize />
+              </PrivateRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </>
   );
 }
 

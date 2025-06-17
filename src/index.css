@@ -6,4 +6,9 @@ body {
   @apply bg-background/60 dark:bg-default-100/50 bg-[url('/light-bg.png')] dark:bg-[url('/dark-bg.png')];
   background-size: cover;
   background-position: center;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial,
+    sans-serif;
+  letter-spacing: 0.3px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

@@ -1,0 +1,38 @@
+/* mononoki-latin-400-normal */
+@font-face {
+  font-family: "Mononoki";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url(https://cdn.jsdelivr.net/fontsource/fonts/mononoki@latest/latin-400-normal.woff2)
+      format("woff2"),
+    url(https://cdn.jsdelivr.net/fontsource/fonts/mononoki@latest/latin-400-normal.woff)
+      format("woff");
+}
+
+.control-btn {
+  width: 30px;
+  height: 25px;
+  border: none;
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.control-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.control-btn.close:hover {
+  background: #e81123;
+}
+
+/* Adjust your main content to account for title bar */
+body {
+  margin: 0;
+  padding-top: 30px; /* Height of title bar */
+}
