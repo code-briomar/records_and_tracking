@@ -31,6 +31,7 @@ import {
   FileText,
   Filter,
   MoreVertical,
+  OctagonAlert,
   Plus,
   Search,
   Trash2,
@@ -38,7 +39,7 @@ import {
   User,
   Users,
 } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 // Enhanced Offender interface to match backend
 export interface Offender {
@@ -53,6 +54,8 @@ export interface Offender {
   photo_url?: string;
   photo_file?: File;
   file_id?: number; // Foreign key to files table
+  penalty?: string;
+  penalty_notes?: string;
 }
 
 // Mock data with better structure - will be replaced by real data from Tauri
@@ -70,6 +73,11 @@ export default function OffenderRecords() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [selected, setSelected] = useState<Offender | null>(null);
   const [allCases, setAllCases] = useState<any[]>([]);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [imageZoom, setImageZoom] = useState(1);
+  const [showImageEditor, setShowImageEditor] = useState(false);
+  const imageEditorRef = useRef<HTMLCanvasElement>(null);
+  const [editImageUrl, setEditImageUrl] = useState<string | null>(null);
 
   // Fetch offenders from backend on component mount
   React.useEffect(() => {
@@ -118,6 +126,8 @@ export default function OffenderRecords() {
         gender: newOffender.gender,
         notes: newOffender.notes,
         fileId: newOffender.file_id || null,
+        penalty: newOffender.penalty || null,
+        penaltyNotes: newOffender.penalty_notes || null,
         photo: photoBytes,
         photoFilename,
       });
@@ -186,6 +196,8 @@ export default function OffenderRecords() {
         gender: editingOffender.gender,
         notes: editingOffender.notes,
         fileId: editingOffender.file_id || null,
+        penalty: editingOffender.penalty || null,
+        penaltyNotes: editingOffender.penalty_notes || null,
         photo: photoBytes,
         photo_filename: photoFilename,
       });
@@ -245,7 +257,7 @@ export default function OffenderRecords() {
   const OffenderCard = ({ offender }: { offender: Offender }) => (
     <Card className="w-full hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
       <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
+        <div className="flex justify-between w-full items-center gap-4">
           <div className="flex gap-3 items-center">
             <Avatar
               src={offender.photo_url}
@@ -323,15 +335,29 @@ export default function OffenderRecords() {
           {offender.date_of_birth && (
             <div className="flex items-center gap-2 text-sm text-default-600">
               <CreditCard className="w-4 h-4" />
-              Born: {new Date(offender.date_of_birth).toLocaleDateString()}
+              <span>
+                Born: {new Date(offender.date_of_birth).toLocaleDateString()}
+              </span>
             </div>
           )}
+
+          {offender.penalty && (
+            <div className="flex items-start gap-2 text-sm text-default-600 font-semibold">
+              <OctagonAlert className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <span>
+                Penalty: {offender.penalty}
+                {/* {offender.penalty_notes && ` (${offender.penalty_notes})`} */}
+              </span>
+            </div>
+          )}
+
           {offender.notes && (
             <div className="flex items-start gap-2 text-sm text-default-600">
-              <FileText className="w-4 h-4 mt-0.5" />
+              <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span className="line-clamp-2">{offender.notes}</span>
             </div>
           )}
+
           <div className="flex items-center gap-2 text-xs text-default-400">
             <span>
               Added:{" "}
@@ -347,13 +373,17 @@ export default function OffenderRecords() {
 
   // Add Formik value type
   interface OffenderFormValues {
+    offenderId?: number;
     full_name: string;
     national_id: string;
     date_of_birth: string;
     gender: string;
     notes: string;
+    file_id?: string | number;
     photo_url?: string;
     photo_file?: File;
+    penalty?: string;
+    penalty_notes?: string;
   }
 
   const FormModal = ({ isEdit = false }: { isEdit?: boolean }) => {
@@ -388,6 +418,8 @@ export default function OffenderRecords() {
                 gender: data?.gender || "",
                 notes: data?.notes || "",
                 file_id: data?.file_id || "",
+                penalty: data?.penalty || "",
+                penalty_notes: data?.penalty_notes || "",
                 photo_url: data?.photo_url || "",
                 photo_file: data?.photo_file || undefined,
               }}
@@ -538,6 +570,44 @@ export default function OffenderRecords() {
                       ))}
                     </Select>
                   </div>
+                  {/* Penalty Dropdown */}
+                  <div className="mt-4">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                      Penalty
+                    </label>
+                    <Select
+                      label="Penalty"
+                      placeholder="Select penalty type"
+                      selectedKeys={values.penalty ? [values.penalty] : []}
+                      onSelectionChange={(keys) => {
+                        const penalty = Array.from(keys)[0] as string;
+                        setFieldValue("penalty", penalty);
+                      }}
+                      variant="bordered"
+                    >
+                      <SelectItem key="Fine">Fine</SelectItem>
+                      <SelectItem key="Locked Up">Locked Up</SelectItem>
+                      <SelectItem key="Community Service">
+                        Community Service
+                      </SelectItem>
+                      <SelectItem key="Probation">Probation</SelectItem>
+                      <SelectItem key="Other">Other</SelectItem>
+                    </Select>
+                  </div>
+                  <Field name="penalty_notes">
+                    {({ field }: { field: any }) => (
+                      <Textarea
+                        label="Penalty Notes"
+                        placeholder="Add any additional info about the penalty..."
+                        {...field}
+                        value={field.value}
+                        onChange={field.onChange}
+                        minRows={2}
+                        variant="bordered"
+                        className="mt-2"
+                      />
+                    )}
+                  </Field>
                   <div className="space-y-3 mt-4">
                     <label className="text-sm font-medium text-foreground flex items-center gap-2">
                       <Camera className="w-4 h-4" />
@@ -655,10 +725,8 @@ export default function OffenderRecords() {
                   <div>
                     <p className="text-green-100">Active Cases</p>
                     <p className="text-2xl font-bold">
-                      {offenders.reduce(
-                        (acc, o) => acc + (o.cases?.length || 0),
-                        0
-                      )}
+                      {/* The file_id arrays in offenders */}
+                      {offenders.filter((o) => o.file_id).length}
                     </p>
                   </div>
                   <FileText className="w-8 h-8 text-green-200" />
@@ -826,7 +894,18 @@ export default function OffenderRecords() {
                           </Chip>
                         )}
                         <Chip color="secondary" variant="flat">
-                          {selected.cases?.length || 0} cases
+                          {/* Calculate cases by counting the number of files */}
+                          {
+                            allCases.filter(
+                              (c) => c.file_id === selected.file_id
+                            ).length
+                          }{" "}
+                          case
+                          {allCases.filter(
+                            (c) => c.file_id === selected.file_id
+                          ).length > 1
+                            ? "s"
+                            : ""}
                         </Chip>
                       </div>
                     </div>
@@ -857,6 +936,21 @@ export default function OffenderRecords() {
                         </div>
                       )}
                     </div>
+
+                    {/* Show The Penalty */}
+                    {selected.penalty && (
+                      <div className="flex items-start gap-2">
+                        <OctagonAlert className="w-4 h-4 mt-0.5 flex-shrink-0 text-default-400" />
+                        <span className="text-sm text-default-600 font-semibold">
+                          Penalty:{" "}
+                        </span>
+                        <span className="font-medium">
+                          {selected.penalty}
+                          {selected.penalty_notes &&
+                            ` (${selected.penalty_notes})`}
+                        </span>
+                      </div>
+                    )}
 
                     {selected.notes && (
                       <div>
@@ -917,7 +1011,11 @@ export default function OffenderRecords() {
                                     </p>
                                   </div>
                                   <Chip size="sm" variant="flat">
-                                    {linkedFile.year}
+                                    {linkedFile.required_on
+                                      ? new Date(
+                                          linkedFile.required_on
+                                        ).toLocaleDateString()
+                                      : "No Deadline"}
                                   </Chip>
                                 </div>
                               </CardBody>
@@ -938,10 +1036,234 @@ export default function OffenderRecords() {
                     </div>
                   </div>
                 </div>
+                {/* Image Tools Section */}
+                <div className="mt-4">
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <Camera className="w-5 h-5" />
+                    Offender Photo
+                  </h3>
+                  <div className="flex-shrink-0 flex flex-col items-center gap-2">
+                    <div className="relative">
+                      {selected.photo_url ? (
+                        <img
+                          src={selected.photo_url}
+                          alt={selected.full_name + " photo"}
+                          className="w-32 h-32 object-cover rounded-lg ring-4 ring-primary/20 bg-default-200"
+                          style={{ minHeight: 128, minWidth: 128 }}
+                          onError={(e) =>
+                            (e.currentTarget.src =
+                              "/images/avatar-placeholder.png")
+                          }
+                          onLoad={(e) =>
+                            e.currentTarget.classList.add("loaded")
+                          }
+                        />
+                      ) : (
+                        <div className="w-32 h-32 flex items-center justify-center bg-default-200 rounded-lg ring-4 ring-primary/20">
+                          <User className="w-16 h-16 text-default-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2 mt-1">
+                      {selected.photo_url && (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="bordered"
+                            onPress={() => {
+                              setShowImageModal(true);
+                              setImageZoom(1);
+                            }}
+                          >
+                            View Full
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="bordered"
+                            onPress={() => {
+                              const link = document.createElement("a");
+                              link.href = selected.photo_url;
+                              link.download = selected.full_name + "_photo.jpg";
+                              link.click();
+                            }}
+                          >
+                            Download
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="bordered"
+                            onPress={() => {
+                              setEditImageUrl(selected.photo_url!);
+                              setShowImageEditor(true);
+                            }}
+                          >
+                            Edit
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </ModalBody>
             </ModalContent>
           </Modal>
         )}
+
+        {/* Image Full View Modal */}
+        <Modal
+          isOpen={showImageModal}
+          onOpenChange={setShowImageModal}
+          size="3xl"
+        >
+          <ModalContent>
+            <ModalHeader className="flex gap-2 items-center">
+              Photo Viewer
+            </ModalHeader>
+            <ModalBody className="flex flex-col items-center gap-4">
+              <div className="flex flex-col items-center">
+                <img
+                  src={selected?.photo_url}
+                  alt={selected?.full_name + " photo"}
+                  style={{
+                    maxWidth: "100%",
+                    maxHeight: 500,
+                    transform: `scale(${imageZoom})`,
+                    transition: "transform 0.2s",
+                    borderRadius: 12,
+                  }}
+                />
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    size="sm"
+                    onPress={() => setImageZoom((z) => Math.max(0.2, z - 0.2))}
+                  >
+                    -
+                  </Button>
+                  <span className="px-2">
+                    Zoom: {Math.round(imageZoom * 100)}%
+                  </span>
+                  <Button
+                    size="sm"
+                    onPress={() => setImageZoom((z) => Math.min(3, z + 0.2))}
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+
+        {/* Image Editor Modal */}
+        <Modal
+          isOpen={showImageEditor}
+          onOpenChange={setShowImageEditor}
+          size="3xl"
+        >
+          <ModalContent>
+            <ModalHeader className="flex gap-2 items-center">
+              Edit Photo
+            </ModalHeader>
+            <ModalBody className="flex flex-col items-center gap-4">
+              <canvas
+                ref={imageEditorRef}
+                width={320}
+                height={320}
+                style={{
+                  borderRadius: 12,
+                  border: "1px solid #ccc",
+                  background: "#f9f9f9",
+                }}
+              />
+              <div className="flex gap-2 mt-2">
+                <Button
+                  size="sm"
+                  onPress={() => {
+                    // Rotate
+                    const canvas = imageEditorRef.current;
+                    if (!canvas) return;
+                    const ctx = canvas.getContext("2d");
+                    if (!ctx) return;
+                    const img = new window.Image();
+                    img.src = canvas.toDataURL();
+                    img.onload = () => {
+                      ctx.clearRect(0, 0, canvas.width, canvas.height);
+                      ctx.save();
+                      ctx.translate(canvas.width / 2, canvas.height / 2);
+                      ctx.rotate(Math.PI / 2);
+                      ctx.drawImage(
+                        img,
+                        -canvas.height / 2,
+                        -canvas.width / 2,
+                        canvas.height,
+                        canvas.width
+                      );
+                      ctx.restore();
+                    };
+                  }}
+                >
+                  Rotate
+                </Button>
+                <Button
+                  size="sm"
+                  onPress={() => {
+                    // Flip horizontally
+                    const canvas = imageEditorRef.current;
+                    if (!canvas) return;
+                    const ctx = canvas.getContext("2d");
+                    if (!ctx) return;
+                    const img = new window.Image();
+                    img.src = canvas.toDataURL();
+                    img.onload = () => {
+                      ctx.clearRect(0, 0, canvas.width, canvas.height);
+                      ctx.save();
+                      ctx.translate(canvas.width, 0);
+                      ctx.scale(-1, 1);
+                      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                      ctx.restore();
+                    };
+                  }}
+                >
+                  Flip
+                </Button>
+                <Button
+                  size="sm"
+                  onPress={() => {
+                    // Reset
+                    if (editImageUrl && imageEditorRef.current) {
+                      const ctx = imageEditorRef.current.getContext("2d");
+                      const img = new window.Image();
+                      img.src = editImageUrl;
+                      img.onload = () => {
+                        ctx?.clearRect(0, 0, 320, 320);
+                        ctx?.drawImage(img, 0, 0, 320, 320);
+                      };
+                    }
+                  }}
+                >
+                  Reset
+                </Button>
+                <Button
+                  size="sm"
+                  color="primary"
+                  onPress={() => {
+                    // Save edited image (download for now)
+                    if (imageEditorRef.current) {
+                      const link = document.createElement("a");
+                      link.href =
+                        imageEditorRef.current.toDataURL("image/jpeg");
+                      link.download =
+                        (selected?.full_name || "edited") + "_edited.jpg";
+                      link.click();
+                    }
+                  }}
+                >
+                  Save
+                </Button>
+              </div>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
       </div>
     </div>
   );

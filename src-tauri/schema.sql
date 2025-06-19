@@ -151,6 +151,8 @@ CREATE TABLE IF NOT EXISTS offenders (
     notes TEXT,
     date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     file_id INTEGER,
+    penalty TEXT, -- e.g. Fine, Locked Up, Community Service, etc.
+    penalty_notes TEXT, -- additional notes on penalty
     FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE SET NULL
 );
 

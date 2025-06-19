@@ -17,6 +17,8 @@ pub struct Offender {
     pub notes: Option<String>,
     pub date_created: Option<String>,
     pub file_id: Option<i64>, // Foreign key to files
+    pub penalty: Option<String>,
+    pub penalty_notes: Option<String>,
 }
 
 // Helper: get photo storage dir
@@ -37,7 +39,7 @@ pub async fn list_offenders(app: AppHandle) -> Result<Vec<Offender>, String> {
     let conn = db.conn.lock().unwrap();
     let mut stmt = conn
         .prepare(
-            "SELECT offender_id, full_name, national_id, date_of_birth, gender, photo_path, notes, date_created, file_id FROM offenders",
+            "SELECT offender_id, full_name, national_id, date_of_birth, gender, photo_path, notes, date_created, file_id, penalty, penalty_notes FROM offenders",
         )
         .map_err(|e| e.to_string())?;
     let offenders = stmt
@@ -52,6 +54,8 @@ pub async fn list_offenders(app: AppHandle) -> Result<Vec<Offender>, String> {
                 notes: row.get(6).ok(),
                 date_created: row.get(7).ok(),
                 file_id: row.get(8).ok(),
+                penalty: row.get(9).ok(),
+                penalty_notes: row.get(10).ok(),
             })
         })
         .map_err(|e| e.to_string())?
@@ -67,7 +71,7 @@ pub async fn get_offender(app: AppHandle, offender_id: i64) -> Result<Offender, 
     let conn = db.conn.lock().unwrap();
     let mut stmt = conn
         .prepare(
-            "SELECT offender_id, full_name, national_id, date_of_birth, gender, photo_path, notes, date_created, file_id FROM offenders WHERE offender_id = ?1",
+            "SELECT offender_id, full_name, national_id, date_of_birth, gender, photo_path, notes, date_created, file_id, penalty, penalty_notes FROM offenders WHERE offender_id = ?1",
         )
         .map_err(|e| e.to_string())?;
     let offender = stmt
@@ -82,6 +86,8 @@ pub async fn get_offender(app: AppHandle, offender_id: i64) -> Result<Offender, 
                 notes: row.get(6).ok(),
                 date_created: row.get(7).ok(),
                 file_id: row.get(8).ok(),
+                penalty: row.get(9).ok(),
+                penalty_notes: row.get(10).ok(),
             })
         })
         .map_err(|e| e.to_string())?;
@@ -98,6 +104,8 @@ pub async fn create_offender(
     gender: Option<String>,
     notes: Option<String>,
     file_id: Option<i64>,
+    penalty: Option<String>,
+    penalty_notes: Option<String>,
     photo: Option<Vec<u8>>, // photo as bytes
     photo_filename: Option<String>,
 ) -> Result<Offender, String> {
@@ -112,8 +120,8 @@ pub async fn create_offender(
         photo_path = Some(path.to_string_lossy().to_string());
     }
     conn.execute(
-        "INSERT INTO offenders (full_name, national_id, date_of_birth, gender, photo_path, notes, file_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        params![full_name, national_id, date_of_birth, gender, photo_path, notes, file_id],
+        "INSERT INTO offenders (full_name, national_id, date_of_birth, gender, photo_path, notes, file_id, penalty, penalty_notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        params![full_name, national_id, date_of_birth, gender, photo_path, notes, file_id, penalty, penalty_notes],
     )
     .map_err(|e| e.to_string())?;
     let id = conn.last_insert_rowid();
@@ -127,6 +135,8 @@ pub async fn create_offender(
         notes,
         date_created: None,
         file_id,
+        penalty,
+        penalty_notes,
     })
 }
 
@@ -141,6 +151,8 @@ pub async fn update_offender(
     gender: Option<String>,
     notes: Option<String>,
     file_id: Option<i64>,
+    penalty: Option<String>,
+    penalty_notes: Option<String>,
     photo: Option<Vec<u8>>, // photo as bytes
     photo_filename: Option<String>,
 ) -> Result<Offender, String> {
@@ -163,13 +175,13 @@ pub async fn update_offender(
         }
     }
     conn.execute(
-        "UPDATE offenders SET full_name = COALESCE(?2, full_name), national_id = COALESCE(?3, national_id), date_of_birth = COALESCE(?4, date_of_birth), gender = COALESCE(?5, gender), notes = COALESCE(?6, notes), photo_path = COALESCE(?7, photo_path), file_id = COALESCE(?8, file_id) WHERE offender_id = ?1",
-        params![offender_id, full_name, national_id, date_of_birth, gender, notes, photo_path, file_id],
+        "UPDATE offenders SET full_name = COALESCE(?2, full_name), national_id = COALESCE(?3, national_id), date_of_birth = COALESCE(?4, date_of_birth), gender = COALESCE(?5, gender), notes = COALESCE(?6, notes), photo_path = COALESCE(?7, photo_path), file_id = COALESCE(?8, file_id), penalty = COALESCE(?9, penalty), penalty_notes = COALESCE(?10, penalty_notes) WHERE offender_id = ?1",
+        params![offender_id, full_name, national_id, date_of_birth, gender, notes, photo_path, file_id, penalty, penalty_notes],
     ).map_err(|e| e.to_string())?;
     drop(conn); // Explicitly drop the lock before await
     let conn = db.conn.lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT offender_id, full_name, national_id, date_of_birth, gender, photo_path, notes, date_created, file_id FROM offenders WHERE offender_id = ?1"
+        "SELECT offender_id, full_name, national_id, date_of_birth, gender, photo_path, notes, date_created, file_id, penalty, penalty_notes FROM offenders WHERE offender_id = ?1"
     ).map_err(|e| e.to_string())?;
     let offender = stmt
         .query_row(rusqlite::params![offender_id], |row| {
@@ -183,6 +195,8 @@ pub async fn update_offender(
                 notes: row.get(6).ok(),
                 date_created: row.get(7).ok(),
                 file_id: row.get(8).ok(),
+                penalty: row.get(9).ok(),
+                penalty_notes: row.get(10).ok(),
             })
         })
         .map_err(|e| e.to_string())?;
