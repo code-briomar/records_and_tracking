@@ -8,6 +8,7 @@ pub mod contacts;
 pub mod files;
 pub mod news;
 pub mod notifications;
+pub mod offenders;
 pub mod reports_analytics;
 pub mod staff;
 pub mod summaries;

@@ -9,6 +9,7 @@ import File from "./files";
 import Home from "./home";
 import Messaging from "./messaging";
 import Notifications from "./notifications";
+import OffenderRecords from "./offenders";
 import Staff from "./staff";
 import Tools from "./tools/index.tsx";
 import WhyUseThis from "./why_use_this";
@@ -261,6 +262,14 @@ function App() {
             element={
               <PrivateRoute authData={authData}>
                 <WhyUseThis />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/offenders"
+            element={
+              <PrivateRoute authData={authData}>
+                <OffenderRecords />
               </PrivateRoute>
             }
           />

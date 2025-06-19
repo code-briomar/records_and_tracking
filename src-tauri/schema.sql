@@ -9,6 +9,8 @@ DROP TABLE IF EXISTS cases;
 DROP TABLE IF EXISTS attendance;
 DROP TABLE IF EXISTS staff;
 DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS offenders;
+DROP TABLE IF EXISTS offender_cases;
 
 -- Enable foreign key support for SQLite
 PRAGMA foreign_keys = ON;
@@ -139,6 +141,27 @@ CREATE TABLE IF NOT EXISTS summaries (
     generated_by TEXT NOT NULL
 );
 
+-- Offenders Table
+CREATE TABLE IF NOT EXISTS offenders (
+    offender_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    full_name TEXT NOT NULL,
+    national_id TEXT,
+    date_of_birth DATE,
+    gender TEXT,
+    photo_path TEXT, -- Path to photo file stored on disk
+    notes TEXT,
+    date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Offender-Cases Link Table
+CREATE TABLE IF NOT EXISTS offender_cases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    offender_id INTEGER NOT NULL,
+    case_id INTEGER NOT NULL,
+    FOREIGN KEY (offender_id) REFERENCES offenders(offender_id) ON DELETE CASCADE,
+    FOREIGN KEY (case_id) REFERENCES cases(case_id) ON DELETE CASCADE
+);
+
 -- HISTORY ( Activated By Triggers )
 -- Tracks history of when the file is required on
 CREATE TABLE IF NOT EXISTS history_required_on_in_files (
@@ -237,6 +260,20 @@ ALTER TABLE summaries ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_st
 ALTER TABLE summaries ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE summaries ADD COLUMN sync_version INTEGER DEFAULT 1;
 ALTER TABLE summaries ADD COLUMN supabase_id TEXT;
+
+-- Add to offenders table
+ALTER TABLE offenders ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE offenders ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE offenders ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE offenders ADD COLUMN sync_version INTEGER DEFAULT 1;
+ALTER TABLE offenders ADD COLUMN supabase_id TEXT;
+
+-- Add to offender_cases table
+ALTER TABLE offender_cases ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE offender_cases ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
+ALTER TABLE offender_cases ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+ALTER TABLE offender_cases ADD COLUMN sync_version INTEGER DEFAULT 1;
+ALTER TABLE offender_cases ADD COLUMN supabase_id TEXT;
 
 
 -- Track sync sessions
@@ -340,7 +377,157 @@ BEGIN
     );
 END;
 
--- Similar triggers for other tables...
+CREATE TRIGGER IF NOT EXISTS update_staff_modtime
+AFTER UPDATE ON staff
+FOR EACH ROW
+BEGIN
+    UPDATE staff SET last_modified = CURRENT_TIMESTAMP
+    WHERE staff_id = NEW.staff_id AND (
+        OLD.role <> NEW.role OR
+        OLD.contact_number <> NEW.contact_number OR
+        OLD.status <> NEW.status OR
+        OLD.is_deleted <> NEW.is_deleted
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_attendance_modtime
+AFTER UPDATE ON attendance
+FOR EACH ROW
+BEGIN
+    UPDATE attendance SET last_modified = CURRENT_TIMESTAMP
+    WHERE attendance_id = NEW.attendance_id AND (
+        OLD.staff_id <> NEW.staff_id OR
+        OLD.date <> NEW.date OR
+        OLD.status <> NEW.status OR
+        OLD.reason <> NEW.reason OR
+        OLD.half_day <> NEW.half_day OR
+        OLD.comments <> NEW.comments
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_cases_modtime
+AFTER UPDATE ON cases
+FOR EACH ROW
+BEGIN
+    UPDATE cases SET last_modified = CURRENT_TIMESTAMP
+    WHERE case_id = NEW.case_id AND (
+        OLD.title <> NEW.title OR
+        OLD.status <> NEW.status OR
+        OLD.assigned_staff_id <> NEW.assigned_staff_id OR
+        OLD.priority <> NEW.priority
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_files_modtime
+AFTER UPDATE ON files
+FOR EACH ROW
+BEGIN
+    UPDATE files SET last_modified = CURRENT_TIMESTAMP
+    WHERE file_id = NEW.file_id AND (
+        OLD.case_number <> NEW.case_number OR
+        OLD.case_type <> NEW.case_type OR
+        OLD.purpose <> NEW.purpose OR
+        OLD.current_location <> NEW.current_location OR
+        OLD.notes <> NEW.notes OR
+        OLD.required_on <> NEW.required_on OR
+        OLD.deleted <> NEW.deleted
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_notifications_modtime
+AFTER UPDATE ON notifications
+FOR EACH ROW
+BEGIN
+    UPDATE notifications SET last_modified = CURRENT_TIMESTAMP
+    WHERE notification_id = NEW.notification_id AND (
+        OLD.message <> NEW.message OR
+        OLD.type <> NEW.type OR
+        OLD.read_status <> NEW.read_status
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_contacts_modtime
+AFTER UPDATE ON contacts
+FOR EACH ROW
+BEGIN
+    UPDATE contacts SET last_modified = CURRENT_TIMESTAMP
+    WHERE contact_id = NEW.contact_id AND (
+        OLD.name <> NEW.name OR
+        OLD.role <> NEW.role OR
+        OLD.phone_number <> NEW.phone_number
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_reports_analytics_modtime
+AFTER UPDATE ON reports_analytics
+FOR EACH ROW
+BEGIN
+    UPDATE reports_analytics SET last_modified = CURRENT_TIMESTAMP
+    WHERE report_id = NEW.report_id AND (
+        OLD.type <> NEW.type OR
+        OLD.data_json <> NEW.data_json
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_news_modtime
+AFTER UPDATE ON news
+FOR EACH ROW
+BEGIN
+    UPDATE news SET last_modified = CURRENT_TIMESTAMP
+    WHERE news_id = NEW.news_id AND (
+        OLD.title <> NEW.title OR
+        OLD.content <> NEW.content
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_themes_modtime
+AFTER UPDATE ON themes
+FOR EACH ROW
+BEGIN
+    UPDATE themes SET last_modified = CURRENT_TIMESTAMP
+    WHERE theme_id = NEW.theme_id AND (
+        OLD.name <> NEW.name OR
+        OLD.config_json <> NEW.config_json
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_summaries_modtime
+AFTER UPDATE ON summaries
+FOR EACH ROW
+BEGIN
+    UPDATE summaries SET last_modified = CURRENT_TIMESTAMP
+    WHERE summary_id = NEW.summary_id AND (
+        OLD.title <> NEW.title OR
+        OLD.content <> NEW.content OR
+        OLD.category <> NEW.category
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_offenders_modtime
+AFTER UPDATE ON offenders
+FOR EACH ROW
+BEGIN
+    UPDATE offenders SET last_modified = CURRENT_TIMESTAMP
+    WHERE offender_id = NEW.offender_id AND (
+        OLD.full_name <> NEW.full_name OR
+        OLD.national_id <> NEW.national_id OR
+        OLD.date_of_birth <> NEW.date_of_birth OR
+        OLD.gender <> NEW.gender OR
+        OLD.photo_path <> NEW.photo_path OR
+        OLD.notes <> NEW.notes
+    );
+END;
+
+CREATE TRIGGER IF NOT EXISTS update_offender_cases_modtime
+AFTER UPDATE ON offender_cases
+FOR EACH ROW
+BEGIN
+    UPDATE offender_cases SET last_modified = CURRENT_TIMESTAMP
+    WHERE id = NEW.id AND (
+        OLD.offender_id <> NEW.offender_id OR
+        OLD.case_id <> NEW.case_id
+    );
+END;
 
 
 -- INDEXES
@@ -376,6 +563,9 @@ CREATE INDEX IF NOT EXISTS idx_reports_sync ON reports_analytics(sync_status, la
 CREATE INDEX IF NOT EXISTS idx_news_sync ON news(sync_status, last_modified);
 CREATE INDEX IF NOT EXISTS idx_themes_sync ON themes(sync_status, last_modified);
 CREATE INDEX IF NOT EXISTS idx_summaries_sync ON summaries(sync_status, last_modified);
+CREATE INDEX IF NOT EXISTS idx_offenders_name ON offenders(full_name);
+CREATE INDEX IF NOT EXISTS idx_offender_cases_offender_id ON offender_cases(offender_id);
+CREATE INDEX IF NOT EXISTS idx_offender_cases_case_id ON offender_cases(case_id);
 
 -- Insert initial sync metadata
 INSERT OR IGNORE INTO sync_metadata (id, last_sync) VALUES (1, NULL);

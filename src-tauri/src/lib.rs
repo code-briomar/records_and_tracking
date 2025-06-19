@@ -15,6 +15,7 @@ use methods::attendance::*;
 use methods::cases::*;
 use methods::files::*;
 use methods::notifications::*;
+use methods::offenders::*;
 use methods::staff::*;
 use methods::users::*;
 
@@ -187,7 +188,11 @@ pub fn run() {
     // log_startup("📦 Loaded .env configuration");
 
     // Configure Supabase
-    let supabase = SupabaseClient::new();
+    let supabase = SupabaseClient::new(
+        "https://jdvxrimlhomteuwydvvh.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkdnhyaW1saG9tdGV1d3lkdnZoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjE4ODk3MiwiZXhwIjoyMDYxNzY0OTcyfQ.c0gLkOARG17I1hP_Hl1wzJlceE0_4uaqLsKnNL5XltI",
+        ""
+    );
     log_startup("✅ Supabase client configured");
 
     let app_state = AppState { conn, supabase };
@@ -257,6 +262,14 @@ pub fn run() {
             get_notification,
             mark_notification_as_read,
             delete_notification,
+            list_offenders,
+            get_offender,
+            create_offender,
+            update_offender,
+            delete_offender,
+            get_offender_photo,
+            link_offender_case,
+            unlink_offender_case,
         ])
         .run(tauri::generate_context!())
         .expect("❌ Error while running Tauri application");
