@@ -10,7 +10,6 @@ DROP TABLE IF EXISTS attendance;
 DROP TABLE IF EXISTS staff;
 DROP TABLE IF EXISTS users;
 DROP TABLE IF EXISTS offenders;
-DROP TABLE IF EXISTS offender_cases;
 
 -- Enable foreign key support for SQLite
 PRAGMA foreign_keys = ON;
@@ -150,16 +149,9 @@ CREATE TABLE IF NOT EXISTS offenders (
     gender TEXT,
     photo_path TEXT, -- Path to photo file stored on disk
     notes TEXT,
-    date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Offender-Cases Link Table
-CREATE TABLE IF NOT EXISTS offender_cases (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    offender_id INTEGER NOT NULL,
-    case_id INTEGER NOT NULL,
-    FOREIGN KEY (offender_id) REFERENCES offenders(offender_id) ON DELETE CASCADE,
-    FOREIGN KEY (case_id) REFERENCES cases(case_id) ON DELETE CASCADE
+    date_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    file_id INTEGER,
+    FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE SET NULL
 );
 
 -- HISTORY ( Activated By Triggers )
@@ -267,13 +259,6 @@ ALTER TABLE offenders ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_st
 ALTER TABLE offenders ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE offenders ADD COLUMN sync_version INTEGER DEFAULT 1;
 ALTER TABLE offenders ADD COLUMN supabase_id TEXT;
-
--- Add to offender_cases table
-ALTER TABLE offender_cases ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
-ALTER TABLE offender_cases ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
-ALTER TABLE offender_cases ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
-ALTER TABLE offender_cases ADD COLUMN sync_version INTEGER DEFAULT 1;
-ALTER TABLE offender_cases ADD COLUMN supabase_id TEXT;
 
 
 -- Track sync sessions
@@ -518,17 +503,6 @@ BEGIN
     );
 END;
 
-CREATE TRIGGER IF NOT EXISTS update_offender_cases_modtime
-AFTER UPDATE ON offender_cases
-FOR EACH ROW
-BEGIN
-    UPDATE offender_cases SET last_modified = CURRENT_TIMESTAMP
-    WHERE id = NEW.id AND (
-        OLD.offender_id <> NEW.offender_id OR
-        OLD.case_id <> NEW.case_id
-    );
-END;
-
 
 -- INDEXES
 CREATE INDEX IF NOT EXISTS idx_history_required_on_file_id ON history_required_on_in_files(file_id);
@@ -564,8 +538,6 @@ CREATE INDEX IF NOT EXISTS idx_news_sync ON news(sync_status, last_modified);
 CREATE INDEX IF NOT EXISTS idx_themes_sync ON themes(sync_status, last_modified);
 CREATE INDEX IF NOT EXISTS idx_summaries_sync ON summaries(sync_status, last_modified);
 CREATE INDEX IF NOT EXISTS idx_offenders_name ON offenders(full_name);
-CREATE INDEX IF NOT EXISTS idx_offender_cases_offender_id ON offender_cases(offender_id);
-CREATE INDEX IF NOT EXISTS idx_offender_cases_case_id ON offender_cases(case_id);
 
 -- Insert initial sync metadata
 INSERT OR IGNORE INTO sync_metadata (id, last_sync) VALUES (1, NULL);

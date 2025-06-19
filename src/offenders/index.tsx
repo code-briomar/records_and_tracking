@@ -52,7 +52,7 @@ export interface Offender {
   date_created?: string;
   photo_url?: string;
   photo_file?: File;
-  cases?: Array<{ case_number: string; court: string; year: string }>;
+  file_id?: number; // Foreign key to files table
 }
 
 // Mock data with better structure - will be replaced by real data from Tauri
@@ -69,6 +69,7 @@ export default function OffenderRecords() {
   const [editingOffender, setEditingOffender] = useState<Offender | null>(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [selected, setSelected] = useState<Offender | null>(null);
+  const [allCases, setAllCases] = useState<any[]>([]);
 
   // Fetch offenders from backend on component mount
   React.useEffect(() => {
@@ -77,6 +78,13 @@ export default function OffenderRecords() {
       .catch((error) => {
         console.error("Failed to load offenders:", error);
       });
+  }, []);
+
+  // Fetch all cases for linking
+  useEffect(() => {
+    invoke<any[]>("get_all_files")
+      .then(setAllCases)
+      .catch(() => {});
   }, []);
 
   // Filter offenders
@@ -109,6 +117,7 @@ export default function OffenderRecords() {
         dateOfBirth: newOffender.date_of_birth,
         gender: newOffender.gender,
         notes: newOffender.notes,
+        fileId: newOffender.file_id || null,
         photo: photoBytes,
         photoFilename,
       });
@@ -176,6 +185,7 @@ export default function OffenderRecords() {
         date_of_birth: editingOffender.date_of_birth,
         gender: editingOffender.gender,
         notes: editingOffender.notes,
+        fileId: editingOffender.file_id || null,
         photo: photoBytes,
         photo_filename: photoFilename,
       });
@@ -370,18 +380,17 @@ export default function OffenderRecords() {
           </ModalHeader>
           <ModalBody className="space-y-4 pb-6">
             <Formik
-              initialValues={
-                {
-                  offenderId: data?.offender_id || undefined,
-                  full_name: data?.full_name || "",
-                  national_id: data?.national_id || "",
-                  date_of_birth: data?.date_of_birth || "",
-                  gender: data?.gender || "",
-                  notes: data?.notes || "",
-                  photo_url: data?.photo_url || "",
-                  photo_file: data?.photo_file || undefined,
-                } as OffenderFormValues
-              }
+              initialValues={{
+                offenderId: data?.offender_id || undefined,
+                full_name: data?.full_name || "",
+                national_id: data?.national_id || "",
+                date_of_birth: data?.date_of_birth || "",
+                gender: data?.gender || "",
+                notes: data?.notes || "",
+                file_id: data?.file_id || "",
+                photo_url: data?.photo_url || "",
+                photo_file: data?.photo_file || undefined,
+              }}
               enableReinitialize
               onSubmit={async (
                 values: OffenderFormValues,
@@ -501,6 +510,34 @@ export default function OffenderRecords() {
                       />
                     )}
                   </Field>
+                  {/* Link to File Dropdown (single select) */}
+                  <div className="mt-4">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Link to File (Case)
+                    </label>
+                    <Select
+                      label="Select a file to link"
+                      placeholder="Select a file/case"
+                      selectedKeys={
+                        values.file_id ? [String(values.file_id)] : []
+                      }
+                      onSelectionChange={(keys) => {
+                        const selectedId = Number(Array.from(keys)[0]);
+                        setFieldValue("file_id", selectedId);
+                      }}
+                      variant="bordered"
+                    >
+                      {allCases.map((c) => (
+                        <SelectItem key={c.file_id} textValue={c.case_number}>
+                          <b>
+                            {c.case_number} - {c.case_type}
+                          </b>{" "}
+                          for {c.purpose}
+                        </SelectItem>
+                      ))}
+                    </Select>
+                  </div>
                   <div className="space-y-3 mt-4">
                     <label className="text-sm font-medium text-foreground flex items-center gap-2">
                       <Camera className="w-4 h-4" />
@@ -842,32 +879,60 @@ export default function OffenderRecords() {
                         <FileText className="w-5 h-5" />
                         Case History
                       </h3>
-                      {selected.cases && selected.cases.length > 0 ? (
-                        <div className="space-y-2">
-                          {selected.cases.map((case_, i) => (
-                            <Card key={i} className="bg-default-50">
+                      {selected.file_id ? (
+                        (() => {
+                          const linkedFile = allCases.find(
+                            (c) => c.file_id === selected.file_id
+                          );
+                          // Example
+                          //                           {
+                          //     "file_id": 1,
+                          //     "case_number": "CS1",
+                          //     "case_type": "Civil",
+                          //     "purpose": "Judgement",
+                          //     "uploaded_by": 1,
+                          //     "current_location": "wefqwef",
+                          //     "notes": "Lock Him Up....He did it",
+                          //     "date_recieved": "2025-06-19 16:10:14",
+                          //     "required_on": "2025-06-27T00:00:00.000Z",
+                          //     "required_on_signature": null,
+                          //     "date_returned": null,
+                          //     "date_returned_signature": null,
+                          //     "deleted": 0
+                          // }
+                          return linkedFile ? (
+                            <Card className="bg-default-50">
                               <CardBody className="p-3">
                                 <div className="flex justify-between items-center">
                                   <div>
                                     <p className="font-medium">
-                                      {case_.case_number}
+                                      {linkedFile.case_number}
+                                    </p>
+                                    <p className="text-sm text-default-500">
+                                      {linkedFile.case_type} -{" "}
+                                      {linkedFile.purpose}
                                     </p>
                                     <p className="text-sm text-default-600">
-                                      {case_.court}
+                                      {linkedFile.notes}
                                     </p>
                                   </div>
                                   <Chip size="sm" variant="flat">
-                                    {case_.year}
+                                    {linkedFile.year}
                                   </Chip>
                                 </div>
                               </CardBody>
                             </Card>
-                          ))}
-                        </div>
+                          ) : (
+                            <div className="text-center py-6 text-default-400">
+                              <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                              <p>No case linked to this offender</p>
+                            </div>
+                          );
+                        })()
                       ) : (
                         <div className="text-center py-6 text-default-400">
                           <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p>No cases linked to this offender</p>
+                          <p>No case linked to this offender</p>
                         </div>
                       )}
                     </div>

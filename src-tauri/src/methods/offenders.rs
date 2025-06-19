@@ -16,13 +16,7 @@ pub struct Offender {
     pub photo_path: Option<String>,
     pub notes: Option<String>,
     pub date_created: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-pub struct OffenderCase {
-    pub id: Option<i64>,
-    pub offender_id: i64,
-    pub case_id: i64,
+    pub file_id: Option<i64>, // Foreign key to files
 }
 
 // Helper: get photo storage dir
@@ -43,7 +37,7 @@ pub async fn list_offenders(app: AppHandle) -> Result<Vec<Offender>, String> {
     let conn = db.conn.lock().unwrap();
     let mut stmt = conn
         .prepare(
-            "SELECT offender_id, full_name, national_id, date_of_birth, gender, photo_path, notes, date_created FROM offenders",
+            "SELECT offender_id, full_name, national_id, date_of_birth, gender, photo_path, notes, date_created, file_id FROM offenders",
         )
         .map_err(|e| e.to_string())?;
     let offenders = stmt
@@ -57,6 +51,7 @@ pub async fn list_offenders(app: AppHandle) -> Result<Vec<Offender>, String> {
                 photo_path: row.get(5).ok(),
                 notes: row.get(6).ok(),
                 date_created: row.get(7).ok(),
+                file_id: row.get(8).ok(),
             })
         })
         .map_err(|e| e.to_string())?
@@ -72,7 +67,7 @@ pub async fn get_offender(app: AppHandle, offender_id: i64) -> Result<Offender, 
     let conn = db.conn.lock().unwrap();
     let mut stmt = conn
         .prepare(
-            "SELECT offender_id, full_name, national_id, date_of_birth, gender, photo_path, notes, date_created FROM offenders WHERE offender_id = ?1",
+            "SELECT offender_id, full_name, national_id, date_of_birth, gender, photo_path, notes, date_created, file_id FROM offenders WHERE offender_id = ?1",
         )
         .map_err(|e| e.to_string())?;
     let offender = stmt
@@ -86,6 +81,7 @@ pub async fn get_offender(app: AppHandle, offender_id: i64) -> Result<Offender, 
                 photo_path: row.get(5).ok(),
                 notes: row.get(6).ok(),
                 date_created: row.get(7).ok(),
+                file_id: row.get(8).ok(),
             })
         })
         .map_err(|e| e.to_string())?;
@@ -101,6 +97,7 @@ pub async fn create_offender(
     date_of_birth: Option<String>,
     gender: Option<String>,
     notes: Option<String>,
+    file_id: Option<i64>,
     photo: Option<Vec<u8>>, // photo as bytes
     photo_filename: Option<String>,
 ) -> Result<Offender, String> {
@@ -115,8 +112,8 @@ pub async fn create_offender(
         photo_path = Some(path.to_string_lossy().to_string());
     }
     conn.execute(
-        "INSERT INTO offenders (full_name, national_id, date_of_birth, gender, photo_path, notes) VALUES (?, ?, ?, ?, ?, ?)",
-        params![full_name, national_id, date_of_birth, gender, photo_path, notes],
+        "INSERT INTO offenders (full_name, national_id, date_of_birth, gender, photo_path, notes, file_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        params![full_name, national_id, date_of_birth, gender, photo_path, notes, file_id],
     )
     .map_err(|e| e.to_string())?;
     let id = conn.last_insert_rowid();
@@ -129,6 +126,7 @@ pub async fn create_offender(
         photo_path,
         notes,
         date_created: None,
+        file_id,
     })
 }
 
@@ -142,6 +140,7 @@ pub async fn update_offender(
     date_of_birth: Option<String>,
     gender: Option<String>,
     notes: Option<String>,
+    file_id: Option<i64>,
     photo: Option<Vec<u8>>, // photo as bytes
     photo_filename: Option<String>,
 ) -> Result<Offender, String> {
@@ -163,16 +162,14 @@ pub async fn update_offender(
             let _ = std::fs::remove_file(old);
         }
     }
-
     conn.execute(
-        "UPDATE offenders SET full_name = COALESCE(?2, full_name), national_id = COALESCE(?3, national_id), date_of_birth = COALESCE(?4, date_of_birth), gender = COALESCE(?5, gender), notes = COALESCE(?6, notes), photo_path = COALESCE(?7, photo_path) WHERE offender_id = ?1",
-        params![offender_id, full_name, national_id, date_of_birth, gender, notes, photo_path],
+        "UPDATE offenders SET full_name = COALESCE(?2, full_name), national_id = COALESCE(?3, national_id), date_of_birth = COALESCE(?4, date_of_birth), gender = COALESCE(?5, gender), notes = COALESCE(?6, notes), photo_path = COALESCE(?7, photo_path), file_id = COALESCE(?8, file_id) WHERE offender_id = ?1",
+        params![offender_id, full_name, national_id, date_of_birth, gender, notes, photo_path, file_id],
     ).map_err(|e| e.to_string())?;
     drop(conn); // Explicitly drop the lock before await
-                // Instead of calling get_offender (which is async), re-query synchronously here
     let conn = db.conn.lock().unwrap();
     let mut stmt = conn.prepare(
-        "SELECT offender_id, full_name, national_id, date_of_birth, gender, photo_path, notes, date_created FROM offenders WHERE offender_id = ?1"
+        "SELECT offender_id, full_name, national_id, date_of_birth, gender, photo_path, notes, date_created, file_id FROM offenders WHERE offender_id = ?1"
     ).map_err(|e| e.to_string())?;
     let offender = stmt
         .query_row(rusqlite::params![offender_id], |row| {
@@ -185,6 +182,7 @@ pub async fn update_offender(
                 photo_path: row.get(5).ok(),
                 notes: row.get(6).ok(),
                 date_created: row.get(7).ok(),
+                file_id: row.get(8).ok(),
             })
         })
         .map_err(|e| e.to_string())?;
@@ -227,38 +225,4 @@ pub async fn get_offender_photo(app: AppHandle, offender_id: i64) -> Result<Vec<
     } else {
         Err("No photo found".into())
     }
-}
-
-// Link offender to case
-#[tauri::command]
-pub async fn link_offender_case(
-    app: AppHandle,
-    offender_id: i64,
-    case_id: i64,
-) -> Result<(), String> {
-    let db = app.state::<crate::AppState>();
-    let conn = db.conn.lock().unwrap();
-    conn.execute(
-        "INSERT OR IGNORE INTO offender_cases (offender_id, case_id) VALUES (?1, ?2)",
-        params![offender_id, case_id],
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(())
-}
-
-// Unlink offender from case
-#[tauri::command]
-pub async fn unlink_offender_case(
-    app: AppHandle,
-    offender_id: i64,
-    case_id: i64,
-) -> Result<(), String> {
-    let db = app.state::<crate::AppState>();
-    let conn = db.conn.lock().unwrap();
-    conn.execute(
-        "DELETE FROM offender_cases WHERE offender_id = ?1 AND case_id = ?2",
-        params![offender_id, case_id],
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(())
 }

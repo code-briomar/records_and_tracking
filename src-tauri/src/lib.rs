@@ -267,10 +267,10 @@ pub fn run() {
             create_offender,
             update_offender,
             delete_offender,
-            get_offender_photo,
-            link_offender_case,
-            unlink_offender_case,
+            get_offender_photo
         ])
+        // link_offender_case,
+        //     unlink_offender_case,
         .run(tauri::generate_context!())
         .expect("❌ Error while running Tauri application");
 
