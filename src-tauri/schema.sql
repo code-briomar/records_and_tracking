@@ -156,6 +156,22 @@ CREATE TABLE IF NOT EXISTS offenders (
     FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE SET NULL
 );
 
+-- Offender History Table
+CREATE TABLE IF NOT EXISTS offender_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    offender_id INTEGER NOT NULL,
+    file_id INTEGER,
+    case_id INTEGER,
+    offense_date DATE,
+    penalty TEXT,
+    penalty_notes TEXT,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (offender_id) REFERENCES offenders(offender_id) ON DELETE CASCADE,
+    FOREIGN KEY (file_id) REFERENCES files(file_id) ON DELETE SET NULL,
+    FOREIGN KEY (case_id) REFERENCES cases(case_id) ON DELETE SET NULL
+);
+
 -- HISTORY ( Activated By Triggers )
 -- Tracks history of when the file is required on
 CREATE TABLE IF NOT EXISTS history_required_on_in_files (

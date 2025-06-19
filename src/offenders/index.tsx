@@ -21,7 +21,7 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { invoke } from "@tauri-apps/api/core";
-import { Field, Form, Formik, FormikHelpers } from "formik";
+import { Field, FieldArray, Form, Formik, FormikHelpers } from "formik";
 import {
   Camera,
   CreditCard,
@@ -79,6 +79,10 @@ export default function OffenderRecords() {
   const imageEditorRef = useRef<HTMLCanvasElement>(null);
   const [editImageUrl, setEditImageUrl] = useState<string | null>(null);
 
+  // --- Offender History State ---
+  const [offenderHistory, setOffenderHistory] = useState<any[]>([]);
+  const [historySearch, setHistorySearch] = useState("");
+
   // Fetch offenders from backend on component mount
   React.useEffect(() => {
     invoke<Offender[]>("list_offenders")
@@ -132,7 +136,20 @@ export default function OffenderRecords() {
         photoFilename,
       });
 
-      console.log("Created offender:", created);
+      // Save all history records for this offender
+      if (Array.isArray(newOffender.history) && created.offender_id) {
+        for (const h of newOffender.history) {
+          await invoke("add_offender_history", {
+            offender_id: created.offender_id,
+            file_id: h.file_id || null,
+            case_id: h.case_id || null,
+            offense_date: h.offense_date || null,
+            penalty: h.penalty || null,
+            penalty_notes: h.penalty_notes || null,
+            notes: h.notes || null,
+          });
+        }
+      }
 
       setOffenders((prev) => [...prev, created]);
       setNewOffender({});
@@ -174,8 +191,6 @@ export default function OffenderRecords() {
 
   // Update offender (with optional photo update)
   const handleUpdate = async (editingOffender: any) => {
-    // if (!editingOffender || !editingOffender.offender_id) return;
-
     try {
       let photoBytes = undefined;
       let photoFilename = undefined;
@@ -186,8 +201,17 @@ export default function OffenderRecords() {
         photoFilename = editingOffender.photo_file.name;
       }
 
-      console.log("Updating offender:", editingOffender);
+      // 1. Fetch current history from backend
+      let currentHistory: any[] = [];
+      if (editingOffender.offenderId) {
+        try {
+          currentHistory = await invoke<any[]>("list_offender_history", {
+            offender_id: editingOffender.offenderId,
+          });
+        } catch {}
+      }
 
+      // 2. Update offender main record
       const updated = await invoke<Offender>("update_offender", {
         offenderId: editingOffender.offenderId,
         full_name: editingOffender.full_name,
@@ -201,10 +225,59 @@ export default function OffenderRecords() {
         photo: photoBytes,
         photo_filename: photoFilename,
       });
+
+      // 3. Sync history
+      const newHistory = Array.isArray(editingOffender.history)
+        ? editingOffender.history
+        : [];
+      const oldById = Object.fromEntries(
+        (currentHistory || []).map((h) => [h.id, h])
+      );
+      const newById = Object.fromEntries(
+        newHistory.filter((h) => h.id).map((h) => [h.id, h])
+      );
+
+      // a) Add new records (no id)
+      for (const h of newHistory) {
+        if (!h.id) {
+          await invoke("add_offender_history", {
+            offenderId: editingOffender.offenderId,
+            file_id: h.file_id || null,
+            case_id: h.case_id || null,
+            offense_date: h.offense_date || null,
+            penalty: h.penalty || null,
+            penalty_notes: h.penalty_notes || null,
+            notes: h.notes || null,
+          });
+        }
+      }
+      // b) Update existing records
+      for (const h of newHistory) {
+        console.log(" History record to update:", h);
+
+        if (h.id && oldById[h.id]) {
+          const response = await invoke("update_offender_history", {
+            id: h.id,
+            offenderId: editingOffender.offenderId,
+            file_id: h.file_id || null,
+            case_id: h.case_id || null,
+            offense_date: h.offense_date || null,
+            penalty: h.penalty || null,
+            penalty_notes: h.penalty_notes || null,
+            notes: h.notes || null,
+          });
+
+          console.log("Updated history record:", response);
+        }
+      }
+      // c) Delete removed records
+      for (const old of currentHistory) {
+        if (!newById[old.id]) {
+          await invoke("delete_offender_history", { id: old.id });
+        }
+      }
+
       fetchOffenders();
-
-      console.log("Updated offender:", updated);
-
       setOffenders((prev) =>
         prev.map((o) =>
           o.offender_id === editingOffender.offender_id ? updated : o
@@ -393,6 +466,30 @@ export default function OffenderRecords() {
     const setIsOpen = isEdit ? setShowEdit : setShowAdd;
     const handleSave = isEdit ? handleUpdate : handleAdd;
 
+    // For edit: use the full offenderHistory (with id) as initial history
+    const initialHistory =
+      isEdit && Array.isArray(offenderHistory) && offenderHistory.length > 0
+        ? offenderHistory.map((h) => ({
+            id: h.id,
+            file_id: h.file_id,
+            penalty: h.penalty,
+            penalty_notes: h.penalty_notes,
+            offense_date: h.offense_date,
+            notes: h.notes,
+            case_id: h.case_id,
+          }))
+        : [
+            {
+              id: data?.history?.[0]?.id || undefined,
+              file_id: data?.file_id || undefined,
+              penalty: data?.penalty || "",
+              penalty_notes: data?.penalty_notes || "",
+              offense_date: data?.history?.[0]?.offense_date || "",
+              notes: data?.history?.[0]?.notes || "",
+              case_id: data?.history?.[0]?.case_id || undefined,
+            },
+          ];
+
     return (
       <Modal
         isOpen={isOpen}
@@ -422,6 +519,7 @@ export default function OffenderRecords() {
                 penalty_notes: data?.penalty_notes || "",
                 photo_url: data?.photo_url || "",
                 photo_file: data?.photo_file || undefined,
+                history: initialHistory,
               }}
               enableReinitialize
               onSubmit={async (
@@ -542,72 +640,136 @@ export default function OffenderRecords() {
                       />
                     )}
                   </Field>
-                  {/* Link to File Dropdown (single select) */}
-                  <div className="mt-4">
-                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <FileText className="w-4 h-4" />
-                      Link to File (Case)
-                    </label>
-                    <Select
-                      label="Select a file to link"
-                      placeholder="Select a file/case"
-                      selectedKeys={
-                        values.file_id ? [String(values.file_id)] : []
-                      }
-                      onSelectionChange={(keys) => {
-                        const selectedId = Number(Array.from(keys)[0]);
-                        setFieldValue("file_id", selectedId);
-                      }}
-                      variant="bordered"
-                    >
-                      {allCases.map((c) => (
-                        <SelectItem key={c.file_id} textValue={c.case_number}>
-                          <b>
-                            {c.case_number} - {c.case_type}
-                          </b>{" "}
-                          for {c.purpose}
-                        </SelectItem>
-                      ))}
-                    </Select>
-                  </div>
-                  {/* Penalty Dropdown */}
-                  <div className="mt-4">
-                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                      Penalty
-                    </label>
-                    <Select
-                      label="Penalty"
-                      placeholder="Select penalty type"
-                      selectedKeys={values.penalty ? [values.penalty] : []}
-                      onSelectionChange={(keys) => {
-                        const penalty = Array.from(keys)[0] as string;
-                        setFieldValue("penalty", penalty);
-                      }}
-                      variant="bordered"
-                    >
-                      <SelectItem key="Fine">Fine</SelectItem>
-                      <SelectItem key="Locked Up">Locked Up</SelectItem>
-                      <SelectItem key="Community Service">
-                        Community Service
-                      </SelectItem>
-                      <SelectItem key="Probation">Probation</SelectItem>
-                      <SelectItem key="Other">Other</SelectItem>
-                    </Select>
-                  </div>
-                  <Field name="penalty_notes">
-                    {({ field }: { field: any }) => (
-                      <Textarea
-                        label="Penalty Notes"
-                        placeholder="Add any additional info about the penalty..."
-                        {...field}
-                        value={field.value}
-                        onChange={field.onChange}
-                        minRows={2}
-                        variant="bordered"
-                        className="mt-2"
-                      />
+                  {/* Link to File (Case) and Penalty as dynamic FieldArray */}
+                  <FieldArray name="history">
+                    {({ push, remove }) => (
+                      <div className="space-y-2 mt-4">
+                        {values.history && values.history.length > 0 ? (
+                          values.history.map((h: any, idx: number) => (
+                            <div
+                              key={idx}
+                              className="flex flex-col md:flex-row md:items-end gap-2 md:gap-4"
+                            >
+                              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
+                                <Select
+                                  label="Link To Case"
+                                  placeholder="Select a file/case"
+                                  selectedKeys={
+                                    h.file_id ? [String(h.file_id)] : []
+                                  }
+                                  onSelectionChange={(keys) =>
+                                    setFieldValue(
+                                      `history.${idx}.file_id`,
+                                      keys.size > 0 &&
+                                        !isNaN(Number(Array.from(keys)[0]))
+                                        ? Number(Array.from(keys)[0])
+                                        : null
+                                    )
+                                  }
+                                  variant="bordered"
+                                >
+                                  {allCases.map((c) => (
+                                    <SelectItem
+                                      key={c.file_id}
+                                      textValue={c.case_number}
+                                    >
+                                      <b>
+                                        {c.case_number} - {c.case_type}
+                                      </b>{" "}
+                                      for {c.purpose}
+                                    </SelectItem>
+                                  ))}
+                                </Select>
+                                <Select
+                                  label="Penalty"
+                                  placeholder="Select penalty type"
+                                  selectedKeys={h.penalty ? [h.penalty] : []}
+                                  onSelectionChange={(keys) =>
+                                    setFieldValue(
+                                      `history.${idx}.penalty`,
+                                      Array.from(keys)[0]
+                                    )
+                                  }
+                                  variant="bordered"
+                                >
+                                  <SelectItem key="Fine">Fine</SelectItem>
+                                  <SelectItem key="Locked Up">
+                                    Locked Up
+                                  </SelectItem>
+                                  <SelectItem key="Community Service">
+                                    Community Service
+                                  </SelectItem>
+                                  <SelectItem key="Probation">
+                                    Probation
+                                  </SelectItem>
+                                  <SelectItem key="Other">Other</SelectItem>
+                                </Select>
+                                <Textarea
+                                  label="Penalty Notes"
+                                  placeholder="Add any additional info about the penalty..."
+                                  value={h.penalty_notes || ""}
+                                  onChange={(e) =>
+                                    setFieldValue(
+                                      `history.${idx}.penalty_notes`,
+                                      e.target.value
+                                    )
+                                  }
+                                  minRows={2}
+                                  variant="bordered"
+                                />
+                              </div>
+                              <div className="flex gap-2 items-end">
+                                {idx === 0 ? (
+                                  <Button
+                                    isIconOnly
+                                    size="sm"
+                                    color="primary"
+                                    variant="light"
+                                    onPress={() =>
+                                      push({
+                                        file_id: null,
+                                        penalty: "",
+                                        penalty_notes: "",
+                                      })
+                                    }
+                                    aria-label="Add Case/Penalty"
+                                  >
+                                    <Plus className="w-4 h-4" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    isIconOnly
+                                    size="sm"
+                                    color="danger"
+                                    variant="light"
+                                    onPress={() => remove(idx)}
+                                    aria-label="Remove Case/Penalty"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <Button
+                            size="sm"
+                            color="primary"
+                            variant="bordered"
+                            onPress={() =>
+                              push({
+                                file_id: null,
+                                penalty: "",
+                                penalty_notes: "",
+                              })
+                            }
+                          >
+                            <Plus className="w-4 h-4 mr-1" /> Add Case/Penalty
+                          </Button>
+                        )}
+                      </div>
                     )}
-                  </Field>
+                  </FieldArray>
                   <div className="space-y-3 mt-4">
                     <label className="text-sm font-medium text-foreground flex items-center gap-2">
                       <Camera className="w-4 h-4" />
@@ -686,6 +848,36 @@ export default function OffenderRecords() {
       console.log("New Edit Values For Offender: ", editingOffender);
     }
   }, [editingOffender]);
+
+  // Fetch offender history when a new offender is selected
+  useEffect(() => {
+    if (selected?.offender_id) {
+      invoke<any[]>("list_offender_history", {
+        offenderId: selected.offender_id,
+      })
+        .then((data) => {
+          console.log("Log -> Fetched offender history:", data);
+          setOffenderHistory(data || []);
+        })
+        .catch((error) => {
+          console.log("Failed to load offender history:", error);
+          setOffenderHistory([]);
+        });
+    } else {
+      setOffenderHistory([]);
+    }
+  }, [selected]);
+
+  // Filtered history for search
+  const filteredHistory = offenderHistory.filter((h) => {
+    const q = historySearch.toLowerCase();
+    return (
+      (h.penalty || "").toLowerCase().includes(q) ||
+      (h.penalty_notes || "").toLowerCase().includes(q) ||
+      (h.notes || "").toLowerCase().includes(q) ||
+      (h.offense_date || "").toLowerCase().includes(q)
+    );
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
@@ -1035,6 +1227,103 @@ export default function OffenderRecords() {
                       )}
                     </div>
                   </div>
+                </div>
+                <Divider className="my-6" />
+                <div>
+                  <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Offender History
+                  </h3>
+                  <Input
+                    placeholder="Search history (penalty, notes, date...)"
+                    value={historySearch}
+                    onValueChange={setHistorySearch}
+                    className="mb-4 max-w-md"
+                    variant="bordered"
+                    startContent={
+                      <Search className="w-4 h-4 text-default-400" />
+                    }
+                  />
+                  {(() => {
+                    const filteredHistory = offenderHistory.filter((h) => {
+                      const q = historySearch.toLowerCase();
+                      return (
+                        (h.penalty || "").toLowerCase().includes(q) ||
+                        (h.penalty_notes || "").toLowerCase().includes(q) ||
+                        (h.notes || "").toLowerCase().includes(q) ||
+                        (h.offense_date || "").toLowerCase().includes(q)
+                      );
+                    });
+
+                    console.log("Filtered History: ", filteredHistory);
+                    console.log(" Offender History: ", offenderHistory);
+                    return filteredHistory.length === 0 ? (
+                      <div className="text-center py-6 text-default-400">
+                        <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                        <p>No history records found</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {filteredHistory.map((h, idx) => {
+                          const linkedFile = allCases.find(
+                            (c) => c.file_id === h.file_id
+                          );
+                          return (
+                            <Card key={h.id || idx} className="bg-default-50">
+                              <CardBody className="p-3">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                                  <div>
+                                    <div className="font-medium">
+                                      {linkedFile ? (
+                                        <>
+                                          <span className="text-primary font-semibold">
+                                            {linkedFile.case_number}
+                                          </span>
+                                          <span className="ml-2 text-default-500">
+                                            {linkedFile.case_type} -{" "}
+                                            {linkedFile.purpose}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <span className="text-default-400">
+                                          No linked case
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-sm text-default-600 mt-1">
+                                      Penalty:{" "}
+                                      <span className="font-semibold">
+                                        {h.penalty || "-"}
+                                      </span>
+                                      {h.penalty_notes && (
+                                        <span className="ml-2 text-default-500">
+                                          ({h.penalty_notes})
+                                        </span>
+                                      )}
+                                    </div>
+                                    {h.notes && (
+                                      <div className="text-xs text-default-500 mt-1">
+                                        Notes: {h.notes}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col items-end gap-1 min-w-[120px]">
+                                    <span className="text-xs text-default-400">
+                                      {h.offense_date
+                                        ? new Date(
+                                            h.offense_date
+                                          ).toLocaleDateString()
+                                        : "No date"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </CardBody>
+                            </Card>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
                 {/* Image Tools Section */}
                 <div className="mt-4">

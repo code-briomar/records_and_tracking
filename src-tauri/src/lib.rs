@@ -267,7 +267,11 @@ pub fn run() {
             create_offender,
             update_offender,
             delete_offender,
-            get_offender_photo
+            get_offender_photo,
+            list_offender_history,
+            add_offender_history,
+            update_offender_history,
+            delete_offender_history,
         ])
         // link_offender_case,
         //     unlink_offender_case,

@@ -21,6 +21,19 @@ pub struct Offender {
     pub penalty_notes: Option<String>,
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct OffenderHistory {
+    pub id: Option<i64>,
+    pub offender_id: i64,
+    pub file_id: Option<i64>,
+    pub case_id: Option<i64>,
+    pub offense_date: Option<String>,
+    pub penalty: Option<String>,
+    pub penalty_notes: Option<String>,
+    pub notes: Option<String>,
+    pub created_at: Option<String>,
+}
+
 // Helper: get photo storage dir
 fn get_photo_dir(_app: &tauri::AppHandle) -> PathBuf {
     // Use the same logic as get_app_dir in lib.rs
@@ -239,4 +252,117 @@ pub async fn get_offender_photo(app: AppHandle, offender_id: i64) -> Result<Vec<
     } else {
         Err("No photo found".into())
     }
+}
+
+// List offender history
+#[tauri::command]
+pub async fn list_offender_history(
+    app: AppHandle,
+    offender_id: i64,
+) -> Result<Vec<OffenderHistory>, String> {
+    let db = app.state::<crate::AppState>();
+    let conn = db.conn.lock().unwrap();
+    let mut stmt = conn.prepare(
+        "SELECT id, offender_id, file_id, case_id, offense_date, penalty, penalty_notes, notes, created_at FROM offender_history WHERE offender_id = ?1 ORDER BY offense_date DESC, created_at DESC"
+    ).map_err(|e| e.to_string())?;
+    let history = stmt
+        .query_map(params![offender_id], |row| {
+            Ok(OffenderHistory {
+                id: row.get(0).ok(),
+                offender_id: row.get(1).unwrap_or_default(),
+                file_id: row.get(2).ok(),
+                case_id: row.get(3).ok(),
+                offense_date: row.get(4).ok(),
+                penalty: row.get(5).ok(),
+                penalty_notes: row.get(6).ok(),
+                notes: row.get(7).ok(),
+                created_at: row.get(8).ok(),
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .collect();
+    Ok(history)
+}
+
+// Add offender history record
+#[tauri::command]
+pub async fn add_offender_history(
+    app: AppHandle,
+    offender_id: i64,
+    file_id: Option<i64>,
+    case_id: Option<i64>,
+    offense_date: Option<String>,
+    penalty: Option<String>,
+    penalty_notes: Option<String>,
+    notes: Option<String>,
+) -> Result<OffenderHistory, String> {
+    let db = app.state::<crate::AppState>();
+    let conn = db.conn.lock().unwrap();
+    conn.execute(
+        "INSERT INTO offender_history (offender_id, file_id, case_id, offense_date, penalty, penalty_notes, notes) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        params![offender_id, file_id, case_id, offense_date, penalty, penalty_notes, notes],
+    ).map_err(|e| e.to_string())?;
+    let id = conn.last_insert_rowid();
+    Ok(OffenderHistory {
+        id: Some(id),
+        offender_id,
+        file_id,
+        case_id,
+        offense_date,
+        penalty,
+        penalty_notes,
+        notes,
+        created_at: None,
+    })
+}
+
+// Update offender history record
+#[tauri::command]
+pub async fn update_offender_history(
+    app: AppHandle,
+    id: i64,
+    offender_id: Option<i64>,
+    file_id: Option<i64>,
+    case_id: Option<i64>,
+    offense_date: Option<String>,
+    penalty: Option<String>,
+    penalty_notes: Option<String>,
+    notes: Option<String>,
+) -> Result<OffenderHistory, String> {
+    let db = app.state::<crate::AppState>();
+    let conn = db.conn.lock().unwrap();
+    conn.execute(
+        "UPDATE offender_history SET offender_id = COALESCE(?2, offender_id), file_id = COALESCE(?3, file_id), case_id = COALESCE(?4, case_id), offense_date = COALESCE(?5, offense_date), penalty = COALESCE(?6, penalty), penalty_notes = COALESCE(?7, penalty_notes), notes = COALESCE(?8, notes) WHERE id = ?1",
+        params![id, offender_id, file_id, case_id, offense_date, penalty, penalty_notes, notes],
+    ).map_err(|e| e.to_string())?;
+    let mut stmt = conn.prepare(
+        "SELECT id, offender_id, file_id, case_id, offense_date, penalty, penalty_notes, notes, created_at FROM offender_history WHERE id = ?1"
+    ).map_err(|e| e.to_string())?;
+    let history = stmt
+        .query_row(rusqlite::params![id], |row| {
+            Ok(OffenderHistory {
+                id: row.get(0).ok(),
+                offender_id: row.get(1).unwrap_or_default(),
+                file_id: row.get(2).ok(),
+                case_id: row.get(3).ok(),
+                offense_date: row.get(4).ok(),
+                penalty: row.get(5).ok(),
+                penalty_notes: row.get(6).ok(),
+                notes: row.get(7).ok(),
+                created_at: row.get(8).ok(),
+            })
+        })
+        .map_err(|e| e.to_string())?;
+    Ok(history)
+}
+
+// Delete offender history record
+#[tauri::command]
+pub async fn delete_offender_history(app: AppHandle, id: i64) -> Result<(), String> {
+    let db = app.state::<crate::AppState>();
+    let conn = db.conn.lock().unwrap();
+    conn.execute("DELETE FROM offender_history WHERE id = ?1", params![id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
