@@ -89,7 +89,7 @@ export default function OffenderRecords() {
   });
 
   // Add new offender (with photo upload)
-  const handleAdd = async () => {
+  const handleAdd = async (newOffender: any) => {
     console.log("Adding new offender:", newOffender);
     if (!newOffender.full_name) return;
 
@@ -145,6 +145,14 @@ export default function OffenderRecords() {
     }
   };
 
+  const fetchOffenders = () => {
+    invoke<Offender[]>("list_offenders")
+      .then(setOffenders)
+      .catch((error) => {
+        console.error("Failed to load offenders:", error);
+      });
+  };
+
   // Update offender (with optional photo update)
   const handleUpdate = async (editingOffender: any) => {
     // if (!editingOffender || !editingOffender.offender_id) return;
@@ -171,6 +179,7 @@ export default function OffenderRecords() {
         photo: photoBytes,
         photo_filename: photoFilename,
       });
+      fetchOffenders();
 
       console.log("Updated offender:", updated);
 
@@ -397,7 +406,8 @@ export default function OffenderRecords() {
                 if (isEdit) {
                   handleUpdate(values);
                 } else {
-                  handleAdd();
+                  console.log("Adding new offender:", values);
+                  handleAdd(values);
                 }
 
                 console.log("Offender saved:", values);
