@@ -21,6 +21,7 @@ import {
   useDisclosure,
 } from "@heroui/react";
 import { invoke } from "@tauri-apps/api/core";
+import { Field, Form, Formik, FormikHelpers } from "formik";
 import {
   Camera,
   CreditCard,
@@ -37,7 +38,7 @@ import {
   User,
   Users,
 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 // Enhanced Offender interface to match backend
 export interface Offender {
@@ -89,6 +90,7 @@ export default function OffenderRecords() {
 
   // Add new offender (with photo upload)
   const handleAdd = async () => {
+    console.log("Adding new offender:", newOffender);
     if (!newOffender.full_name) return;
 
     try {
@@ -110,6 +112,8 @@ export default function OffenderRecords() {
         photo: photoBytes,
         photoFilename,
       });
+
+      console.log("Created offender:", created);
 
       setOffenders((prev) => [...prev, created]);
       setNewOffender({});
@@ -142,8 +146,8 @@ export default function OffenderRecords() {
   };
 
   // Update offender (with optional photo update)
-  const handleUpdate = async () => {
-    if (!editingOffender || !editingOffender.offender_id) return;
+  const handleUpdate = async (editingOffender: any) => {
+    // if (!editingOffender || !editingOffender.offender_id) return;
 
     try {
       let photoBytes = undefined;
@@ -155,16 +159,20 @@ export default function OffenderRecords() {
         photoFilename = editingOffender.photo_file.name;
       }
 
+      console.log("Updating offender:", editingOffender);
+
       const updated = await invoke<Offender>("update_offender", {
-        offenderId: editingOffender.offender_id,
-        fullName: editingOffender.full_name,
-        nationalId: editingOffender.national_id,
-        dateOfBirth: editingOffender.date_of_birth,
+        offenderId: editingOffender.offenderId,
+        full_name: editingOffender.full_name,
+        national_id: editingOffender.national_id,
+        date_of_birth: editingOffender.date_of_birth,
         gender: editingOffender.gender,
         notes: editingOffender.notes,
         photo: photoBytes,
-        photoFilename,
+        photo_filename: photoFilename,
       });
+
+      console.log("Updated offender:", updated);
 
       setOffenders((prev) =>
         prev.map((o) =>
@@ -269,7 +277,9 @@ export default function OffenderRecords() {
                 startContent={<Edit className="w-4 h-4" />}
                 onPress={() => {
                   setEditingOffender(offender);
-                  setShowEdit(true);
+                  setTimeout(() => {
+                    setShowEdit(true);
+                  }, 0);
                 }}
               >
                 Edit
@@ -316,6 +326,17 @@ export default function OffenderRecords() {
     </Card>
   );
 
+  // Add Formik value type
+  interface OffenderFormValues {
+    full_name: string;
+    national_id: string;
+    date_of_birth: string;
+    gender: string;
+    notes: string;
+    photo_url?: string;
+    photo_file?: File;
+  }
+
   const FormModal = ({ isEdit = false }: { isEdit?: boolean }) => {
     const data = isEdit ? editingOffender : newOffender;
     const setData = isEdit ? setEditingOffender : setNewOffender;
@@ -339,130 +360,215 @@ export default function OffenderRecords() {
             {isEdit ? "Edit Offender" : "Add New Offender"}
           </ModalHeader>
           <ModalBody className="space-y-4 pb-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Full Name"
-                placeholder="Enter full name"
-                value={data?.full_name || ""}
-                onValueChange={(v) =>
-                  setData((prev) => ({ ...prev, full_name: v }))
+            <Formik
+              initialValues={
+                {
+                  offenderId: data?.offender_id || undefined,
+                  full_name: data?.full_name || "",
+                  national_id: data?.national_id || "",
+                  date_of_birth: data?.date_of_birth || "",
+                  gender: data?.gender || "",
+                  notes: data?.notes || "",
+                  photo_url: data?.photo_url || "",
+                  photo_file: data?.photo_file || undefined,
+                } as OffenderFormValues
+              }
+              enableReinitialize
+              onSubmit={async (
+                values: OffenderFormValues,
+                { setSubmitting, resetForm }: FormikHelpers<OffenderFormValues>
+              ) => {
+                // setData((prev: any) => ({ ...prev, ...values }));
+                if (isEdit) {
+                  console.log("Editing offender:", values);
+                  setEditingOffender((prev) => ({
+                    ...prev,
+                    ...values,
+                    photo_file: values.photo_file || prev?.photo_file,
+                  }));
+                } else {
+                  setNewOffender((prev) => ({
+                    ...prev,
+                    ...values,
+                    photo_file: values.photo_file || prev?.photo_file,
+                  }));
                 }
-                startContent={<User className="w-4 h-4 text-default-400" />}
-                variant="bordered"
-                isRequired
-              />
-              <Input
-                label="National ID"
-                placeholder="Enter national ID"
-                value={data?.national_id || ""}
-                onValueChange={(v) =>
-                  setData((prev) => ({ ...prev, national_id: v }))
+                console.log("Form values:", values);
+                if (isEdit) {
+                  handleUpdate(values);
+                } else {
+                  handleAdd();
                 }
-                startContent={
-                  <CreditCard className="w-4 h-4 text-default-400" />
-                }
-                variant="bordered"
-              />
-              <Input
-                type="date"
-                label="Date of Birth"
-                value={data?.date_of_birth || ""}
-                onValueChange={(v) =>
-                  setData((prev) => ({ ...prev, date_of_birth: v }))
-                }
-                variant="bordered"
-              />
-              <Select
-                label="Gender"
-                placeholder="Select gender"
-                selectedKeys={data?.gender ? [data.gender] : []}
-                onSelectionChange={(keys) => {
-                  const gender = Array.from(keys)[0] as string;
-                  setData((prev) => ({ ...prev, gender }));
-                }}
-                variant="bordered"
-              >
-                <SelectItem key="Male" value="Male">
-                  Male
-                </SelectItem>
-                <SelectItem key="Female" value="Female">
-                  Female
-                </SelectItem>
-                <SelectItem key="Other" value="Other">
-                  Other
-                </SelectItem>
-              </Select>
-            </div>
 
-            <Textarea
-              label="Notes"
-              placeholder="Add any additional notes..."
-              value={data?.notes || ""}
-              onValueChange={(v) => setData((prev) => ({ ...prev, notes: v }))}
-              minRows={3}
-              variant="bordered"
-            />
-
-            <div className="space-y-3">
-              <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Camera className="w-4 h-4" />
-                Photo
-              </label>
-              <div className="flex items-center gap-4">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handlePhoto(e, isEdit)}
-                  className="hidden"
-                  id={`photo-${isEdit ? "edit" : "add"}`}
-                />
-                <label
-                  htmlFor={`photo-${isEdit ? "edit" : "add"}`}
-                  className="cursor-pointer"
-                >
-                  <Button
-                    as="span"
-                    variant="bordered"
-                    startContent={<Upload className="w-4 h-4" />}
-                  >
-                    Choose Photo
-                  </Button>
-                </label>
-                {data?.photo_url && (
-                  <Avatar
-                    src={data.photo_url}
-                    size="lg"
-                    className="ring-2 ring-primary/20"
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-4">
-              <Button
-                color="primary"
-                onPress={handleSave}
-                className="flex-1"
-                startContent={<Plus className="w-4 h-4" />}
-              >
-                {isEdit ? "Update" : "Create"} Offender
-              </Button>
-              <Button
-                variant="light"
-                onPress={() => {
-                  setIsOpen(false);
-                  if (isEdit) setEditingOffender(null);
-                  else setNewOffender({});
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
+                console.log("Offender saved:", values);
+                setSubmitting(false);
+                console.log("Form submitted successfully");
+                resetForm();
+                console.log("Form reset after submission");
+                setIsOpen(false);
+                console.log("Modal closed after submission");
+                if (!isEdit) setNewOffender({});
+                console.log("New offender state reset");
+                if (isEdit) setEditingOffender(null);
+                console.log("Editing offender state reset");
+              }}
+            >
+              {({ isSubmitting, setFieldValue, values }) => (
+                <Form>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field name="full_name">
+                      {({ field }: { field: any }) => (
+                        <Input
+                          label="Full Name"
+                          placeholder="Enter full name"
+                          {...field}
+                          value={field.value}
+                          onChange={field.onChange}
+                          startContent={
+                            <User className="w-4 h-4 text-default-400" />
+                          }
+                          variant="bordered"
+                          isRequired
+                        />
+                      )}
+                    </Field>
+                    <Field name="national_id">
+                      {({ field }: { field: any }) => (
+                        <Input
+                          label="National ID"
+                          placeholder="Enter national ID"
+                          {...field}
+                          value={field.value}
+                          onChange={field.onChange}
+                          startContent={
+                            <CreditCard className="w-4 h-4 text-default-400" />
+                          }
+                          variant="bordered"
+                        />
+                      )}
+                    </Field>
+                    <Field name="date_of_birth">
+                      {({ field }: { field: any }) => (
+                        <Input
+                          type="date"
+                          label="Date of Birth"
+                          {...field}
+                          value={field.value}
+                          onChange={field.onChange}
+                          variant="bordered"
+                        />
+                      )}
+                    </Field>
+                    <Field name="gender">
+                      {({ field }: { field: any }) => (
+                        <Select
+                          label="Gender"
+                          placeholder="Select gender"
+                          selectedKeys={field.value ? [field.value] : []}
+                          onSelectionChange={(keys) => {
+                            const gender = Array.from(keys)[0] as string;
+                            setFieldValue("gender", gender);
+                          }}
+                          variant="bordered"
+                        >
+                          <SelectItem key="Male">Male</SelectItem>
+                          <SelectItem key="Female">Female</SelectItem>
+                          <SelectItem key="Other">Other</SelectItem>
+                        </Select>
+                      )}
+                    </Field>
+                  </div>
+                  <Field name="notes">
+                    {({ field }: { field: any }) => (
+                      <Textarea
+                        label="Notes"
+                        placeholder="Add any additional notes..."
+                        {...field}
+                        value={field.value}
+                        onChange={field.onChange}
+                        minRows={3}
+                        variant="bordered"
+                      />
+                    )}
+                  </Field>
+                  <div className="space-y-3 mt-4">
+                    <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                      <Camera className="w-4 h-4" />
+                      Photo
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            setFieldValue("photo_file", e.target.files[0]);
+                            setFieldValue(
+                              "photo_url",
+                              URL.createObjectURL(e.target.files[0])
+                            );
+                          }
+                        }}
+                        className="hidden"
+                        id={`photo-${isEdit ? "edit" : "add"}`}
+                      />
+                      <label
+                        htmlFor={`photo-${isEdit ? "edit" : "add"}`}
+                        className="cursor-pointer"
+                      >
+                        <Button
+                          as="span"
+                          variant="bordered"
+                          startContent={<Upload className="w-4 h-4" />}
+                        >
+                          Choose Photo
+                        </Button>
+                      </label>
+                      {values.photo_url && (
+                        <Avatar
+                          src={values.photo_url}
+                          size="lg"
+                          className="ring-2 ring-primary/20"
+                        />
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      color="primary"
+                      type="submit"
+                      className="flex-1"
+                      startContent={<Plus className="w-4 h-4" />}
+                      isLoading={isSubmitting}
+                    >
+                      {isEdit ? "Update" : "Create"} Offender
+                    </Button>
+                    <Button
+                      variant="light"
+                      type="button"
+                      onPress={() => {
+                        setIsOpen(false);
+                        if (isEdit) setEditingOffender(null);
+                        else setNewOffender({});
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </Form>
+              )}
+            </Formik>
           </ModalBody>
         </ModalContent>
       </Modal>
     );
   };
+
+  useEffect(() => {
+    if (editingOffender) {
+      console.log("New Edit Values For Offender: ", editingOffender);
+    }
+  }, [editingOffender]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
@@ -631,8 +737,8 @@ export default function OffenderRecords() {
         )}
 
         {/* Modals */}
-        <FormModal />
-        <FormModal isEdit />
+        {showAdd && <FormModal key="add" />}
+        {showEdit && <FormModal isEdit key="edit" />}
 
         {/* Details Modal */}
         {selected && (

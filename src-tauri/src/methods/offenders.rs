@@ -163,6 +163,7 @@ pub async fn update_offender(
             let _ = std::fs::remove_file(old);
         }
     }
+
     conn.execute(
         "UPDATE offenders SET full_name = COALESCE(?2, full_name), national_id = COALESCE(?3, national_id), date_of_birth = COALESCE(?4, date_of_birth), gender = COALESCE(?5, gender), notes = COALESCE(?6, notes), photo_path = COALESCE(?7, photo_path) WHERE offender_id = ?1",
         params![offender_id, full_name, national_id, date_of_birth, gender, notes, photo_path],
