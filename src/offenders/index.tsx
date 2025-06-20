@@ -349,13 +349,38 @@ export default function OffenderRecords() {
       <CardHeader className="pb-2">
         <div className="flex justify-between w-full items-center gap-4">
           <div className="flex gap-3 items-center">
-            <Avatar
-              src={offender.photo_url}
-              name={offender.full_name}
-              size="lg"
-              className="ring-2 ring-primary/20"
-              fallback={<User className="w-6 h-6" />}
-            />
+            <div className="relative group">
+              <Avatar
+                src={offender.photo_url}
+                name={offender.full_name}
+                size="lg"
+                className="ring-2 ring-primary/20"
+                fallback={<User className="w-6 h-6" />}
+              />
+              {offender.photo_url && (
+                <>
+                  {/* Overlay on hover */}
+                  <div className="absolute inset-0 bg-black/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <Button
+                      size="sm"
+                      isIconOnly
+                      variant="light"
+                      onPress={() => {
+                        setSelected(offender);
+                        setShowImageModal(true);
+                        setImageZoom(1);
+                      }}
+                    >
+                      <Camera className="w-8 h-8 text-white" />
+                    </Button>
+                  </div>
+                  {/* Status indicator */}
+                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full border-2 border-white shadow-md flex items-center justify-center">
+                    <Camera className="w-3 h-3 text-white" />
+                  </div>
+                </>
+              )}
+            </div>
             <div>
               <h3 className="font-bold text-lg text-foreground">
                 {offender.full_name}
