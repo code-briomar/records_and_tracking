@@ -70,7 +70,7 @@ const TitleBar = () => {
           fontWeight: 600,
         }}
       >
-        Tauri Zen
+        Records & Tracking
       </div>
 
       {/* Center: Info */}

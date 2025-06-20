@@ -30,9 +30,11 @@ import {
   Eye,
   FileText,
   Filter,
+  InfoIcon,
   MoreVertical,
   OctagonAlert,
   Plus,
+  Scale,
   Search,
   Trash2,
   Upload,
@@ -276,7 +278,7 @@ export default function OffenderRecords() {
             case_id: h.case_id || null,
             offense_date: h.offense_date || null,
             penalty: h.penalty || null,
-            penalty_notes: h.penalty_notes || null,
+            penaltyNotes: h.penalty_notes || null,
             notes: h.notes || null,
           });
 
@@ -368,7 +370,12 @@ export default function OffenderRecords() {
                   </Chip>
                 )}
                 <Chip size="sm" variant="flat" color="secondary">
-                  {offenderHistory.length} cases
+                  {
+                    offenderHistory.filter(
+                      (h) => h.offender_id === offender.offender_id
+                    ).length
+                  }{" "}
+                  cases
                 </Chip>
               </div>
             </div>
@@ -514,7 +521,7 @@ export default function OffenderRecords() {
             <User className="w-5 h-5" />
             {isEdit ? "Edit Offender" : "Add New Offender"}
           </ModalHeader>
-          <ModalBody className="space-y-4 pb-6">
+          <ModalBody className="space-y-4 pb-6 max-h-[80vh] overflow-y-auto">
             <Formik
               initialValues={{
                 offenderId: data?.offender_id || undefined,
@@ -636,10 +643,14 @@ export default function OffenderRecords() {
                       )}
                     </Field>
                   </div>
+                  <Divider className="my-6" />
                   <Field name="notes">
                     {({ field }: { field: any }) => (
                       <Textarea
-                        label="Notes"
+                        startContent={
+                          <FileText className="w-4 h-4 text-default-400" />
+                        }
+                        label="Additional Notes"
                         placeholder="Add any additional notes..."
                         {...field}
                         value={field.value}
@@ -649,123 +660,210 @@ export default function OffenderRecords() {
                       />
                     )}
                   </Field>
+                  <div className="my-2 text-xs text-default-400 flex items-center gap-1">
+                    <InfoIcon className="w-3 h-3" />
+                    This section is for any extra context or remarks.
+                  </div>
                   {/* Link to File (Case) and Penalty as dynamic FieldArray */}
+                  <Divider className="my-6" />
+                  <div className="mb-8 my-6">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="p-2 bg-blue-600 dark:bg-blue-800 rounded-lg">
+                        <Scale className="w-6 h-6 text-white dark:text-blue-200" />
+                      </div>
+                      <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100">
+                        Case History & Penalties
+                      </h1>
+                    </div>
+                    <p className="text-slate-600 dark:text-slate-300">
+                      Manage case linkages and associated penalties
+                    </p>
+                  </div>
                   <FieldArray name="history">
                     {({ push, remove }) => (
-                      <div className="space-y-2 mt-4">
+                      <div className="space-y-6">
                         {values.history && values.history.length > 0 ? (
-                          values.history.map((h: any, idx: number) => (
+                          values.history.map((entry: any, idx: number) => (
                             <div
                               key={idx}
-                              className="flex flex-col md:flex-row md:items-end gap-2 md:gap-4"
+                              className="rounded-xl shadow-lg border p-6 hover:shadow-xl transition-all duration-300
+                              bg-white border-slate-200
+                              dark:bg-slate-800 dark:border-slate-700"
                             >
-                              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2">
-                                <Select
-                                  label="Link To Case"
-                                  placeholder="Select a file/case"
-                                  selectedKeys={
-                                    h.file_id ? [String(h.file_id)] : []
-                                  }
-                                  onSelectionChange={(keys) =>
-                                    setFieldValue(
-                                      `history.${idx}.file_id`,
-                                      keys.size > 0 &&
-                                        !isNaN(Number(Array.from(keys)[0]))
-                                        ? Number(Array.from(keys)[0])
-                                        : null
-                                    )
-                                  }
-                                  variant="bordered"
-                                >
-                                  {allCases.map((c) => (
-                                    <SelectItem
-                                      key={c.file_id}
-                                      textValue={c.case_number}
+                              <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                                    <span className="text-blue-600 dark:text-blue-300 font-semibold text-sm">
+                                      {idx + 1}
+                                    </span>
+                                  </div>
+                                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+                                    Case/Penalty #{idx + 1}
+                                  </h3>
+                                </div>
+                                <div className="flex gap-2">
+                                  {idx === 0 ? (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        push({
+                                          file_id: null,
+                                          penalty: "",
+                                          penalty_notes: "",
+                                        })
+                                      }
+                                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-800 transition-colors duration-200 shadow-md hover:shadow-lg"
                                     >
-                                      <b>
-                                        {c.case_number} - {c.case_type}
-                                      </b>{" "}
-                                      for {c.purpose}
-                                    </SelectItem>
-                                  ))}
-                                </Select>
-                                <Select
-                                  label="Penalty"
-                                  placeholder="Select penalty type"
-                                  selectedKeys={h.penalty ? [h.penalty] : []}
-                                  onSelectionChange={(keys) =>
-                                    setFieldValue(
-                                      `history.${idx}.penalty`,
-                                      Array.from(keys)[0]
-                                    )
-                                  }
-                                  variant="bordered"
-                                >
-                                  <SelectItem key="Fine">Fine</SelectItem>
-                                  <SelectItem key="Locked Up">
-                                    Locked Up
-                                  </SelectItem>
-                                  <SelectItem key="Community Service">
-                                    Community Service
-                                  </SelectItem>
-                                  <SelectItem key="Probation">
-                                    Probation
-                                  </SelectItem>
-                                  <SelectItem key="Other">Other</SelectItem>
-                                </Select>
-                                <Textarea
-                                  label="Penalty Notes"
-                                  placeholder="Add any additional info about the penalty..."
-                                  value={h.penalty_notes || ""}
-                                  onChange={(e) =>
-                                    setFieldValue(
-                                      `history.${idx}.penalty_notes`,
-                                      e.target.value
-                                    )
-                                  }
-                                  minRows={2}
-                                  variant="bordered"
-                                />
+                                      <Plus className="w-4 h-4" />
+                                      Add Entry
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => remove(idx)}
+                                      className="flex items-center gap-2 px-4 py-2 bg-red-500 dark:bg-red-700 text-white rounded-lg hover:bg-red-600 dark:hover:bg-red-800 transition-colors duration-200 shadow-md hover:shadow-lg"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                      Remove
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                              <div className="flex gap-2 items-end">
-                                {idx === 0 ? (
-                                  <Button
-                                    isIconOnly
-                                    size="sm"
-                                    color="primary"
-                                    variant="light"
-                                    onPress={() =>
-                                      push({
-                                        file_id: null,
-                                        penalty: "",
-                                        penalty_notes: "",
-                                      })
+                              <div className="grid grid-cols-1 gap-6">
+                                {/* Case Selection */}
+                                <div className="space-y-2">
+                                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+                                    <FileText className="w-4 h-4" />
+                                    Link to Case
+                                  </label>
+                                  <select
+                                    value={entry.file_id || ""}
+                                    onChange={(e) =>
+                                      setFieldValue(
+                                        `history.${idx}.file_id`,
+                                        e.target.value
+                                          ? Number(e.target.value)
+                                          : null
+                                      )
                                     }
-                                    aria-label="Add Case/Penalty"
+                                    className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm transition-all duration-200"
                                   >
-                                    <Plus className="w-4 h-4" />
-                                  </Button>
-                                ) : (
-                                  <Button
-                                    isIconOnly
-                                    size="sm"
-                                    color="danger"
-                                    variant="light"
-                                    onPress={() => remove(idx)}
-                                    aria-label="Remove Case/Penalty"
+                                    <option value="">Select a case...</option>
+                                    {allCases.map((c: any) => (
+                                      <option key={c.file_id} value={c.file_id}>
+                                        {c.case_number} - {c.case_type} for{" "}
+                                        {c.purpose}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                {/* Penalty Selection */}
+                                <div className="space-y-2">
+                                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+                                    <Scale className="w-4 h-4" />
+                                    Penalty Type
+                                  </label>
+                                  <select
+                                    value={entry.penalty || ""}
+                                    onChange={(e) =>
+                                      setFieldValue(
+                                        `history.${idx}.penalty`,
+                                        e.target.value
+                                      )
+                                    }
+                                    className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm transition-all duration-200"
                                   >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                )}
+                                    <option value="">Select penalty...</option>
+                                    <option value="Fine">💰 Fine</option>
+                                    <option value="Locked Up">
+                                      🔒 Incarceration
+                                    </option>
+                                    <option value="Community Service">
+                                      🤝 Community Service
+                                    </option>
+                                    <option value="Probation">
+                                      📋 Probation
+                                    </option>
+                                    <option value="Other">⚖️ Other</option>
+                                  </select>
+                                </div>
+                                {/* Penalty Notes */}
+                                <div className="space-y-2">
+                                  <label className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+                                    <Users className="w-4 h-4" />
+                                    Additional Notes
+                                  </label>
+                                  <textarea
+                                    value={entry.penalty_notes || ""}
+                                    onChange={(e) =>
+                                      setFieldValue(
+                                        `history.${idx}.penalty_notes`,
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="Add any additional information about the penalty..."
+                                    rows={3}
+                                    className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm transition-all duration-200 resize-none"
+                                  />
+                                </div>
                               </div>
+                              {/* Preview Card */}
+                              {(entry.file_id ||
+                                entry.penalty ||
+                                entry.penalty_notes) && (
+                                <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border-l-4 border-blue-500 dark:border-blue-400">
+                                  <h4 className="font-medium text-slate-800 dark:text-slate-100 mb-2">
+                                    Entry Summary
+                                  </h4>
+                                  <div className="text-sm text-slate-600 dark:text-slate-300 space-y-1">
+                                    {entry.file_id && (
+                                      <p>
+                                        <strong>Case:</strong>{" "}
+                                        {
+                                          allCases.find(
+                                            (c: any) =>
+                                              c.file_id === entry.file_id
+                                          )?.case_number
+                                        }
+                                      </p>
+                                    )}
+                                    {entry.penalty && (
+                                      <p>
+                                        <strong>Penalty:</strong>{" "}
+                                        {(() => {
+                                          switch (entry.penalty) {
+                                            case "Fine":
+                                              return "Fine";
+                                            case "Locked Up":
+                                              return "Incarceration";
+                                            case "Community Service":
+                                              return "Community Service";
+                                            case "Probation":
+                                              return "Probation";
+                                            case "Other":
+                                              return "Other";
+                                            default:
+                                              return entry.penalty;
+                                          }
+                                        })()}
+                                      </p>
+                                    )}
+                                    {entry.penalty_notes && (
+                                      <p>
+                                        <strong>Notes:</strong>{" "}
+                                        {entry.penalty_notes}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ))
                         ) : (
-                          <Button
-                            size="sm"
-                            color="primary"
-                            variant="bordered"
-                            onPress={() =>
+                          <button
+                            type="button"
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg"
+                            onClick={() =>
                               push({
                                 file_id: null,
                                 penalty: "",
@@ -774,7 +872,7 @@ export default function OffenderRecords() {
                             }
                           >
                             <Plus className="w-4 h-4 mr-1" /> Add Case/Penalty
-                          </Button>
+                          </button>
                         )}
                       </div>
                     )}
@@ -926,8 +1024,7 @@ export default function OffenderRecords() {
                   <div>
                     <p className="text-green-100">Active Cases</p>
                     <p className="text-2xl font-bold">
-                      {/* The file_id arrays in offenders */}
-                      {offenders.filter((o) => o.file_id).length}
+                      {offenderHistory.length}
                     </p>
                   </div>
                   <FileText className="w-8 h-8 text-green-200" />
@@ -1157,18 +1254,17 @@ export default function OffenderRecords() {
                           </Chip>
                         )}
                         <Chip color="secondary" variant="flat">
-                          {/* Calculate cases by counting the number of files */}
+                          {/* {Cases}                           */}
                           {
-                            allCases.filter(
-                              (c) => c.file_id === selected.file_id
+                            offenderHistory.filter(
+                              (h) => h.offender_id === selected.offender_id
                             ).length
                           }{" "}
-                          case
-                          {allCases.filter(
-                            (c) => c.file_id === selected.file_id
+                          {offenderHistory.filter(
+                            (h) => h.offender_id === selected.offender_id
                           ).length > 1
-                            ? "s"
-                            : ""}
+                            ? "cases"
+                            : "case"}
                         </Chip>
                       </div>
                     </div>
