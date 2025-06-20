@@ -208,7 +208,12 @@ export default function OffenderRecords() {
           currentHistory = await invoke<any[]>("list_offender_history", {
             offender_id: editingOffender.offenderId,
           });
-        } catch {}
+        } catch (error) {
+          console.error(
+            "An Error Occurred Trying To Set the current history : ",
+            currentHistory
+          );
+        }
       }
 
       // 2. Update offender main record
@@ -230,16 +235,23 @@ export default function OffenderRecords() {
       const newHistory = Array.isArray(editingOffender.history)
         ? editingOffender.history
         : [];
+
+      console.log("New History", newHistory);
       const oldById = Object.fromEntries(
         (currentHistory || []).map((h) => [h.id, h])
       );
+
+      console.log("Old ID", oldById);
       const newById = Object.fromEntries(
         newHistory.filter((h) => h.id).map((h) => [h.id, h])
       );
 
+      console.log("New ID", newById);
+
       // a) Add new records (no id)
       for (const h of newHistory) {
         if (!h.id) {
+          console.log("Add New Offender Records", h);
           await invoke("add_offender_history", {
             offenderId: editingOffender.offenderId,
             file_id: h.file_id || null,
@@ -255,11 +267,12 @@ export default function OffenderRecords() {
       for (const h of newHistory) {
         console.log(" History record to update:", h);
 
-        if (h.id && oldById[h.id]) {
+        if (h.id) {
+          // &&oldById[h.id]
           const response = await invoke("update_offender_history", {
             id: h.id,
             offenderId: editingOffender.offenderId,
-            file_id: h.file_id || null,
+            fileId: h.file_id || null,
             case_id: h.case_id || null,
             offense_date: h.offense_date || null,
             penalty: h.penalty || null,
@@ -268,6 +281,8 @@ export default function OffenderRecords() {
           });
 
           console.log("Updated history record:", response);
+        } else {
+          console.log("Issues here : ", h.id, h, newHistory);
         }
       }
       // c) Delete removed records
@@ -353,7 +368,7 @@ export default function OffenderRecords() {
                   </Chip>
                 )}
                 <Chip size="sm" variant="flat" color="secondary">
-                  {offender.cases?.length || 0} cases
+                  {offenderHistory.length} cases
                 </Chip>
               </div>
             </div>
@@ -474,9 +489,6 @@ export default function OffenderRecords() {
             file_id: h.file_id,
             penalty: h.penalty,
             penalty_notes: h.penalty_notes,
-            offense_date: h.offense_date,
-            notes: h.notes,
-            case_id: h.case_id,
           }))
         : [
             {
@@ -484,9 +496,6 @@ export default function OffenderRecords() {
               file_id: data?.file_id || undefined,
               penalty: data?.penalty || "",
               penalty_notes: data?.penalty_notes || "",
-              offense_date: data?.history?.[0]?.offense_date || "",
-              notes: data?.history?.[0]?.notes || "",
-              case_id: data?.history?.[0]?.case_id || undefined,
             },
           ];
 
@@ -1066,13 +1075,75 @@ export default function OffenderRecords() {
               <ModalBody className="p-6">
                 <div className="flex flex-col md:flex-row gap-6">
                   <div className="flex-shrink-0">
-                    <Avatar
+                    {/* <Avatar
                       src={selected.photo_url}
                       name={selected.full_name}
                       size="xl"
                       className="w-32 h-32 ring-4 ring-primary/20"
                       fallback={<User className="w-16 h-16" />}
-                    />
+                    /> */}
+                    <div className="flex-shrink-0 flex flex-col items-center gap-2">
+                      <div className="relative">
+                        {selected.photo_url ? (
+                          <img
+                            src={selected.photo_url}
+                            alt={selected.full_name + " photo"}
+                            className="w-32 h-32 object-cover rounded-lg ring-4 ring-primary/20 bg-default-200"
+                            style={{ minHeight: 128, minWidth: 128 }}
+                            onError={(e) =>
+                              (e.currentTarget.src =
+                                "/images/avatar-placeholder.png")
+                            }
+                            onLoad={(e) =>
+                              e.currentTarget.classList.add("loaded")
+                            }
+                          />
+                        ) : (
+                          <div className="w-32 h-32 flex items-center justify-center bg-default-200 rounded-lg ring-4 ring-primary/20">
+                            <User className="w-16 h-16 text-default-400" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 mt-1">
+                        {selected.photo_url && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="bordered"
+                              onPress={() => {
+                                setShowImageModal(true);
+                                setImageZoom(1);
+                              }}
+                            >
+                              View Full
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="bordered"
+                              onPress={() => {
+                                const link = document.createElement("a");
+                                link.href = selected.photo_url;
+                                link.download =
+                                  selected.full_name + "_photo.jpg";
+                                link.click();
+                              }}
+                            >
+                              Download
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="bordered"
+                              onPress={() => {
+                                setEditImageUrl(selected.photo_url!);
+                                setShowImageEditor(true);
+                              }}
+                            >
+                              Edit
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   <div className="flex-1 space-y-4">
                     <div>
@@ -1157,75 +1228,6 @@ export default function OffenderRecords() {
                         </p>
                       </div>
                     )}
-
-                    <Divider />
-
-                    <div>
-                      <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
-                        <FileText className="w-5 h-5" />
-                        Case History
-                      </h3>
-                      {selected.file_id ? (
-                        (() => {
-                          const linkedFile = allCases.find(
-                            (c) => c.file_id === selected.file_id
-                          );
-                          // Example
-                          //                           {
-                          //     "file_id": 1,
-                          //     "case_number": "CS1",
-                          //     "case_type": "Civil",
-                          //     "purpose": "Judgement",
-                          //     "uploaded_by": 1,
-                          //     "current_location": "wefqwef",
-                          //     "notes": "Lock Him Up....He did it",
-                          //     "date_recieved": "2025-06-19 16:10:14",
-                          //     "required_on": "2025-06-27T00:00:00.000Z",
-                          //     "required_on_signature": null,
-                          //     "date_returned": null,
-                          //     "date_returned_signature": null,
-                          //     "deleted": 0
-                          // }
-                          return linkedFile ? (
-                            <Card className="bg-default-50">
-                              <CardBody className="p-3">
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <p className="font-medium">
-                                      {linkedFile.case_number}
-                                    </p>
-                                    <p className="text-sm text-default-500">
-                                      {linkedFile.case_type} -{" "}
-                                      {linkedFile.purpose}
-                                    </p>
-                                    <p className="text-sm text-default-600">
-                                      {linkedFile.notes}
-                                    </p>
-                                  </div>
-                                  <Chip size="sm" variant="flat">
-                                    {linkedFile.required_on
-                                      ? new Date(
-                                          linkedFile.required_on
-                                        ).toLocaleDateString()
-                                      : "No Deadline"}
-                                  </Chip>
-                                </div>
-                              </CardBody>
-                            </Card>
-                          ) : (
-                            <div className="text-center py-6 text-default-400">
-                              <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                              <p>No case linked to this offender</p>
-                            </div>
-                          );
-                        })()
-                      ) : (
-                        <div className="text-center py-6 text-default-400">
-                          <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                          <p>No case linked to this offender</p>
-                        </div>
-                      )}
-                    </div>
                   </div>
                 </div>
                 <Divider className="my-6" />
@@ -1308,13 +1310,16 @@ export default function OffenderRecords() {
                                     )}
                                   </div>
                                   <div className="flex flex-col items-end gap-1 min-w-[120px]">
-                                    <span className="text-xs text-default-400">
-                                      {h.offense_date
-                                        ? new Date(
-                                            h.offense_date
-                                          ).toLocaleDateString()
+                                    <Chip className="text-xs text-blue-400">
+                                      {h.created_at
+                                        ? new Date(h.created_at)
+                                            .toJSON()
+                                            .slice(0, 10)
+                                            .split("-")
+                                            .reverse()
+                                            .join("-")
                                         : "No date"}
-                                    </span>
+                                    </Chip>
                                   </div>
                                 </div>
                               </CardBody>
@@ -1326,73 +1331,12 @@ export default function OffenderRecords() {
                   })()}
                 </div>
                 {/* Image Tools Section */}
-                <div className="mt-4">
+                {/* <div className="mt-4">
                   <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
                     <Camera className="w-5 h-5" />
                     Offender Photo
                   </h3>
-                  <div className="flex-shrink-0 flex flex-col items-center gap-2">
-                    <div className="relative">
-                      {selected.photo_url ? (
-                        <img
-                          src={selected.photo_url}
-                          alt={selected.full_name + " photo"}
-                          className="w-32 h-32 object-cover rounded-lg ring-4 ring-primary/20 bg-default-200"
-                          style={{ minHeight: 128, minWidth: 128 }}
-                          onError={(e) =>
-                            (e.currentTarget.src =
-                              "/images/avatar-placeholder.png")
-                          }
-                          onLoad={(e) =>
-                            e.currentTarget.classList.add("loaded")
-                          }
-                        />
-                      ) : (
-                        <div className="w-32 h-32 flex items-center justify-center bg-default-200 rounded-lg ring-4 ring-primary/20">
-                          <User className="w-16 h-16 text-default-400" />
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex gap-2 mt-1">
-                      {selected.photo_url && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="bordered"
-                            onPress={() => {
-                              setShowImageModal(true);
-                              setImageZoom(1);
-                            }}
-                          >
-                            View Full
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="bordered"
-                            onPress={() => {
-                              const link = document.createElement("a");
-                              link.href = selected.photo_url;
-                              link.download = selected.full_name + "_photo.jpg";
-                              link.click();
-                            }}
-                          >
-                            Download
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="bordered"
-                            onPress={() => {
-                              setEditImageUrl(selected.photo_url!);
-                              setShowImageEditor(true);
-                            }}
-                          >
-                            Edit
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                </div> */}
               </ModalBody>
             </ModalContent>
           </Modal>
