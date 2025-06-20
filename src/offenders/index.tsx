@@ -23,6 +23,7 @@ import {
 import { invoke } from "@tauri-apps/api/core";
 import { Field, FieldArray, Form, Formik, FormikHelpers } from "formik";
 import {
+  ArrowLeft,
   Camera,
   CreditCard,
   Download,
@@ -42,6 +43,7 @@ import {
   Users,
 } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 // Enhanced Offender interface to match backend
 export interface Offender {
@@ -84,6 +86,9 @@ export default function OffenderRecords() {
   // --- Offender History State ---
   const [offenderHistory, setOffenderHistory] = useState<any[]>([]);
   const [historySearch, setHistorySearch] = useState("");
+
+  // Navigation
+  const navigate = useNavigate();
 
   // Fetch offenders from backend on component mount
   React.useEffect(() => {
@@ -1256,6 +1261,15 @@ export default function OffenderRecords() {
               <p className="text-default-500">
                 Manage and track offender information
               </p>
+              {/* Back to the normal system */}
+              <Chip
+                variant="flat"
+                className="mt-2 cursor-pointer"
+                onClick={() => navigate("/")}
+                startContent={<ArrowLeft className="w-4 h-4" />}
+              >
+                To Dashboard
+              </Chip>
             </div>
           </div>
 
@@ -1424,7 +1438,7 @@ export default function OffenderRecords() {
                 <Eye className="w-5 h-5" />
                 Offender Details
               </ModalHeader>
-              <ModalBody className="p-6">
+              <ModalBody className="p-6 max-h-[80vh] overflow-y-auto">
                 <div className="flex flex-col md:flex-row gap-6">
                   <div className="flex-shrink-0">
                     {/* <Avatar
@@ -1604,12 +1618,9 @@ export default function OffenderRecords() {
                         (h.penalty || "").toLowerCase().includes(q) ||
                         (h.penalty_notes || "").toLowerCase().includes(q) ||
                         (h.notes || "").toLowerCase().includes(q) ||
-                        (h.offense_date || "").toLowerCase().includes(q)
+                        (h.created_at || "").toLowerCase().includes(q)
                       );
                     });
-
-                    console.log("Filtered History: ", filteredHistory);
-                    console.log(" Offender History: ", offenderHistory);
                     return filteredHistory.length === 0 ? (
                       <div className="text-center py-6 text-default-400">
                         <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -1648,15 +1659,13 @@ export default function OffenderRecords() {
                                       <span className="font-semibold">
                                         {h.penalty || "-"}
                                       </span>
-                                      {h.penalty_notes && (
-                                        <span className="ml-2 text-default-500">
-                                          ({h.penalty_notes})
-                                        </span>
-                                      )}
                                     </div>
-                                    {h.notes && (
+                                    {h.penalty_notes && (
                                       <div className="text-xs text-default-500 mt-1">
-                                        Notes: {h.notes}
+                                        Additional Information:{" "}
+                                        <li className="list-disc ml-4">
+                                          {h.penalty_notes}
+                                        </li>
                                       </div>
                                     )}
                                   </div>
