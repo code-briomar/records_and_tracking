@@ -393,7 +393,6 @@ export default function OffenderRecords() {
                 onPress={() => {
                   setSelected(offender);
                   onOpen();
-                  fetchPhoto(offender);
                 }}
               >
                 View Details
@@ -985,6 +984,48 @@ export default function OffenderRecords() {
       (h.offense_date || "").toLowerCase().includes(q)
     );
   });
+
+  // Fetch all offender photos after offenders are loaded
+  useEffect(() => {
+    async function fetchAllPhotos() {
+      for (const offender of offenders) {
+        if (!offender.photo_url && offender.offender_id) {
+          try {
+            const bytes = await invoke<number[]>("get_offender_photo", {
+              offenderId: offender.offender_id,
+            });
+            const blob = new Blob([new Uint8Array(bytes)], {
+              type: "image/jpeg",
+            });
+            const url = URL.createObjectURL(blob);
+            setOffenders((prev) =>
+              prev.map((o) =>
+                o.offender_id === offender.offender_id
+                  ? { ...o, photo_url: url }
+                  : o
+              )
+            );
+          } catch (error) {
+            // Ignore missing photo
+          }
+        }
+      }
+    }
+    if (offenders.length > 0) fetchAllPhotos();
+  }, [offenders]);
+
+  // Fetch all offender histories on mount
+  useEffect(() => {
+    async function fetchAllHistories() {
+      try {
+        const all = await invoke<any[]>("list_offender_history", {});
+        setOffenderHistory(all || []);
+      } catch (error) {
+        setOffenderHistory([]);
+      }
+    }
+    fetchAllHistories();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
