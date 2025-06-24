@@ -204,6 +204,8 @@ export default function EditCaseFileForm({
                       >
                         <SelectItem key="Civil">Civil</SelectItem>
                         <SelectItem key="Criminal">Criminal</SelectItem>
+                        <SelectItem key="Succession">Succession</SelectItem>
+                        <SelectItem key="Children">Children</SelectItem>
                         <SelectItem key="Other">Other</SelectItem>
                       </Select>
                     )}

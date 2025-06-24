@@ -4,6 +4,7 @@ import {
   Check,
   ChevronRight,
   FilePenLine,
+  Fingerprint,
   Gauge,
   HelpCircle,
   Logs,
@@ -125,6 +126,26 @@ const LeftPanel = () => {
                 onPress={() => redirect("/diary")}
               >
                 Get Started
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </AccordionItem>
+
+          {/* Offender Records */}
+          <AccordionItem
+            key="offenders"
+            aria-label="Offender Records"
+            title="Offender Records"
+            startContent={<Fingerprint className="w-4 h-4" />}
+          >
+            <div className="flex space-x-1 items-center ">
+              <span className="text-xs">Search and manage offenders</span>
+              <Button
+                variant="faded"
+                size="sm"
+                onPress={() => redirect("/offenders")}
+              >
+                Open
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>

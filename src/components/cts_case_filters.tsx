@@ -260,7 +260,7 @@ export default function CaseFilters({
     direction: "ascending",
   });
   const [page, setPage] = React.useState(1);
-  const [selectedTab, setSelectedTab] = React.useState("dashboard");
+  const [selectedTab, setSelectedTab] = React.useState("cases");
 
   // Filter By Date
   const [dateSearchValue, setDateSearchValue] =
@@ -855,7 +855,7 @@ export default function CaseFilters({
   // Save current filter as a custom view
   const saveCurrentView = () => {
     if (!newViewName.trim()) return;
-    setCustomViews((prev) => [
+    setCustomViews((prev: any) => [
       ...prev,
       {
         name: newViewName,
@@ -880,7 +880,7 @@ export default function CaseFilters({
 
   // Remove a saved view
   const removeCustomView = (idx: number) => {
-    setCustomViews((prev) => prev.filter((_, i) => i !== idx));
+    setCustomViews((prev: any) => prev.filter((_: any, i: any) => i !== idx));
   };
 
   // Pin/unpin analytics widgets
@@ -1193,7 +1193,7 @@ export default function CaseFilters({
       <Tabs
         aria-label="Case Tracking Tabs"
         selectedKey={selectedTab}
-        onSelectionChange={setSelectedTab}
+        onSelectionChange={(key) => setSelectedTab(String(key))}
         fullWidth
         size="lg"
         className="mb-6"
@@ -1212,22 +1212,6 @@ export default function CaseFilters({
             topContentPlacement="outside"
             onSelectionChange={setSelectedKeys}
             onSortChange={setSortDescriptor}
-            renderRow={(item) => (
-              <TableRow key={item.file_id}>
-                <TableCell>
-                  <input
-                    type="checkbox"
-                    checked={selectedBulk.has(item.file_id)}
-                    onChange={() => handleBulkSelect(item.file_id)}
-                  />
-                </TableCell>
-                {headerColumns.map((column) => (
-                  <TableCell key={column.uid}>
-                    {renderCell(item, column.uid)}
-                  </TableCell>
-                ))}
-              </TableRow>
-            )}
           >
             <TableHeader
               columns={[{ name: "", uid: "select" }, ...headerColumns]}
@@ -1236,7 +1220,7 @@ export default function CaseFilters({
                 <TableColumn
                   key={column.uid}
                   align={column.uid === "actions" ? "center" : "start"}
-                  allowsSorting={column.sortable}
+                  allowsSorting={"sortable" in column ? column.sortable : false}
                 >
                   {column.uid === "select" ? (
                     <input
@@ -1253,9 +1237,20 @@ export default function CaseFilters({
             <TableBody emptyContent={"No case files found"} items={sortedItems}>
               {(item) => (
                 <TableRow key={item.file_id}>
-                  {(columnKey) => (
-                    <TableCell>{renderCell(item, columnKey)}</TableCell>
-                  )}
+                  <TableCell>
+                    <input
+                      type="checkbox"
+                      checked={selectedBulk.has(item.file_id)}
+                      onChange={() => handleBulkSelect(item.file_id)}
+                    />
+                  </TableCell>
+                  <>
+                    {headerColumns.map((column) => (
+                      <TableCell key={column.uid}>
+                        {renderCell(item, column.uid)}
+                      </TableCell>
+                    ))}
+                  </>
                 </TableRow>
               )}
             </TableBody>
@@ -1283,7 +1278,7 @@ export default function CaseFilters({
                 {customViews.length === 0 && (
                   <span className="text-default-400">No saved views yet.</span>
                 )}
-                {customViews.map((view, idx) => (
+                {customViews.map((view: any, idx: any) => (
                   <div key={idx} className="flex gap-2 items-center mt-2">
                     <Button
                       size="sm"
