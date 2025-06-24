@@ -69,11 +69,16 @@ export default function OffenderRecords() {
   const [offenders, setOffenders] = useState<Offender[]>(initialOffenders);
   const [search, setSearch] = useState("");
   const [filterGender, setFilterGender] = useState("");
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [newOffender, setNewOffender] = useState<Partial<Offender>>({});
-  const [editingOffender, setEditingOffender] = useState<Offender | null>(null);
+  // Extend Partial<Offender> to include optional history property
+  type OffenderWithHistory = Partial<Offender> & { history?: any[] };
+
+  const [newOffender, setNewOffender] = useState<OffenderWithHistory>({});
+  const [editingOffender, setEditingOffender] = useState<
+    (Offender & { history?: any[] }) | null
+  >(null);
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const [selected, setSelected] = useState<Offender | null>(null);
   const [allCases, setAllCases] = useState<any[]>([]);
@@ -167,26 +172,26 @@ export default function OffenderRecords() {
   };
 
   // Fetch photo from backend (if not already loaded)
-  const fetchPhoto = async (offender: Offender) => {
-    if (!offender.photo_url && offender.offender_id) {
-      try {
-        const bytes = await invoke<number[]>("get_offender_photo", {
-          offenderId: offender.offender_id,
-        });
-        const blob = new Blob([new Uint8Array(bytes)], { type: "image/jpeg" });
-        const url = URL.createObjectURL(blob);
-        setOffenders((prev) =>
-          prev.map((o) =>
-            o.offender_id === offender.offender_id
-              ? { ...o, photo_url: url }
-              : o
-          )
-        );
-      } catch (error) {
-        console.error("Failed to fetch photo:", error);
-      }
-    }
-  };
+  // const fetchPhoto = async (offender: Offender) => {
+  //   if (!offender.photo_url && offender.offender_id) {
+  //     try {
+  //       const bytes = await invoke<number[]>("get_offender_photo", {
+  //         offenderId: offender.offender_id,
+  //       });
+  //       const blob = new Blob([new Uint8Array(bytes)], { type: "image/jpeg" });
+  //       const url = URL.createObjectURL(blob);
+  //       setOffenders((prev) =>
+  //         prev.map((o) =>
+  //           o.offender_id === offender.offender_id
+  //             ? { ...o, photo_url: url }
+  //             : o
+  //         )
+  //       );
+  //     } catch (error) {
+  //       console.error("Failed to fetch photo:", error);
+  //     }
+  //   }
+  // };
 
   const fetchOffenders = () => {
     invoke<Offender[]>("list_offenders")
@@ -250,7 +255,7 @@ export default function OffenderRecords() {
 
       console.log("Old ID", oldById);
       const newById = Object.fromEntries(
-        newHistory.filter((h) => h.id).map((h) => [h.id, h])
+        newHistory.filter((h: any) => h.id).map((h: any) => [h.id, h])
       );
 
       console.log("New ID", newById);
@@ -323,31 +328,31 @@ export default function OffenderRecords() {
   };
 
   // Photo upload handler
-  const handlePhoto = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    isEdit = false
-  ) => {
-    if (e.target.files && e.target.files[0]) {
-      const url = URL.createObjectURL(e.target.files[0]);
-      if (isEdit && editingOffender) {
-        setEditingOffender((prev) =>
-          prev
-            ? {
-                ...prev,
-                photo_url: url,
-                photo_file: e.target.files![0],
-              }
-            : null
-        );
-      } else {
-        setNewOffender((prev) => ({
-          ...prev,
-          photo_url: url,
-          photo_file: e.target.files![0],
-        }));
-      }
-    }
-  };
+  // const handlePhoto = (
+  //   e: React.ChangeEvent<HTMLInputElement>,
+  //   isEdit = false
+  // ) => {
+  //   if (e.target.files && e.target.files[0]) {
+  //     const url = URL.createObjectURL(e.target.files[0]);
+  //     if (isEdit && editingOffender) {
+  //       setEditingOffender((prev) =>
+  //         prev
+  //           ? {
+  //               ...prev,
+  //               photo_url: url,
+  //               photo_file: e.target.files![0],
+  //             }
+  //           : null
+  //       );
+  //     } else {
+  //       setNewOffender((prev) => ({
+  //         ...prev,
+  //         photo_url: url,
+  //         photo_file: e.target.files![0],
+  //       }));
+  //     }
+  //   }
+  // };
 
   const OffenderCard = ({ offender }: { offender: Offender }) => (
     <Card className="w-full hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
@@ -497,25 +502,32 @@ export default function OffenderRecords() {
 
   // Add Formik value type
   interface OffenderFormValues {
-    offenderId?: number;
+    offenderId: number | undefined;
     full_name: string;
     national_id: string;
     date_of_birth: string;
     gender: string;
     notes: string;
-    file_id?: string | number;
-    photo_url?: string;
-    photo_file?: File;
-    penalty?: string;
-    penalty_notes?: string;
+    file_id: string | number;
+    photo_url: string;
+    photo_file: File | undefined;
+    penalty: string;
+    penalty_notes: string;
+    history: {
+      id: number | null;
+      file_id: number | null;
+      penalty: string;
+      penalty_notes: string;
+      [key: string]: any;
+    }[];
   }
 
   const FormModal = ({ isEdit = false }: { isEdit?: boolean }) => {
     const data = isEdit ? editingOffender : newOffender;
-    const setData = isEdit ? setEditingOffender : setNewOffender;
+    // const setData = isEdit ? setEditingOffender : setNewOffender;
     const isOpen = isEdit ? showEdit : showAdd;
     const setIsOpen = isEdit ? setShowEdit : setShowAdd;
-    const handleSave = isEdit ? handleUpdate : handleAdd;
+    // const handleSave = isEdit ? handleUpdate : handleAdd;
 
     // For edit: use the full offenderHistory (with id) as initial history
     const initialHistory =
@@ -566,7 +578,7 @@ export default function OffenderRecords() {
                 photo_file: data?.photo_file || undefined,
                 history: initialHistory,
               }}
-              enableReinitialize
+              enableReinitialize={true}
               onSubmit={async (
                 values: OffenderFormValues,
                 { setSubmitting, resetForm }: FormikHelpers<OffenderFormValues>
@@ -577,12 +589,24 @@ export default function OffenderRecords() {
                   setEditingOffender((prev) => ({
                     ...prev,
                     ...values,
+                    file_id:
+                      typeof values.file_id === "string"
+                        ? values.file_id === ""
+                          ? undefined
+                          : Number(values.file_id)
+                        : values.file_id,
                     photo_file: values.photo_file || prev?.photo_file,
                   }));
                 } else {
                   setNewOffender((prev) => ({
                     ...prev,
                     ...values,
+                    file_id:
+                      typeof values.file_id === "string"
+                        ? values.file_id === ""
+                          ? undefined
+                          : Number(values.file_id)
+                        : values.file_id,
                     photo_file: values.photo_file || prev?.photo_file,
                   }));
                 }
@@ -802,6 +826,7 @@ export default function OffenderRecords() {
                                     }
                                     className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 shadow-sm transition-all duration-200"
                                   >
+                                    {/* TODO::Option to add a custom penalty */}
                                     <option value="">Select penalty...</option>
                                     <option value="Fine">💰 Fine</option>
                                     <option value="Locked Up">
@@ -812,6 +837,19 @@ export default function OffenderRecords() {
                                     </option>
                                     <option value="Probation">
                                       📋 Probation
+                                    </option>
+                                    <option value="Suspended Sentence">
+                                      ⚖️ Suspended Sentence
+                                    </option>
+                                    <option value="Discharge Under Section 35 of The Penal Code">
+                                      ⚖️ Discharge Under Section 35 of The Penal
+                                      Code
+                                    </option>
+                                    <option value="Withdrawal Under Section 204 CPC">
+                                      ⚖️ Withdrawal Under Section 204 CPC
+                                    </option>
+                                    <option value="Withdrawal Under Section 87a CPC">
+                                      ⚖️ Withdrawal Under Section 87a CPC
                                     </option>
                                     <option value="Other">⚖️ Other</option>
                                   </select>
@@ -1005,15 +1043,15 @@ export default function OffenderRecords() {
   }, [selected]);
 
   // Filtered history for search
-  const filteredHistory = offenderHistory.filter((h) => {
-    const q = historySearch.toLowerCase();
-    return (
-      (h.penalty || "").toLowerCase().includes(q) ||
-      (h.penalty_notes || "").toLowerCase().includes(q) ||
-      (h.notes || "").toLowerCase().includes(q) ||
-      (h.offense_date || "").toLowerCase().includes(q)
-    );
-  });
+  // const filteredHistory = offenderHistory.filter((h) => {
+  //   const q = historySearch.toLowerCase();
+  //   return (
+  //     (h.penalty || "").toLowerCase().includes(q) ||
+  //     (h.penalty_notes || "").toLowerCase().includes(q) ||
+  //     (h.notes || "").toLowerCase().includes(q) ||
+  //     (h.offense_date || "").toLowerCase().includes(q)
+  //   );
+  // });
 
   // Fetch all offender photos after offenders are loaded
   useEffect(() => {
@@ -1066,11 +1104,11 @@ export default function OffenderRecords() {
 
       for (const offender of offenders) {
         const histories =
-          (await invoke("list_offender_history", {
+          (await invoke<any[]>("list_offender_history", {
             offenderId: offender.offender_id,
-          })) || [];
+          })) ?? [];
 
-        if (histories.length === 0) {
+        if (Array.isArray(histories) && histories.length === 0) {
           allRows.push({
             fullName: offender.full_name || "",
             nationalId: offender.national_id || "",
@@ -1083,7 +1121,7 @@ export default function OffenderRecords() {
             dateTime: offender.date_created || "",
             recordType: "Offender Record",
           });
-        } else {
+        } else if (Array.isArray(histories)) {
           histories.forEach((history) => {
             const relatedCase = allCases.find(
               (c) => c.file_id === history.file_id
@@ -1109,7 +1147,7 @@ export default function OffenderRecords() {
         const nameCompare = a.fullName.localeCompare(b.fullName);
         return nameCompare !== 0
           ? nameCompare
-          : new Date(b.dateTime) - new Date(a.dateTime);
+          : new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime();
       });
 
       const exportDate = new Date();
@@ -1213,7 +1251,7 @@ export default function OffenderRecords() {
   }
 
   // Helper function to format dates consistently
-  function formatDate(dateString) {
+  function formatDate(dateString: string) {
     if (!dateString) return "";
     try {
       const date = new Date(dateString);
@@ -1228,7 +1266,7 @@ export default function OffenderRecords() {
   }
 
   // Helper function to format date and time consistently
-  function formatDateTime(dateTimeString) {
+  function formatDateTime(dateTimeString: string) {
     if (!dateTimeString) return "";
     try {
       const date = new Date(dateTimeString);
@@ -1291,9 +1329,7 @@ export default function OffenderRecords() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-green-100">Active Cases</p>
-                    <p className="text-2xl font-bold">
-                      {offenderHistory.length}
-                    </p>
+                    <p className="text-2xl font-bold">{allCases.length}</p>
                   </div>
                   <FileText className="w-8 h-8 text-green-200" />
                 </div>
@@ -1351,18 +1387,10 @@ export default function OffenderRecords() {
                   variant="bordered"
                   startContent={<Filter className="w-4 h-4 text-default-400" />}
                 >
-                  <SelectItem key="" value="">
-                    All Genders
-                  </SelectItem>
-                  <SelectItem key="Male" value="Male">
-                    Male
-                  </SelectItem>
-                  <SelectItem key="Female" value="Female">
-                    Female
-                  </SelectItem>
-                  <SelectItem key="Other" value="Other">
-                    Other
-                  </SelectItem>
+                  <SelectItem key="">All Genders</SelectItem>
+                  <SelectItem key="Male">Male</SelectItem>
+                  <SelectItem key="Female">Female</SelectItem>
+                  <SelectItem key="Other">Other</SelectItem>
                 </Select>
               </div>
               <div className="flex gap-2">
@@ -1488,7 +1516,7 @@ export default function OffenderRecords() {
                               variant="bordered"
                               onPress={() => {
                                 const link = document.createElement("a");
-                                link.href = selected.photo_url;
+                                link.href = selected.photo_url || "";
                                 link.download =
                                   selected.full_name + "_photo.jpg";
                                 link.click();

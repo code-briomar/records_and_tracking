@@ -229,10 +229,16 @@ import RequiredOnDatePicker from "./required_on_date_picker";
 const fileSchema = Yup.object().shape({
   case_number: Yup.string().required("Case number is required"),
   case_type: Yup.string()
-    .oneOf(["Civil", "Criminal", "Other"], "Invalid case type")
+    .oneOf(
+      ["Civil", "Criminal", "Children", "Succession", "Other"],
+      "Invalid case type"
+    )
     .required("Case type is required"),
   purpose: Yup.string()
-    .oneOf(["Ruling", "Judgement", "Other"], "Invalid purpose")
+    .oneOf(
+      ["Ruling", "Judgement", "Hearing", "Mention", "Other"],
+      "Invalid purpose"
+    )
     .required("Purpose is required"),
   uploaded_by: Yup.number().required("Uploader ID is required"),
   current_location: Yup.string().required("Current location is required"),
@@ -370,6 +376,8 @@ export default function AddNewFileForm({
                   >
                     <SelectItem key="Civil">Civil</SelectItem>
                     <SelectItem key="Criminal">Criminal</SelectItem>
+                    <SelectItem key="Succession">Succession</SelectItem>
+                    <SelectItem key="Children">Children</SelectItem>
                     <SelectItem key="Other">Other</SelectItem>
                   </Select>
                 )}

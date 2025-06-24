@@ -92,39 +92,28 @@ function App() {
         } else {
           info("No updates available.");
           console.log("No update found.");
-          toast.info("No new updates found.");
+          // toast.info("No new updates found.");
         }
       } catch (error) {
         console.error("Error checking for update:", error);
-        toast.error(
-          "Error checking for update. Please check your internet connection."
-        );
+        // toast.error(
+        //   "Error checking for update. Please check your internet connection."
+        // );
         log_error(`Error checking for updates: ${error}`);
       }
     };
 
-    const handleOnline = () => {
-      toast.promise(
-        new Promise(async (resolve, reject) => {
-          try {
-            console.log("Online detected — syncing data...");
-            await invoke("sync_files");
-            resolve("Sync complete!");
-          } catch (err) {
-            console.error("❌ Sync failed:", err);
-            reject(
-              "Sync failed. Check your internet connection and try again."
-            );
-          } finally {
-            await checkForUpdates();
-          }
-        }),
-        {
-          loading: "🔄 Syncing data with server...",
-          success: (msg: any) => msg,
-          error: (msg: any) => msg,
-        }
-      );
+    const handleOnline = async () => {
+      try {
+        console.log("Online detected — syncing data...");
+        await invoke("sync_files");
+        toast.success("Sync complete!");
+      } catch (err) {
+        console.error("❌ Sync failed:", err);
+        // toast.error("Sync failed. Check your internet connection and try again.");
+      } finally {
+        await checkForUpdates();
+      }
     };
 
     window.addEventListener("online", handleOnline);

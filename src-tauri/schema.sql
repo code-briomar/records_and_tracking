@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS cases (
 CREATE TABLE IF NOT EXISTS files(
     file_id INTEGER PRIMARY KEY AUTOINCREMENT,
     case_number TEXT NOT NULL,
-    case_type TEXT CHECK(case_type IN ('Civil', 'Criminal','Other')) NOT NULL, -- type of case
+    case_type TEXT CHECK(case_type IN ('Civil', 'Criminal','Succession','Children','Other')) NOT NULL, -- type of case
     purpose TEXT CHECK(purpose IN ('Ruling', 'Judgement', 'Hearing','Mention','Other')) NOT NULL, -- for
     uploaded_by INTEGER, -- ID of the user who uploaded the file
     current_location TEXT NOT NULL, -- Current location of the file (e.g., court, archive, etc.)

@@ -1,6 +1,84 @@
-# Flow
+# Records and Tracking System
+
+A comprehensive case and offender management system designed for judicial and administrative organizations.
+
+## 🎯 System Overview
 
 Frontend -> Online Database -> Local Database -> Syncing -> System Notifications.
+
+## ✨ Key Features
+
+### 🏛️ Offender Management System
+
+- **Complete Offender Profiles**: Full CRUD operations for offender records
+- **Case History Tracking**: Dynamic timeline of all cases and penalties per offender
+- **Advanced Image Management**: Enhanced photo tools with cropping, filters, and editing
+- **Export Capabilities**: CSV and Excel export of offender data and histories
+- **Search & Filter**: Advanced search and filtering across all offender records
+
+### ⚖️ Penalty Types Support
+
+- Fine (💰)
+- Incarceration (🔒)
+- Community Service (🤝)
+- Probation (📋)
+- Suspended Sentence (⚖️)
+- Discharge Under Section 35 of The Penal Code (⚖️)
+- Withdrawal Under Section 204 CPC (⚖️)
+- Withdrawal Under Section 87a CPC (⚖️)
+- Other (⚖️)
+
+### 📋 Case Types Support
+
+- **Civil Cases**: Civil litigation and disputes
+- **Criminal Cases**: Criminal proceedings and prosecutions
+- **Children Cases**: Juvenile and family-related cases
+- **Succession Cases**: Estate and inheritance matters
+- **Other**: Custom case types as needed
+
+### 🗂️ Case Tracking System (CTS)
+
+- **Case Management**: Complete CRUD operations for case files
+- **Staff Assignment**: Assign cases to specific staff members
+- **Priority Levels**: Low, Medium, High priority classification
+- **Status Tracking**: Open, In Progress, Closed status management
+- **File Attachments**: Document management for case-related files
+
+### 👥 Staff Management
+
+- **Staff Profiles**: Comprehensive staff member management
+- **Attendance Tracking**: Daily attendance with absence reasons
+- **Role Management**: Super Admin, Court Admin, Staff roles
+- **Contact Management**: Phone numbers and contact information
+
+### 📄 File Management
+
+- **Document Upload**: Support for various file types
+- **Version Control**: Track file versions and updates
+- **Case Linking**: Associate files with specific cases
+- **Search & Filter**: Advanced file search capabilities
+
+### 🔔 Notification System
+
+- **Real-time Notifications**: System-wide notification management
+- **Notification Types**: Info, Warning, Error, Success categories
+- **Read Status Tracking**: Mark notifications as read/unread
+- **Archive Management**: Archive and restore notifications
+
+### 🎨 User Experience
+
+- **Light/Dark Mode**: Complete theme support
+- **Responsive Design**: Modern, mobile-friendly interface
+- **Advanced Search**: AI-powered search capabilities
+- **Export Functions**: Data export in multiple formats
+- **Interactive Charts**: Visual data representation
+
+### 🔐 Security & Authentication
+
+- **Role-based Access**: Multi-level user permissions
+- **Secure Authentication**: Password hashing and secure login
+- **Data Validation**: Comprehensive input validation
+- **Audit Logging**: Track system changes and user actions
 
 1️⃣ CTS Section (Case Tracking System Section)
 A CTS (Case Tracking System) Section is a functional area in a system designed to track, monitor, and manage cases.

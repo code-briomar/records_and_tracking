@@ -31,7 +31,7 @@ const TitleBar = () => {
   };
   const close = () => appWindow.close();
 
-  const formatTime = (date) =>
+  const formatTime = (date: Date) =>
     // UTC + 3 hours Nairobi time
     date.toLocaleTimeString("en-US", {
       timeZone: "Africa/Nairobi",
@@ -57,7 +57,7 @@ const TitleBar = () => {
         top: 0,
         left: 0,
         right: 0,
-        zIndex: 1000,
+        zIndex: 10,
         borderBottom: "1px solid #2a2a2a",
       }}
     >
@@ -90,10 +90,15 @@ const TitleBar = () => {
 
       {/* Right: Controls */}
       <div style={{ display: "flex", gap: "6px" }}>
-        <ControlButton Icon={Minus} onClick={minimize} />
+        <ControlButton
+          Icon={Minus}
+          onClick={minimize}
+          isDestructive={undefined}
+        />
         <ControlButton
           Icon={isMaximized ? Square : Maximize}
           onClick={toggleMaximize}
+          isDestructive={undefined}
         />
         <ControlButton Icon={X} onClick={close} isDestructive />
       </div>
@@ -101,7 +106,17 @@ const TitleBar = () => {
   );
 };
 
-const ControlButton = ({ Icon, onClick, isDestructive }) => (
+type ControlButtonProps = {
+  Icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  onClick: () => void;
+  isDestructive?: boolean;
+};
+
+const ControlButton = ({
+  Icon,
+  onClick,
+  isDestructive,
+}: ControlButtonProps) => (
   <button
     onClick={onClick}
     style={{
@@ -122,7 +137,7 @@ const ControlButton = ({ Icon, onClick, isDestructive }) => (
       (e.currentTarget.style.backgroundColor = "transparent")
     }
   >
-    <Icon size={16} />
+    <Icon width={16} height={16} />
   </button>
 );
 
