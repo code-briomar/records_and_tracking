@@ -189,6 +189,7 @@ pub fn run() {
 
     // Configure Supabase
     let supabase = SupabaseClient::new();
+
     log_startup("✅ Supabase client configured");
 
     let app_state = AppState { conn, supabase };
