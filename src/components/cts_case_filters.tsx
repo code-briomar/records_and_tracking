@@ -1244,13 +1244,11 @@ export default function CaseFilters({
                       onChange={() => handleBulkSelect(item.file_id)}
                     />
                   </TableCell>
-                  <>
-                    {headerColumns.map((column) => (
-                      <TableCell key={column.uid}>
-                        {renderCell(item, column.uid)}
-                      </TableCell>
-                    ))}
-                  </>
+                  {headerColumns.map((column) => (
+                    <TableCell key={column.uid}>
+                      {renderCell(item, column.uid)}
+                    </TableCell>
+                  ))}
                 </TableRow>
               )}
             </TableBody>
