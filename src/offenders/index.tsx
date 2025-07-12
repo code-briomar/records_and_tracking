@@ -654,22 +654,18 @@ export default function OffenderRecords() {
     // const handleSave = isEdit ? handleUpdate : handleAdd;
 
     // For edit: use the full offenderHistory (with id) as initial history
-    const initialHistory =
-      isEdit && Array.isArray(offenderHistory) && offenderHistory.length > 0
-        ? offenderHistory.map((h) => ({
-            id: h.id,
-            file_id: h.file_id,
-            penalty: h.penalty,
-            penalty_notes: h.penalty_notes,
-          }))
-        : [
-            {
-              id: data?.history?.[0]?.id || undefined,
-              file_id: data?.file_id || undefined,
-              penalty: data?.penalty || "",
-              penalty_notes: data?.penalty_notes || "",
-            },
-          ];
+
+    const initialHistory = allHistories
+      .filter((h) => h.offender_id === data?.offender_id)
+      .map((h) => ({
+        id: h.id || null,
+        file_id: h.file_id || null,
+        case_id: h.case_id || null,
+        offense_date: h.offense_date || "",
+        penalty: h.penalty || "",
+        penalty_notes: h.penalty_notes || "",
+        notes: h.notes || "",
+      }));
 
     return (
       <Modal
