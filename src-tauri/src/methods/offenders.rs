@@ -254,6 +254,36 @@ pub async fn get_offender_photo(app: AppHandle, offender_id: i64) -> Result<Vec<
     }
 }
 
+// Fetch all offender history records
+#[tauri::command]
+pub async fn fetch_all_histories(app: AppHandle) -> Result<Vec<OffenderHistory>, String> {
+    let db = app.state::<crate::AppState>();
+    let conn = db.conn.lock().unwrap();
+    let mut stmt = conn.prepare(
+        "SELECT id, offender_id, file_id, case_id, offense_date, penalty, penalty_notes, notes, created_at FROM offender_history ORDER BY offense_date DESC, created_at DESC",
+    ).map_err(|e| e.to_string())?;
+
+    let histories = stmt
+        .query_map([], |row| {
+            Ok(OffenderHistory {
+                id: row.get(0).ok(),
+                offender_id: row.get(1).unwrap_or_default(),
+                file_id: row.get(2).ok(),
+                case_id: row.get(3).ok(),
+                offense_date: row.get(4).ok(),
+                penalty: row.get(5).ok(),
+                penalty_notes: row.get(6).ok(),
+                notes: row.get(7).ok(),
+                created_at: row.get(8).ok(),
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .filter_map(|r| r.ok())
+        .collect();
+
+    Ok(histories)
+}
+
 // List offender history
 #[tauri::command]
 pub async fn list_offender_history(

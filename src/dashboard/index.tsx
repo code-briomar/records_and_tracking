@@ -1,4 +1,12 @@
-import { Button, Card, CardBody, CardHeader, Tab, Tabs } from "@heroui/react";
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Tab,
+  Tabs,
+  addToast,
+} from "@heroui/react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import React from "react";
 import { fileSectionData } from "../components/files_data";
@@ -22,6 +30,78 @@ export default function Dashboard() {
   const breadcrumbs = [authData?.role, "Dashboard"];
 
   const [selected, setSelected] = React.useState("upcoming_cases");
+  const [refreshKey, setRefreshKey] = React.useState(0);
+
+  // Listen for offender creation events to refresh dashboard
+  React.useEffect(() => {
+    const handleOffenderEvent = (event: CustomEvent) => {
+      console.log(
+        `Dashboard: ${event.type} event received, refreshing data...`,
+        event.detail
+      );
+
+      // Trigger a refresh by updating the refresh key
+      setRefreshKey((prev) => prev + 1);
+
+      // Show toast notification
+      const eventTypeMap = {
+        "offender-created": {
+          message: "New offender added",
+          color: "success" as const,
+        },
+        "offender-updated": {
+          message: "Offender updated",
+          color: "primary" as const,
+        },
+        "offender-deleted": {
+          message: "Offender deleted",
+          color: "warning" as const,
+        },
+      };
+
+      const eventInfo = eventTypeMap[event.type as keyof typeof eventTypeMap];
+      if (eventInfo) {
+        addToast({
+          title: "Dashboard Updated",
+          description: eventInfo.message,
+          color: eventInfo.color,
+        });
+      }
+
+      // Here you can add specific data refresh logic if needed
+      // For example, refetch any offender-related summary data
+    };
+
+    // Add event listeners for all offender events
+    window.addEventListener(
+      "offender-created",
+      handleOffenderEvent as EventListener
+    );
+    window.addEventListener(
+      "offender-updated",
+      handleOffenderEvent as EventListener
+    );
+    window.addEventListener(
+      "offender-deleted",
+      handleOffenderEvent as EventListener
+    );
+
+    // Cleanup on unmount
+    return () => {
+      window.removeEventListener(
+        "offender-created",
+        handleOffenderEvent as EventListener
+      );
+      window.removeEventListener(
+        "offender-updated",
+        handleOffenderEvent as EventListener
+      );
+      window.removeEventListener(
+        "offender-deleted",
+        handleOffenderEvent as EventListener
+      );
+    };
+  }, []);
 
   // const this_week_date_range = {
   //   start: new Date(
@@ -252,7 +332,7 @@ export default function Dashboard() {
                         <h3 className="text-md">Today</h3>
                         <ChevronDown className="w-4 h-4" />
                       </div>
-                      <SummaryCards />
+                      <SummaryCards key={refreshKey} />
                     </div>
 
                     {/* Dashboard Charts */}

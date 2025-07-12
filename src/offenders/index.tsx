@@ -42,7 +42,7 @@ import {
   User,
   Users,
 } from "lucide-react";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 // Enhanced Offender interface to match backend
@@ -72,6 +72,11 @@ export default function OffenderRecords() {
   // const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+
+  // Smart duplicate detection states
+  const [quickSearchId, setQuickSearchId] = useState("");
+  const [quickSearchResults, setQuickSearchResults] = useState<Offender[]>([]);
+  const [showQuickSearch, setShowQuickSearch] = useState(false);
   // Extend Partial<Offender> to include optional history property
   type OffenderWithHistory = Partial<Offender> & { history?: any[] };
 
@@ -94,6 +99,24 @@ export default function OffenderRecords() {
 
   // Navigation
   const navigate = useNavigate();
+
+  // Create a map of offender ID to case count for efficient lookup
+  // useMemo to avoid recalculating on every render
+  // Also fetch data from fetchAllOffendersHistories() and don't use offenderHistory state
+  const [allHistories, setAllHistories] = useState<any[]>([]);
+  useEffect(() => {
+    fetchAllOffendersHistories().then(setAllHistories);
+  }, [offenders]);
+
+  const offenderCaseCounts = useMemo(() => {
+    const map: Record<number, number> = {};
+    allHistories.forEach((h) => {
+      if (h.offender_id) {
+        map[h.offender_id] = (map[h.offender_id] || 0) + 1;
+      }
+    });
+    return map;
+  }, [allHistories]);
 
   // Fetch offenders from backend on component mount
   React.useEffect(() => {
@@ -119,6 +142,27 @@ export default function OffenderRecords() {
     const matchesGender = !filterGender || o.gender === filterGender;
     return matchesSearch && matchesGender;
   });
+
+  // Smart duplicate detection function
+  const findSimilarOffenders = (id: string) => {
+    if (!id || id.length < 2) {
+      setQuickSearchResults([]);
+      return;
+    }
+
+    const similar = offenders.filter((offender) => {
+      const nationalId = (offender.national_id || "").toLowerCase();
+      const searchId = id.toLowerCase();
+
+      return (
+        nationalId.includes(searchId) ||
+        searchId.includes(nationalId) ||
+        nationalId === searchId
+      );
+    });
+
+    setQuickSearchResults(similar);
+  };
 
   // Add new offender (with photo upload)
   const handleAdd = async (newOffender: any) => {
@@ -152,20 +196,27 @@ export default function OffenderRecords() {
       if (Array.isArray(newOffender.history) && created.offender_id) {
         for (const h of newOffender.history) {
           await invoke("add_offender_history", {
-            offender_id: created.offender_id,
-            file_id: h.file_id || null,
-            case_id: h.case_id || null,
-            offense_date: h.offense_date || null,
+            offenderId: created.offender_id,
+            fileId: h.file_id || null,
+            caseId: h.case_id || null,
+            offenseDate: h.offense_date || null,
             penalty: h.penalty || null,
-            penalty_notes: h.penalty_notes || null,
+            penaltyNotes: h.penalty_notes || null,
             notes: h.notes || null,
           });
         }
       }
 
-      setOffenders((prev) => [...prev, created]);
+      // Refresh the offenders list from backend to ensure consistency
+      await fetchOffenders();
+
+      // Also refresh the offender history to include new entries
+      await fetchAllHistories(); // Fetch all histories after adding
+
       setNewOffender({});
       setShowAdd(false);
+
+      console.log("Offender added successfully and list refreshed");
     } catch (error) {
       console.error("Failed to create offender:", error);
     }
@@ -200,6 +251,42 @@ export default function OffenderRecords() {
         console.error("Failed to load offenders:", error);
       });
   };
+  // Centralized function to fetch all offender histories
+  const fetchAllHistories = async (offender_id?: number | null) => {
+    try {
+      // Param : offender_id pass to list_offender_history
+      const params: any = {};
+      if (offender_id !== undefined && offender_id !== null) {
+        params.offenderId = offender_id;
+      }
+
+      console.log("Fetching histories with params:", params);
+      const all = await invoke<any[]>("list_offender_history", params);
+
+      setOffenderHistory(all || []);
+
+      console.log("All histories refreshed:", all?.length || 0, "records");
+      console.log("Sample history data:", all?.slice(0, 2));
+    } catch (error) {
+      console.error("Failed to fetch all histories:", error);
+      setOffenderHistory([]);
+    }
+  };
+
+  const fetchAllOffendersHistories = async () => {
+    try {
+      const all = await invoke<any[]>("fetch_all_histories");
+      console.log(
+        "Fetched all offenders' histories:",
+        all?.length || 0,
+        "records"
+      );
+      return all;
+    } catch (error) {
+      console.error("Failed to fetch all offenders' histories:", error);
+      return [];
+    }
+  };
 
   // Update offender (with optional photo update)
   const handleUpdate = async (editingOffender: any) => {
@@ -218,18 +305,18 @@ export default function OffenderRecords() {
       if (editingOffender.offenderId) {
         try {
           currentHistory = await invoke<any[]>("list_offender_history", {
-            offender_id: editingOffender.offenderId,
+            offenderId: editingOffender.offenderId,
           });
         } catch (error) {
           console.error(
             "An Error Occurred Trying To Set the current history : ",
-            currentHistory
+            error
           );
         }
       }
 
       // 2. Update offender main record
-      const updated = await invoke<Offender>("update_offender", {
+      await invoke<Offender>("update_offender", {
         offenderId: editingOffender.offenderId,
         full_name: editingOffender.full_name,
         national_id: editingOffender.national_id,
@@ -266,35 +353,31 @@ export default function OffenderRecords() {
           console.log("Add New Offender Records", h);
           await invoke("add_offender_history", {
             offenderId: editingOffender.offenderId,
-            file_id: h.file_id || null,
-            case_id: h.case_id || null,
-            offense_date: h.offense_date || null,
+            fileId: h.file_id || null,
+            caseId: h.case_id || null,
+            offenseDate: h.offense_date || null,
             penalty: h.penalty || null,
-            penalty_notes: h.penalty_notes || null,
+            penaltyNotes: h.penalty_notes || null,
             notes: h.notes || null,
           });
         }
       }
-      // b) Update existing records
+      // b) Update existing records (with id)
       for (const h of newHistory) {
-        console.log(" History record to update:", h);
-
-        if (h.id) {
-          // &&oldById[h.id]
+        if (h.id && oldById[h.id]) {
+          console.log("History record to update:", h);
           const response = await invoke("update_offender_history", {
             id: h.id,
             offenderId: editingOffender.offenderId,
             fileId: h.file_id || null,
-            case_id: h.case_id || null,
-            offense_date: h.offense_date || null,
+            caseId: h.case_id || null,
+            offenseDate: h.offense_date || null,
             penalty: h.penalty || null,
             penaltyNotes: h.penalty_notes || null,
             notes: h.notes || null,
           });
 
           console.log("Updated history record:", response);
-        } else {
-          console.log("Issues here : ", h.id, h, newHistory);
         }
       }
       // c) Delete removed records
@@ -304,14 +387,16 @@ export default function OffenderRecords() {
         }
       }
 
-      fetchOffenders();
-      setOffenders((prev) =>
-        prev.map((o) =>
-          o.offender_id === editingOffender.offender_id ? updated : o
-        )
-      );
+      // Refresh the offenders list from backend to ensure consistency
+      await fetchOffenders();
+
+      // Also refresh the offender history to include updated entries
+      await fetchAllHistories(); // Fetch all histories after updating
+
       setEditingOffender(null);
       setShowEdit(false);
+
+      console.log("Offender updated successfully and list refreshed");
     } catch (error) {
       console.error("Failed to update offender:", error);
     }
@@ -321,7 +406,14 @@ export default function OffenderRecords() {
   const handleDelete = async (id: number) => {
     try {
       await invoke("delete_offender", { offenderId: id });
-      setOffenders((prev) => prev.filter((o) => o.offender_id !== id));
+
+      // Refresh the offenders list from backend to ensure consistency
+      await fetchOffenders();
+
+      // Also refresh the offender history to remove deleted entries
+      await fetchAllHistories(); // Fetch all histories after deletion
+
+      console.log("Offender deleted successfully and list refreshed");
     } catch (error) {
       console.error("Failed to delete offender:", error);
     }
@@ -393,10 +485,10 @@ export default function OffenderRecords() {
             </div>
             <div>
               <h3 className="font-bold text-lg text-foreground">
-                {offender.full_name}
+                {offender.national_id}
               </h3>
-              <p className="text-sm text-default-500">
-                ID: {offender.national_id || "N/A"}
+              <p className="text-base text-default-500">
+                Name: {offender.full_name || "N/A"}
               </p>
               <div className="flex gap-2 mt-1">
                 {offender.gender && (
@@ -405,12 +497,7 @@ export default function OffenderRecords() {
                   </Chip>
                 )}
                 <Chip size="sm" variant="flat" color="secondary">
-                  {
-                    offenderHistory.filter(
-                      (h) => h.offender_id === offender.offender_id
-                    ).length
-                  }{" "}
-                  cases
+                  {offenderCaseCounts[offender.offender_id!] || 0} cases
                 </Chip>
               </div>
             </div>
@@ -474,7 +561,27 @@ export default function OffenderRecords() {
             <div className="flex items-start gap-2 text-sm text-default-600 font-semibold">
               <OctagonAlert className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <span>
-                Penalty: {offender.penalty}
+                {(() => {
+                  // Map penalty values to consistent display format
+                  const penaltyMap: { [key: string]: string } = {
+                    Fine: "💰 Fine",
+                    "Locked Up": "🔒 Incarceration",
+                    "Community Service": "🤝 Community Service",
+                    Probation: "📋 Probation",
+                    "Suspended Sentence": "⚖️ Suspended Sentence",
+                    "Discharge Under Section 35 of The Penal Code":
+                      "⚖️ Discharge Under Section 35",
+                    "Withdrawal Under Section 204 CPC":
+                      "⚖️ Withdrawal Under Section 204 CPC",
+                    "Withdrawal Under Section 87a CPC":
+                      "⚖️ Withdrawal Under Section 87a CPC",
+                    Other: "⚖️ Other",
+                  };
+
+                  return (
+                    penaltyMap[offender.penalty] || `⚖️ ${offender.penalty}`
+                  );
+                })()}
                 {/* {offender.penalty_notes && ` (${offender.penalty_notes})`} */}
               </span>
             </div>
@@ -496,6 +603,23 @@ export default function OffenderRecords() {
             </span>
           </div>
         </div>
+
+        {/* Add the button to "Add New Case" */}
+        <Button
+          size="sm"
+          color="primary"
+          variant="solid"
+          className="ml-auto"
+          onPress={() => {
+            setEditingOffender(offender);
+            setTimeout(() => {
+              setShowEdit(true);
+            }, 0);
+          }}
+        >
+          <Plus className="w-4 h-4" />
+          Add New Case
+        </Button>
       </CardBody>
     </Card>
   );
@@ -610,6 +734,7 @@ export default function OffenderRecords() {
                     photo_file: values.photo_file || prev?.photo_file,
                   }));
                 }
+
                 console.log("Form values:", values);
                 if (isEdit) {
                   handleUpdate(values);
@@ -629,6 +754,9 @@ export default function OffenderRecords() {
                 console.log("New offender state reset");
                 if (isEdit) setEditingOffender(null);
                 console.log("Editing offender state reset");
+
+                // Refresh the filtered offenders list
+                await fetchOffenders();
               }}
             >
               {({ isSubmitting, setFieldValue, values }) => (
@@ -666,14 +794,20 @@ export default function OffenderRecords() {
                       )}
                     </Field>
                     <Field name="date_of_birth">
-                      {({ field }: { field: any }) => (
+                      {({ field, form }: { field: any; form: any }) => (
                         <Input
-                          type="date"
                           label="Date of Birth"
+                          placeholder="YYYY-MM-DD"
                           {...field}
                           value={field.value}
-                          onChange={field.onChange}
+                          onChange={(e) => {
+                            // Allow typing or pasting date in YYYY-MM-DD format
+                            form.setFieldValue(field.name, e.target.value);
+                          }}
                           variant="bordered"
+                          inputMode="text"
+                          pattern="\d{4}-\d{2}-\d{2}"
+                          maxLength={10}
                         />
                       )}
                     </Field>
@@ -1026,19 +1160,8 @@ export default function OffenderRecords() {
   // Fetch offender history when a new offender is selected
   useEffect(() => {
     if (selected?.offender_id) {
-      invoke<any[]>("list_offender_history", {
-        offenderId: selected.offender_id,
-      })
-        .then((data) => {
-          console.log("Log -> Fetched offender history:", data);
-          setOffenderHistory(data || []);
-        })
-        .catch((error) => {
-          console.log("Failed to load offender history:", error);
-          setOffenderHistory([]);
-        });
-    } else {
-      setOffenderHistory([]);
+      // Refresh histories for the specific selected offender to ensure we have the latest data for the modal
+      fetchAllHistories(selected.offender_id);
     }
   }, [selected]);
 
@@ -1084,15 +1207,8 @@ export default function OffenderRecords() {
 
   // Fetch all offender histories on mount
   useEffect(() => {
-    async function fetchAllHistories() {
-      try {
-        const all = await invoke<any[]>("list_offender_history", {});
-        setOffenderHistory(all || []);
-      } catch (error) {
-        setOffenderHistory([]);
-      }
-    }
-    fetchAllHistories();
+    fetchAllHistories(); // No parameter = fetch all histories
+    console.log("Fetching all histories for case count display");
   }, []);
 
   // Utility: Export offenders and their histories as CSV
@@ -1324,17 +1440,27 @@ export default function OffenderRecords() {
                 </div>
               </CardBody>
             </Card>
-            <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white">
+            <Card className="bg-gradient-to-r from-rose-500 to-rose-600 text-white">
               <CardBody className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-green-100">Active Cases</p>
-                    <p className="text-2xl font-bold">{allCases.length}</p>
+                    <p className="text-orange-100">Repeat Offenders</p>
+                    <p className="text-2xl font-bold">
+                      {
+                        offenders.filter(
+                          (offender) =>
+                            offenderHistory.filter(
+                              (h) => h.offender_id === offender.offender_id
+                            ).length > 1
+                        ).length
+                      }
+                    </p>
                   </div>
                   <FileText className="w-8 h-8 text-green-200" />
                 </div>
               </CardBody>
             </Card>
+
             <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
               <CardBody className="p-4">
                 <div className="flex items-center justify-between">
@@ -1370,7 +1496,7 @@ export default function OffenderRecords() {
             <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
               <div className="flex flex-col md:flex-row gap-3 flex-1">
                 <Input
-                  placeholder="Search by name or ID..."
+                  placeholder="Search by ID..."
                   value={search}
                   onValueChange={setSearch}
                   startContent={<Search className="w-4 h-4 text-default-400" />}
@@ -1401,18 +1527,239 @@ export default function OffenderRecords() {
                 >
                   Export
                 </Button>
-                <Button
-                  color="primary"
-                  onPress={() => setShowAdd(true)}
-                  startContent={<Plus className="w-4 h-4" />}
-                  className="bg-gradient-to-r from-primary to-primary-600"
-                >
-                  Add Offender
-                </Button>
+
+                {/* Smart Add Offender Workflow */}
+                {!showQuickSearch ? (
+                  <Button
+                    color="primary"
+                    startContent={<Plus className="w-4 h-4" />}
+                    onPress={() => setShowQuickSearch(true)}
+                    className="bg-gradient-to-r from-primary to-primary-600"
+                  >
+                    Add Offender
+                  </Button>
+                ) : (
+                  <div className="flex gap-2 items-center">
+                    <Input
+                      placeholder="Enter offender's ID number first..."
+                      value={quickSearchId}
+                      onValueChange={(value) => {
+                        setQuickSearchId(value);
+                        findSimilarOffenders(value);
+                      }}
+                      startContent={
+                        <CreditCard className="w-4 h-4 text-default-400" />
+                      }
+                      className="w-80"
+                      variant="bordered"
+                      autoFocus
+                    />
+                    <Button
+                      color="danger"
+                      variant="light"
+                      onPress={() => {
+                        setShowQuickSearch(false);
+                        setQuickSearchId("");
+                        setQuickSearchResults([]);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
               </div>
             </div>
           </CardBody>
         </Card>
+
+        {/* Duplicate Check Results */}
+        {showQuickSearch && (
+          <Card className="mb-6 shadow-lg border-orange-200 dark:border-orange-800">
+            <CardBody className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <InfoIcon className="w-5 h-5 text-orange-500" />
+                <h3 className="text-lg font-semibold text-orange-700 dark:text-orange-300">
+                  ID Duplicate Check Results
+                </h3>
+              </div>
+
+              {quickSearchId.length < 2 ? (
+                <div className="text-center py-8 text-default-500">
+                  <CreditCard className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>
+                    Type at least 2 characters to search for similar ID numbers
+                  </p>
+                </div>
+              ) : quickSearchResults.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="mb-4">
+                    <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <CreditCard className="w-8 h-8 text-green-600 dark:text-green-400" />
+                    </div>
+                    <h4 className="text-lg font-semibold text-green-700 dark:text-green-300 mb-2">
+                      No Similar ID Numbers Found
+                    </h4>
+                    <p className="text-default-600 mb-4">
+                      ID "{quickSearchId}" appears to be a new offender
+                    </p>
+                  </div>
+                  <Button
+                    color="success"
+                    size="lg"
+                    onPress={() => {
+                      // Pre-fill the form with the ID and open modal
+                      setNewOffender({ national_id: quickSearchId });
+                      setShowAdd(true);
+                      setShowQuickSearch(false);
+                      setQuickSearchId("");
+                    }}
+                    startContent={<Plus className="w-5 h-5" />}
+                    className="font-semibold"
+                  >
+                    Continue Adding ID "{quickSearchId}"
+                  </Button>
+                </div>
+              ) : (
+                <div>
+                  {" "}
+                  <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg p-4 mb-6">
+                    <div className="flex items-center gap-2 mb-2">
+                      <OctagonAlert className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                      <h4 className="font-semibold text-orange-800 dark:text-orange-200">
+                        ⚠️ Similar ID Number Found
+                      </h4>
+                    </div>
+                    <p className="text-orange-700 dark:text-orange-300 text-sm">
+                      Please verify if this is a repeat offender or a new person
+                      with similar ID before proceeding.
+                    </p>
+                  </div>
+                  <div className="border-b py-4 mb-6">
+                    <div className="text-center">
+                      <p className="text-default-600 mb-4">
+                        If none of the above matches, this is a new person with
+                        a similar ID number
+                      </p>
+                      <Button
+                        color="success"
+                        variant="bordered"
+                        onPress={() => {
+                          // New person with similar ID
+                          setNewOffender({ national_id: quickSearchId });
+                          setShowAdd(true);
+                          setShowQuickSearch(false);
+                          setQuickSearchId("");
+                        }}
+                        startContent={<Plus className="w-5 h-5" />}
+                        className="font-semibold"
+                      >
+                        Add ID "{quickSearchId}" as New Person
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    {quickSearchResults.map((offender) => (
+                      <Card
+                        key={offender.offender_id}
+                        className="border-2 border-orange-200 dark:border-orange-800"
+                      >
+                        <CardBody className="p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <Avatar
+                              src={offender.photo_url}
+                              name={offender.full_name}
+                              size="md"
+                              fallback={<User className="w-5 h-5" />}
+                            />
+                            <div>
+                              <h4 className="font-semibold text-lg">
+                                {offender.full_name}
+                              </h4>
+                              <p className="text-sm text-default-500">
+                                ID: {offender.national_id || "N/A"}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2 mb-4">
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-default-600">Gender:</span>
+                              <Chip size="sm" color="primary" variant="flat">
+                                {offender.gender || "N/A"}
+                              </Chip>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-default-600">DOB:</span>
+                              <span className="font-medium">
+                                {offender.date_of_birth
+                                  ? new Date(
+                                      offender.date_of_birth
+                                    ).toLocaleDateString()
+                                  : "N/A"}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-default-600">Cases:</span>
+                              <Chip size="sm" color="secondary" variant="flat">
+                                {
+                                  offenderHistory.filter(
+                                    (h) =>
+                                      h.offender_id === offender.offender_id
+                                  ).length
+                                }
+                              </Chip>
+                            </div>
+
+                            {offender.penalty && (
+                              <div className="flex items-center gap-2 text-sm">
+                                <span className="text-default-600">
+                                  Current Penalty:
+                                </span>
+                                <Chip size="sm" color="danger" variant="flat">
+                                  {offender.penalty}
+                                </Chip>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              color="primary"
+                              variant="solid"
+                              onPress={() => {
+                                // This is an existing offender - add new case
+                                setEditingOffender(offender);
+                                setShowEdit(true);
+                                setShowQuickSearch(false);
+                                setQuickSearchId("");
+                              }}
+                              className="flex-1"
+                            >
+                              Add New Case
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="bordered"
+                              onPress={() => {
+                                setSelected(offender);
+                                onOpen();
+                              }}
+                            >
+                              View Details
+                            </Button>
+                          </div>
+                        </CardBody>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        )}
 
         {/* Results */}
         {filtered.length === 0 ? (
@@ -1598,10 +1945,31 @@ export default function OffenderRecords() {
                       <div className="flex items-start gap-2">
                         <OctagonAlert className="w-4 h-4 mt-0.5 flex-shrink-0 text-default-400" />
                         <span className="text-sm text-default-600 font-semibold">
-                          Penalty:{" "}
+                          Current Penalty:{" "}
                         </span>
                         <span className="font-medium">
-                          {selected.penalty}
+                          {(() => {
+                            // Map penalty values to consistent display format
+                            const penaltyMap: { [key: string]: string } = {
+                              Fine: "💰 Fine",
+                              "Locked Up": "🔒 Incarceration",
+                              "Community Service": "🤝 Community Service",
+                              Probation: "📋 Probation",
+                              "Suspended Sentence": "⚖️ Suspended Sentence",
+                              "Discharge Under Section 35 of The Penal Code":
+                                "⚖️ Discharge Under Section 35",
+                              "Withdrawal Under Section 204 CPC":
+                                "⚖️ Withdrawal Under Section 204 CPC",
+                              "Withdrawal Under Section 87a CPC":
+                                "⚖️ Withdrawal Under Section 87a CPC",
+                              Other: "⚖️ Other",
+                            };
+
+                            return (
+                              penaltyMap[selected.penalty] ||
+                              `⚖️ ${selected.penalty}`
+                            );
+                          })()}
                           {selected.penalty_notes &&
                             ` (${selected.penalty_notes})`}
                         </span>
@@ -1640,15 +2008,25 @@ export default function OffenderRecords() {
                     }
                   />
                   {(() => {
-                    const filteredHistory = offenderHistory.filter((h) => {
-                      const q = historySearch.toLowerCase();
-                      return (
-                        (h.penalty || "").toLowerCase().includes(q) ||
-                        (h.penalty_notes || "").toLowerCase().includes(q) ||
-                        (h.notes || "").toLowerCase().includes(q) ||
-                        (h.created_at || "").toLowerCase().includes(q)
-                      );
-                    });
+                    // First filter by the selected offender's ID, then by search terms
+                    const offenderSpecificHistory = offenderHistory.filter(
+                      (h) => h.offender_id === selected?.offender_id
+                    );
+
+                    const filteredHistory = offenderSpecificHistory.filter(
+                      (h) => {
+                        // If no search query, show all records for this offender
+                        if (!historySearch.trim()) return true;
+
+                        const q = historySearch.toLowerCase();
+                        return (
+                          (h.penalty || "").toLowerCase().includes(q) ||
+                          (h.penalty_notes || "").toLowerCase().includes(q) ||
+                          (h.notes || "").toLowerCase().includes(q) ||
+                          (h.created_at || "").toLowerCase().includes(q)
+                        );
+                      }
+                    );
                     return filteredHistory.length === 0 ? (
                       <div className="text-center py-6 text-default-400">
                         <FileText className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -1660,6 +2038,51 @@ export default function OffenderRecords() {
                           const linkedFile = allCases.find(
                             (c) => c.file_id === h.file_id
                           );
+
+                          // Format penalty display consistently
+                          const formatPenalty = (
+                            penalty: string | null | undefined
+                          ) => {
+                            if (!penalty || penalty.trim() === "")
+                              return "No penalty assigned";
+
+                            // Map internal values to display values
+                            const penaltyMap: { [key: string]: string } = {
+                              Fine: "💰 Fine",
+                              "Locked Up": "🔒 Incarceration",
+                              "Community Service": "🤝 Community Service",
+                              Probation: "📋 Probation",
+                              "Suspended Sentence": "⚖️ Suspended Sentence",
+                              "Discharge Under Section 35 of The Penal Code":
+                                "⚖️ Discharge Under Section 35",
+                              "Withdrawal Under Section 204 CPC":
+                                "⚖️ Withdrawal Under Section 204 CPC",
+                              "Withdrawal Under Section 87a CPC":
+                                "⚖️ Withdrawal Under Section 87a CPC",
+                              Other: "⚖️ Other",
+                            };
+
+                            return penaltyMap[penalty] || `⚖️ ${penalty}`;
+                          };
+
+                          // Format date consistently
+                          const formatDate = (
+                            dateString: string | null | undefined
+                          ) => {
+                            if (!dateString) return "No date recorded";
+
+                            try {
+                              const date = new Date(dateString);
+                              return date.toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              });
+                            } catch (e) {
+                              return "Invalid date";
+                            }
+                          };
+
                           return (
                             <Card key={h.id || idx} className="bg-default-50">
                               <CardBody className="p-3">
@@ -1669,44 +2092,48 @@ export default function OffenderRecords() {
                                       {linkedFile ? (
                                         <>
                                           <span className="text-primary font-semibold">
-                                            {linkedFile.case_number}
+                                            📁 {linkedFile.case_number}
                                           </span>
                                           <span className="ml-2 text-default-500">
                                             {linkedFile.case_type} -{" "}
                                             {linkedFile.purpose}
                                           </span>
                                         </>
+                                      ) : h.file_id ? (
+                                        <span className="text-warning-600">
+                                          ⚠️ Case #{h.file_id} (Record not
+                                          found)
+                                        </span>
                                       ) : (
                                         <span className="text-default-400">
-                                          No linked case
+                                          📝 Independent record (no case linked)
                                         </span>
                                       )}
                                     </div>
                                     <div className="text-sm text-default-600 mt-1">
-                                      Penalty:{" "}
-                                      <span className="font-semibold">
-                                        {h.penalty || "-"}
+                                      <span className="font-semibold text-slate-700">
+                                        {formatPenalty(h.penalty)}
                                       </span>
                                     </div>
                                     {h.penalty_notes && (
                                       <div className="text-xs text-default-500 mt-1">
-                                        Additional Information:{" "}
-                                        <li className="list-disc ml-4">
+                                        <span className="font-medium">
+                                          Additional Details:
+                                        </span>{" "}
+                                        <span className="italic">
                                           {h.penalty_notes}
-                                        </li>
+                                        </span>
                                       </div>
                                     )}
                                   </div>
                                   <div className="flex flex-col items-end gap-1 min-w-[120px]">
-                                    <Chip className="text-xs text-blue-400">
-                                      {h.created_at
-                                        ? new Date(h.created_at)
-                                            .toJSON()
-                                            .slice(0, 10)
-                                            .split("-")
-                                            .reverse()
-                                            .join("-")
-                                        : "No date"}
+                                    <Chip
+                                      size="sm"
+                                      variant="flat"
+                                      color="primary"
+                                      className="text-xs"
+                                    >
+                                      {formatDate(h.created_at)}
                                     </Chip>
                                   </div>
                                 </div>
