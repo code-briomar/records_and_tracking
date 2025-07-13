@@ -180,28 +180,28 @@ export default function OffenderRecords() {
       }
 
       const created = await invoke<Offender>("create_offender", {
-        fullName: newOffender.full_name,
-        nationalId: newOffender.national_id,
-        dateOfBirth: newOffender.date_of_birth,
+        full_name: newOffender.full_name,
+        national_id: newOffender.national_id,
+        date_of_birth: newOffender.date_of_birth,
         gender: newOffender.gender,
         notes: newOffender.notes,
-        fileId: newOffender.file_id || null,
+        file_id: newOffender.file_id || null,
         penalty: newOffender.penalty || null,
-        penaltyNotes: newOffender.penalty_notes || null,
+        penalty_notes: newOffender.penalty_notes || null,
         photo: photoBytes,
-        photoFilename,
+        photo_filename: photoFilename,
       });
 
       // Save all history records for this offender
       if (Array.isArray(newOffender.history) && created.offender_id) {
         for (const h of newOffender.history) {
           await invoke("add_offender_history", {
-            offenderId: created.offender_id,
-            fileId: h.file_id || null,
-            caseId: h.case_id || null,
-            offenseDate: h.offense_date || null,
+            offender_id: created.offender_id,
+            file_id: h.file_id || null,
+            case_id: h.case_id || null,
+            offense_date: h.offense_date || null,
             penalty: h.penalty || null,
-            penaltyNotes: h.penalty_notes || null,
+            penalty_notes: h.penalty_notes || null,
             notes: h.notes || null,
           });
         }
@@ -211,7 +211,7 @@ export default function OffenderRecords() {
       await fetchOffenders();
 
       // Also refresh the offender history to include new entries
-      await fetchAllHistories(); // Fetch all histories after adding
+      await fetchAllHistories(created.offender_id); // Fetch all histories after adding
 
       setNewOffender({});
       setShowAdd(false);
@@ -255,13 +255,15 @@ export default function OffenderRecords() {
   const fetchAllHistories = async (offender_id?: number | null) => {
     try {
       // Param : offender_id pass to list_offender_history
-      const params: any = {};
-      if (offender_id !== undefined && offender_id !== null) {
-        params.offenderId = offender_id;
-      }
+      // const params: any = {};
+      // if (offender_id !== undefined && offender_id !== null) {
+      //   params.offenderId = offender_id;
+      // }
 
-      console.log("Fetching histories with params:", params);
-      const all = await invoke<any[]>("list_offender_history", params);
+      console.log("Fetching histories with params:", offender_id);
+      const all = await invoke<any[]>("list_offender_history", {
+        offenderId: offender_id,
+      });
 
       setOffenderHistory(all || []);
 
@@ -316,19 +318,21 @@ export default function OffenderRecords() {
       }
 
       // 2. Update offender main record
-      await invoke<Offender>("update_offender", {
+      const result = await invoke<Offender>("update_offender", {
         offenderId: editingOffender.offenderId,
-        full_name: editingOffender.full_name,
-        national_id: editingOffender.national_id,
-        date_of_birth: editingOffender.date_of_birth,
+        fullName: editingOffender.full_name,
+        nationalId: editingOffender.national_id,
+        dateOfBirth: editingOffender.date_of_birth,
         gender: editingOffender.gender,
         notes: editingOffender.notes,
         fileId: editingOffender.file_id || null,
         penalty: editingOffender.penalty || null,
         penaltyNotes: editingOffender.penalty_notes || null,
         photo: photoBytes,
-        photo_filename: photoFilename,
+        photoFilename: photoFilename,
       });
+
+      console.log("Updated offender:", result);
 
       // 3. Sync history
       const newHistory = Array.isArray(editingOffender.history)
@@ -352,12 +356,12 @@ export default function OffenderRecords() {
         if (!h.id) {
           console.log("Add New Offender Records", h);
           await invoke("add_offender_history", {
-            offenderId: editingOffender.offenderId,
-            fileId: h.file_id || null,
-            caseId: h.case_id || null,
-            offenseDate: h.offense_date || null,
+            offender_id: editingOffender.offenderId,
+            file_id: h.file_id || null,
+            case_id: h.case_id || null,
+            offense_date: h.offense_date || null,
             penalty: h.penalty || null,
-            penaltyNotes: h.penalty_notes || null,
+            penalty_notes: h.penalty_notes || null,
             notes: h.notes || null,
           });
         }
@@ -368,12 +372,12 @@ export default function OffenderRecords() {
           console.log("History record to update:", h);
           const response = await invoke("update_offender_history", {
             id: h.id,
-            offenderId: editingOffender.offenderId,
-            fileId: h.file_id || null,
-            caseId: h.case_id || null,
-            offenseDate: h.offense_date || null,
+            offender_id: editingOffender.offenderId,
+            file_id: h.file_id || null,
+            case_id: h.case_id || null,
+            offense_date: h.offense_date || null,
             penalty: h.penalty || null,
-            penaltyNotes: h.penalty_notes || null,
+            penalty_notes: h.penalty_notes || null,
             notes: h.notes || null,
           });
 
@@ -391,7 +395,7 @@ export default function OffenderRecords() {
       await fetchOffenders();
 
       // Also refresh the offender history to include updated entries
-      await fetchAllHistories(); // Fetch all histories after updating
+      await fetchAllHistories(editingOffender.offenderId); // Fetch all histories after updating
 
       setEditingOffender(null);
       setShowEdit(false);
@@ -405,13 +409,13 @@ export default function OffenderRecords() {
   // Delete offender
   const handleDelete = async (id: number) => {
     try {
-      await invoke("delete_offender", { offenderId: id });
+      await invoke("delete_offender", { offender_id: id });
 
       // Refresh the offenders list from backend to ensure consistency
       await fetchOffenders();
 
       // Also refresh the offender history to remove deleted entries
-      await fetchAllHistories(); // Fetch all histories after deletion
+      await fetchAllHistories(id); // Fetch all histories after deletion
 
       console.log("Offender deleted successfully and list refreshed");
     } catch (error) {
@@ -638,11 +642,13 @@ export default function OffenderRecords() {
     penalty: string;
     penalty_notes: string;
     history: {
-      id: number | null;
-      file_id: number | null;
-      penalty: string;
-      penalty_notes: string;
-      [key: string]: any;
+      id: any;
+      file_id: any;
+      case_id: any;
+      offense_date: any;
+      penalty: any;
+      penalty_notes: any;
+      notes: any;
     }[];
   }
 
@@ -1203,7 +1209,8 @@ export default function OffenderRecords() {
 
   // Fetch all offender histories on mount
   useEffect(() => {
-    fetchAllHistories(); // No parameter = fetch all histories
+    fetchAllOffendersHistories();
+    // fetchAllHistories(); // No parameter = fetch all histories
     console.log("Fetching all histories for case count display");
   }, []);
 
