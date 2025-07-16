@@ -25,6 +25,7 @@ import { Field, FieldArray, Form, Formik, FormikHelpers } from "formik";
 import {
   ArrowLeft,
   Camera,
+  Clock,
   CreditCard,
   Download,
   Edit,
@@ -32,15 +33,20 @@ import {
   FileText,
   Filter,
   InfoIcon,
+  Moon,
   MoreVertical,
   OctagonAlert,
   Plus,
+  RotateCcw,
   Scale,
   Search,
+  SunIcon,
   Trash2,
   Upload,
   User,
+  UserCheck,
   Users,
+  UserX,
 } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -72,6 +78,7 @@ export default function OffenderRecords() {
   // const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showAdd, setShowAdd] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
 
   // Smart duplicate detection states
   const [quickSearchId, setQuickSearchId] = useState("");
@@ -96,6 +103,15 @@ export default function OffenderRecords() {
   // --- Offender History State ---
   const [offenderHistory, setOffenderHistory] = useState<any[]>([]);
   const [historySearch, setHistorySearch] = useState("");
+
+  // Theme
+  useEffect(() => {
+    if (darkMode) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [darkMode]);
 
   // Navigation
   const navigate = useNavigate();
@@ -451,154 +467,248 @@ export default function OffenderRecords() {
   // };
 
   const OffenderCard = ({ offender }: { offender: Offender }) => (
-    <Card className="w-full hover:shadow-lg transition-all duration-300 border-0 bg-gradient-to-br from-white to-gray-50 dark:from-gray-900 dark:to-gray-800">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between w-full items-center gap-4">
-          <div className="flex gap-3 items-center">
-            <div className="relative group">
-              <Avatar
-                src={offender.photo_url}
-                name={offender.full_name}
-                size="lg"
-                className="ring-2 ring-primary/20"
-                fallback={<User className="w-6 h-6" />}
-              />
-              {offender.photo_url && (
-                <>
-                  {/* Overlay on hover */}
-                  <div className="absolute inset-0 bg-black/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <Button
-                      size="sm"
-                      isIconOnly
-                      variant="light"
-                      onPress={() => {
-                        setSelected(offender);
-                        setShowImageModal(true);
-                        setImageZoom(1);
-                      }}
-                    >
-                      <Camera className="w-8 h-8 text-white" />
-                    </Button>
-                  </div>
-                  {/* Status indicator */}
-                  <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full border-2 border-white shadow-md flex items-center justify-center">
-                    <Camera className="w-3 h-3 text-white" />
-                  </div>
-                </>
-              )}
+    <Card className="group w-full hover:shadow-2xl transition-all duration-500 border-0 bg-gradient-to-br from-white via-gray-50/50 to-blue-50/30 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900/20 hover:scale-[1.02] hover:bg-gradient-to-br hover:from-blue-50/50 hover:to-indigo-50/30 dark:hover:from-blue-900/10 dark:hover:to-indigo-900/20 backdrop-blur-sm">
+      {/* Enhanced Header with Better Visual Hierarchy */}
+      <CardHeader className="pb-3 px-6 pt-6">
+        <div className="flex justify-between w-full items-start gap-4">
+          {/* Main Info Section */}
+          <div className="flex gap-4 items-start flex-1">
+            {/* Enhanced Avatar Section */}
+            <div className="relative group/avatar flex-shrink-0">
+              <div className="relative">
+                <Avatar
+                  src={offender.photo_url}
+                  name={offender.full_name}
+                  size="lg"
+                  className="ring-3 ring-primary/20 group-hover:ring-primary/40 transition-all duration-300 shadow-lg"
+                  fallback={
+                    <div className="w-full h-full flex items-center justify-center">
+                      <User className="w-8 h-8 text-primary" />
+                    </div>
+                  }
+                />
+
+                {/* Photo Status & Hover Effects */}
+                {offender.photo_url && (
+                  <>
+                    {/* Hover overlay */}
+                    <div className="absolute inset-0 bg-black/30 rounded-2xl opacity-0 group-hover/avatar:opacity-100 transition-all duration-300 flex items-center justify-center backdrop-blur-sm">
+                      <Button
+                        size="sm"
+                        isIconOnly
+                        variant="light"
+                        className="text-white hover:bg-white/20"
+                        onPress={() => {
+                          setSelected(offender);
+                          setShowImageModal(true);
+                          setImageZoom(1);
+                        }}
+                      >
+                        <Eye className="w-5 h-5" />
+                      </Button>
+                    </div>
+
+                    {/* Photo indicator */}
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full border-2 border-white shadow-lg flex items-center justify-center">
+                      <Camera className="w-2.5 h-2.5 text-white" />
+                    </div>
+                  </>
+                )}
+
+                {/* Status indicator for cases */}
+                {/* <div className="absolute -bottom-1 -left-1 px-2 py-1 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full text-white text-xs font-semibold shadow-lg">
+                  {offenderCaseCounts[offender.offender_id!] || 0}
+                </div> */}
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-lg text-foreground">
-                {offender.national_id}
-              </h3>
-              <p className="text-base text-default-500">
-                Name: {offender.full_name || "N/A"}
-              </p>
-              <div className="flex gap-2 mt-1">
+
+            {/* Enhanced Info Section */}
+            <div className="flex-1 min-w-0">
+              {/* Primary Information */}
+              <div className="mb-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors duration-300 truncate">
+                    {offender.full_name || "Unknown"}
+                  </h3>
+                  {offender.penalty && (
+                    <div className="flex-shrink-0">
+                      <Chip
+                        size="sm"
+                        variant="flat"
+                        className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-200"
+                        startContent={<OctagonAlert className="w-3 h-3" />}
+                      >
+                        Active Penalty
+                      </Chip>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 text-sm text-default-600">
+                  <CreditCard className="w-4 h-4 text-primary" />
+                  <span className="font-medium">
+                    ID: {offender.national_id || "N/A"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Enhanced Chips Section */}
+              <div className="flex flex-wrap gap-2 mb-3">
                 {offender.gender && (
-                  <Chip size="sm" variant="flat" color="primary">
+                  <Chip
+                    size="sm"
+                    variant="flat"
+                    className="bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200"
+                    startContent={
+                      offender.gender === "Male" ? (
+                        <UserCheck className="w-3 h-3" />
+                      ) : (
+                        <UserX className="w-3 h-3" />
+                      )
+                    }
+                  >
                     {offender.gender}
                   </Chip>
                 )}
-                <Chip size="sm" variant="flat" color="secondary">
-                  {offenderCaseCounts[offender.offender_id!] || 0} cases
+
+                <Chip
+                  size="sm"
+                  variant="flat"
+                  className={`${
+                    (offenderCaseCounts[offender.offender_id!] || 0) > 1
+                      ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200"
+                      : "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200"
+                  }`}
+                  startContent={<FileText className="w-3 h-3" />}
+                >
+                  {offenderCaseCounts[offender.offender_id!] || 0}{" "}
+                  {(offenderCaseCounts[offender.offender_id!] || 0) === 1
+                    ? "case"
+                    : "cases"}
                 </Chip>
+
+                {offender.date_of_birth && (
+                  <Chip
+                    size="sm"
+                    variant="flat"
+                    className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
+                    startContent={<Clock className="w-3 h-3" />}
+                  >
+                    Born {new Date(offender.date_of_birth).toLocaleDateString()}
+                  </Chip>
+                )}
+              </div>
+
+              {/* Current Penalty Display */}
+              {offender.penalty && (
+                <div className="mb-3 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border-l-4 border-orange-400">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Scale className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                    <span className="font-semibold text-orange-800 dark:text-orange-200">
+                      Current Penalty:
+                    </span>
+                    <span className="text-orange-700 dark:text-orange-300">
+                      {(() => {
+                        const penaltyMap: { [key: string]: string } = {
+                          Fine: "Fine",
+                          "Locked Up": "Incarceration",
+                          "Community Service": "Community Service",
+                          Probation: "Probation",
+                          "Suspended Sentence": "Suspended Sentence",
+                          "Discharge Under Section 35 of The Penal Code":
+                            "Discharge Under Section 35",
+                          "Withdrawal Under Section 204 CPC":
+                            "Withdrawal Under Section 204 CPC",
+                          "Withdrawal Under Section 87a CPC":
+                            "Withdrawal Under Section 87a CPC",
+                          Other: "Other",
+                        };
+                        return penaltyMap[offender.penalty] || offender.penalty;
+                      })()}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Enhanced Actions Menu */}
+          <div className="flex-shrink-0">
+            <Dropdown>
+              <DropdownTrigger>
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="light"
+                  className="opacity-60 group-hover:opacity-100 transition-opacity duration-300 hover:bg-default-100"
+                >
+                  <MoreVertical className="w-4 h-4" />
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu>
+                <DropdownItem
+                  key="view"
+                  startContent={<Eye className="w-4 h-4" />}
+                  onPress={() => {
+                    setSelected(offender);
+                    onOpen();
+                  }}
+                >
+                  View Details
+                </DropdownItem>
+                <DropdownItem
+                  key="edit"
+                  startContent={<Edit className="w-4 h-4" />}
+                  onPress={() => {
+                    setEditingOffender(offender);
+                    setTimeout(() => {
+                      setShowEdit(true);
+                    }, 0);
+                  }}
+                >
+                  Edit Profile
+                </DropdownItem>
+                <DropdownItem
+                  key="delete"
+                  className="text-danger"
+                  color="danger"
+                  startContent={<Trash2 className="w-4 h-4" />}
+                  onPress={() =>
+                    offender.offender_id && handleDelete(offender.offender_id)
+                  }
+                >
+                  Delete
+                </DropdownItem>
+              </DropdownMenu>
+            </Dropdown>
+          </div>
+        </div>
+      </CardHeader>
+
+      {/* Enhanced Body */}
+      <CardBody className="pt-0 px-6 pb-6">
+        {/* Notes Section */}
+        {offender.notes && (
+          <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex items-start gap-2 text-sm">
+              <FileText className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <span className="font-medium text-gray-700 dark:text-gray-300 block mb-1">
+                  Notes:
+                </span>
+                <p className="text-gray-600 dark:text-gray-400 line-clamp-3 leading-relaxed">
+                  {offender.notes}
+                </p>
               </div>
             </div>
           </div>
-          <Dropdown>
-            <DropdownTrigger>
-              <Button isIconOnly size="sm" variant="light">
-                <MoreVertical className="w-4 h-4" />
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu>
-              <DropdownItem
-                key="view"
-                startContent={<Eye className="w-4 h-4" />}
-                onPress={() => {
-                  setSelected(offender);
-                  onOpen();
-                }}
-              >
-                View Details
-              </DropdownItem>
-              <DropdownItem
-                key="edit"
-                startContent={<Edit className="w-4 h-4" />}
-                onPress={() => {
-                  setEditingOffender(offender);
-                  setTimeout(() => {
-                    setShowEdit(true);
-                  }, 0);
-                }}
-              >
-                Edit
-              </DropdownItem>
-              <DropdownItem
-                key="delete"
-                className="text-danger"
-                color="danger"
-                startContent={<Trash2 className="w-4 h-4" />}
-                onPress={() =>
-                  offender.offender_id && handleDelete(offender.offender_id)
-                }
-              >
-                Delete
-              </DropdownItem>
-            </DropdownMenu>
-          </Dropdown>
-        </div>
-      </CardHeader>
-      <CardBody className="pt-0">
-        <div className="space-y-2">
-          {offender.date_of_birth && (
-            <div className="flex items-center gap-2 text-sm text-default-600">
-              <CreditCard className="w-4 h-4" />
-              <span>
-                Born: {new Date(offender.date_of_birth).toLocaleDateString()}
-              </span>
-            </div>
-          )}
+        )}
 
-          {offender.penalty && (
-            <div className="flex items-start gap-2 text-sm text-default-600 font-semibold">
-              <OctagonAlert className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span>
-                {(() => {
-                  // Map penalty values to consistent display format
-                  const penaltyMap: { [key: string]: string } = {
-                    Fine: "💰 Fine",
-                    "Locked Up": "🔒 Incarceration",
-                    "Community Service": "🤝 Community Service",
-                    Probation: "📋 Probation",
-                    "Suspended Sentence": "⚖️ Suspended Sentence",
-                    "Discharge Under Section 35 of The Penal Code":
-                      "⚖️ Discharge Under Section 35",
-                    "Withdrawal Under Section 204 CPC":
-                      "⚖️ Withdrawal Under Section 204 CPC",
-                    "Withdrawal Under Section 87a CPC":
-                      "⚖️ Withdrawal Under Section 87a CPC",
-                    Other: "⚖️ Other",
-                  };
-
-                  return (
-                    penaltyMap[offender.penalty] || `⚖️ ${offender.penalty}`
-                  );
-                })()}
-                {/* {offender.penalty_notes && ` (${offender.penalty_notes})`} */}
-              </span>
-            </div>
-          )}
-
-          {offender.notes && (
-            <div className="flex items-start gap-2 text-sm text-default-600">
-              <FileText className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span className="line-clamp-2">{offender.notes}</span>
-            </div>
-          )}
-
+        {/* Enhanced Footer */}
+        <div className="flex items-center justify-between pt-3 border-t border-gray-200 dark:border-gray-700">
+          {/* Timestamp */}
           <div className="flex items-center gap-2 text-xs text-default-400">
+            <Clock className="w-3 h-3" />
             <span>
               Added:{" "}
               {offender.date_created
@@ -606,24 +716,24 @@ export default function OffenderRecords() {
                 : "N/A"}
             </span>
           </div>
-        </div>
 
-        {/* Add the button to "Add New Case" */}
-        <Button
-          size="sm"
-          color="primary"
-          variant="solid"
-          className="ml-auto"
-          onPress={() => {
-            setEditingOffender(offender);
-            setTimeout(() => {
-              setShowEdit(true);
-            }, 0);
-          }}
-        >
-          <Plus className="w-4 h-4" />
-          Add New Case
-        </Button>
+          {/* Enhanced Action Button */}
+          <Button
+            size="sm"
+            color="primary"
+            variant="solid"
+            className="bg-gradient-to-r from-primary to-primary-600 hover:from-primary-600 hover:to-primary-700 shadow-lg hover:shadow-xl transition-all duration-300"
+            onPress={() => {
+              setEditingOffender(offender);
+              setTimeout(() => {
+                setShowEdit(true);
+              }, 0);
+            }}
+            startContent={<Plus className="w-4 h-4" />}
+          >
+            Add New Case
+          </Button>
+        </div>
       </CardBody>
     </Card>
   );
@@ -1411,7 +1521,7 @@ export default function OffenderRecords() {
             <div className="p-3 bg-primary/10 rounded-xl">
               <Users className="w-8 h-8 text-primary" />
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="text-3xl font-bold text-foreground">
                 Offender Records
               </h1>
@@ -1428,65 +1538,156 @@ export default function OffenderRecords() {
                 To Dashboard
               </Chip>
             </div>
+
+            {/* Theme Toggle */}
+            <div className="cursor-pointer w-6 h-6">
+              <button
+                onClick={() => setDarkMode(!darkMode)}
+                className="relative inline-flex items-center justify-center p-2 rounded-lg bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/50 hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-300 shadow-sm hover:shadow-md"
+                aria-label="Toggle dark mode"
+              >
+                {darkMode ? (
+                  <Moon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                ) : (
+                  <SunIcon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-            <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white">
-              <CardBody className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100">Total Offenders</p>
-                    <p className="text-2xl font-bold">{offenders.length}</p>
+          {/* Enhanced Stats Dashboard */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+            {/* Total Offenders Card */}
+            <Card className="group hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 hover:scale-105">
+              <CardBody className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-blue-500/10 rounded-xl group-hover:bg-blue-500/20 transition-colors">
+                    <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <Users className="w-8 h-8 text-blue-200" />
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                      {offenders.length}
+                    </div>
+                    <div className="text-xs text-blue-500 dark:text-blue-400">
+                      {offenders.length === 1 ? "person" : "people"}
+                    </div>
+                  </div>
                 </div>
-              </CardBody>
-            </Card>
-            <Card className="bg-gradient-to-r from-rose-500 to-rose-600 text-white">
-              <CardBody className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-orange-100">Repeat Offenders</p>
-                    <p className="text-2xl font-bold">
-                      {
-                        offenders.filter(
-                          (offender) =>
-                            offenderHistory.filter(
-                              (h) => h.offender_id === offender.offender_id
-                            ).length > 1
-                        ).length
-                      }
-                    </p>
-                  </div>
-                  <FileText className="w-8 h-8 text-green-200" />
+                <div>
+                  <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
+                    Total Offenders
+                  </h3>
+                  <p className="text-xs text-blue-600 dark:text-blue-400">
+                    Registered in the system
+                  </p>
                 </div>
               </CardBody>
             </Card>
 
-            <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-              <CardBody className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-100">Male</p>
-                    <p className="text-2xl font-bold">
-                      {offenders.filter((o) => o.gender === "Male").length}
-                    </p>
+            {/* Repeat Offenders Card */}
+            <Card className="group hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 hover:scale-105">
+              <CardBody className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-orange-500/10 rounded-xl group-hover:bg-orange-500/20 transition-colors">
+                    <RotateCcw className="w-6 h-6 text-orange-600 dark:text-orange-400" />
                   </div>
-                  <User className="w-8 h-8 text-purple-200" />
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+                      {
+                        offenders.filter((offender) => {
+                          return (
+                            offender.offender_id &&
+                            offenderCaseCounts[offender.offender_id] > 1
+                          );
+                        }).length
+                      }
+                    </div>
+                    <div className="text-xs text-orange-500 dark:text-orange-400">
+                      {Math.round(
+                        (offenders.filter((offender) => {
+                          return (
+                            offender.offender_id &&
+                            offenderCaseCounts[offender.offender_id] > 1
+                          );
+                        }).length /
+                          (offenders.length || 1)) *
+                          100
+                      )}
+                      % of total
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-orange-800 dark:text-orange-200 mb-1">
+                    Repeat Offenders
+                  </h3>
+                  <p className="text-xs text-orange-600 dark:text-orange-400">
+                    Multiple case records
+                  </p>
                 </div>
               </CardBody>
             </Card>
-            <Card className="bg-gradient-to-r from-pink-500 to-pink-600 text-white">
-              <CardBody className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-pink-100">Female</p>
-                    <p className="text-2xl font-bold">
-                      {offenders.filter((o) => o.gender === "Female").length}
-                    </p>
+
+            {/* Male Offenders Card */}
+            <Card className="group hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 hover:scale-105">
+              <CardBody className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-purple-500/10 rounded-xl group-hover:bg-purple-500/20 transition-colors">
+                    <UserCheck className="w-6 h-6 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <User className="w-8 h-8 text-pink-200" />
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+                      {offenders.filter((o) => o.gender === "Male").length}
+                    </div>
+                    <div className="text-xs text-purple-500 dark:text-purple-400">
+                      {Math.round(
+                        (offenders.filter((o) => o.gender === "Male").length /
+                          (offenders.length || 1)) *
+                          100
+                      )}
+                      % of total
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-purple-800 dark:text-purple-200 mb-1">
+                    Male Offenders
+                  </h3>
+                  <p className="text-xs text-purple-600 dark:text-purple-400">
+                    Gender distribution
+                  </p>
+                </div>
+              </CardBody>
+            </Card>
+
+            {/* Female Offenders Card */}
+            <Card className="group hover:shadow-2xl transition-all duration-300 border-0 bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/20 hover:scale-105">
+              <CardBody className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-pink-500/10 rounded-xl group-hover:bg-pink-500/20 transition-colors">
+                    <UserX className="w-6 h-6 text-pink-600 dark:text-pink-400" />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-2xl font-bold text-pink-700 dark:text-pink-300">
+                      {offenders.filter((o) => o.gender === "Female").length}
+                    </div>
+                    <div className="text-xs text-pink-500 dark:text-pink-400">
+                      {Math.round(
+                        (offenders.filter((o) => o.gender === "Female").length /
+                          (offenders.length || 1)) *
+                          100
+                      )}
+                      % of total
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-pink-800 dark:text-pink-200 mb-1">
+                    Female Offenders
+                  </h3>
+                  <p className="text-xs text-pink-600 dark:text-pink-400">
+                    Gender distribution
+                  </p>
                 </div>
               </CardBody>
             </Card>

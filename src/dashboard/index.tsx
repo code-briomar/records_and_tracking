@@ -1,6 +1,5 @@
 import {
   addToast,
-  Badge,
   Button,
   Card,
   CardBody,
@@ -342,7 +341,6 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge color="primary">{todayFiles.length}</Badge>
           <Button
             size="sm"
             variant="flat"

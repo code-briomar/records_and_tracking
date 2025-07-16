@@ -2,7 +2,6 @@ import {
   Accordion,
   AccordionItem,
   Avatar,
-  Badge,
   Button,
   Card,
   CardBody,
@@ -136,9 +135,13 @@ const RightPanel = () => {
                 Notifications
               </h2>
               {unreadNotifications.length > 0 && (
-                <Badge color="danger" size="sm">
-                  {unreadNotifications.length}
-                </Badge>
+                <Chip
+                  size="sm"
+                  variant="bordered"
+                  className="text-xs text-red-600 dark:text-red-400"
+                >
+                  {unreadNotifications.length} Unread
+                </Chip>
               )}
             </div>
             <div className="flex gap-1">
@@ -247,9 +250,9 @@ const RightPanel = () => {
             <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Staff Directory
             </h2>
-            <Badge color="secondary" size="sm">
+            <Chip size="sm" variant="bordered" className="text-xs">
               {filteredStaff.length}
-            </Badge>
+            </Chip>
           </div>
           <Button
             size="sm"
