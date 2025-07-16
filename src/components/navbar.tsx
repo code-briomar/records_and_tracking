@@ -70,11 +70,12 @@ const NavbarSection = ({ breadcrumbs }: { breadcrumbs: string[] }) => {
           className={`w-5 h-5 cursor-pointer ${spinning ? "animate-spin" : ""}`}
           onClick={handleClick}
         />
-        {/* {authData?.role == "Super Admin" && (
+        {/* {authData?.user?.role === "Super Admin" && (
           <Bell className="w-6 h-6" onClick={notifications} />
         )} */}
         {/* Sync Data */}
-        {authData?.role == "Super Admin" || "Court Admin" ? (
+        {authData?.user?.role === "Super Admin" ||
+        authData?.user?.role === "Court Admin" ? (
           <LucideFolderSync
             className="w-5 h-5 cursor-pointer"
             onClick={() => {

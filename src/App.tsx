@@ -17,7 +17,6 @@ import WhyUseThis from "./why_use_this";
 import { invoke } from "@tauri-apps/api/core";
 import { useEffect } from "react";
 
-import { Navigate } from "react-router-dom";
 import { toast } from "sonner";
 import { useAuth } from "./context/auth_context.tsx";
 import Diary from "./diary/index.tsx";
@@ -29,6 +28,7 @@ import { addToast } from "@heroui/react";
 import { info, error as log_error } from "@tauri-apps/plugin-log";
 import TitleBar from "./components/title_bar.tsx";
 
+// TODO::Test this component
 const PrivateRoute = ({
   authData,
   children,
@@ -36,7 +36,8 @@ const PrivateRoute = ({
   authData: any;
   children: React.ReactNode;
 }) => {
-  return authData ? children : <Navigate to="/" replace />;
+  console.log("PrivateRoute authData available?:", !!authData);
+  return !!authData ? children : window.location.pathname === "/";
 };
 
 function App() {

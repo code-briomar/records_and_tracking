@@ -90,7 +90,7 @@ export const UserDropdown = () => {
         >
           <div className="cursor-pointer flex items-center justify-start p-4 space-x-2">
             <Avatar />
-            <span>{authData?.name}</span>
+            <span>{authData?.user?.name}</span>
           </div>
         </Button>
       </DropdownTrigger>
@@ -127,8 +127,8 @@ export const UserDropdown = () => {
                 name: "text-default-600",
                 description: "text-default-500",
               }}
-              description={`${authData?.role}`}
-              name={`${authData?.name}`}
+              description={`${authData?.user?.role}`}
+              name={`${authData?.user?.name}`}
             />
           </DropdownItem>
           {/* TODO:: Future Update */}

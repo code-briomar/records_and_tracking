@@ -7,7 +7,7 @@ import { useAuth } from "../context/auth_context";
 
 export default function Staff() {
   const { authData } = useAuth();
-  const breadcrumbs = [authData?.role, "Staff"];
+  const breadcrumbs = [authData?.user?.role, "Staff"];
   return (
     <>
       <Card

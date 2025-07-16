@@ -180,28 +180,28 @@ export default function OffenderRecords() {
       }
 
       const created = await invoke<Offender>("create_offender", {
-        full_name: newOffender.full_name,
-        national_id: newOffender.national_id,
-        date_of_birth: newOffender.date_of_birth,
+        fullName: newOffender.full_name,
+        nationalId: newOffender.national_id,
+        dateOfBirth: newOffender.date_of_birth,
         gender: newOffender.gender,
         notes: newOffender.notes,
-        file_id: newOffender.file_id || null,
+        fileId: newOffender.file_id || null,
         penalty: newOffender.penalty || null,
-        penalty_notes: newOffender.penalty_notes || null,
+        penaltyNotes: newOffender.penalty_notes || null,
         photo: photoBytes,
-        photo_filename: photoFilename,
+        photoFilename: photoFilename,
       });
 
       // Save all history records for this offender
       if (Array.isArray(newOffender.history) && created.offender_id) {
         for (const h of newOffender.history) {
           await invoke("add_offender_history", {
-            offender_id: created.offender_id,
-            file_id: h.file_id || null,
-            case_id: h.case_id || null,
-            offense_date: h.offense_date || null,
+            offenderId: created.offender_id,
+            fileId: h.file_id || null,
+            caseId: h.case_id || null,
+            offenseDate: h.offense_date || null,
             penalty: h.penalty || null,
-            penalty_notes: h.penalty_notes || null,
+            penaltyNotes: h.penalty_notes || null,
             notes: h.notes || null,
           });
         }
@@ -1422,7 +1422,7 @@ export default function OffenderRecords() {
               <Chip
                 variant="flat"
                 className="mt-2 cursor-pointer"
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/dashboard")}
                 startContent={<ArrowLeft className="w-4 h-4" />}
               >
                 To Dashboard
@@ -1706,12 +1706,10 @@ export default function OffenderRecords() {
                             <div className="flex items-center gap-2 text-sm">
                               <span className="text-default-600">Cases:</span>
                               <Chip size="sm" color="secondary" variant="flat">
-                                {
-                                  offenderHistory.filter(
-                                    (h) =>
-                                      h.offender_id === offender.offender_id
-                                  ).length
-                                }
+                                {`${
+                                  offenderCaseCounts[offender?.offender_id!] ||
+                                  0
+                                } `}
                               </Chip>
                             </div>
 

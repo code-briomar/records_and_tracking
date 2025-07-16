@@ -8,7 +8,7 @@ import { useAuth } from "../context/auth_context";
 
 export default function Notifications() {
   const { authData } = useAuth();
-  const breadcrumbs = [authData?.name, "Notifications"];
+  const breadcrumbs = [authData?.user?.name, "Notifications"];
   return (
     <>
       <Card
