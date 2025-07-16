@@ -726,10 +726,10 @@ function CalendarItem() {
           </div>
           
           <div class="footer">
-            <p class="system-info">Records & Tracking - Kilungu Law Courts</p>
+            <p class="system-info">Records & Tracking - Kilungu Law Court</p>
             <p>Generated on ${generatedTime}</p>
             <p>This document contains confidential court information and should be handled accordingly.</p>
-            <p>© ${new Date().getFullYear()} Kilungu Law Courts</p>
+            <p>© ${new Date().getFullYear()} Kilungu Law Court</p>
           </div>
           
           <div class="page-number">Page 1 of 1</div>
