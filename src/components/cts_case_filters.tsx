@@ -267,10 +267,10 @@ export default function CaseFilters({
     onOpenChange: onOpenChangeDelete,
   } = useDisclosure();
 
-  const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
+  const [visibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
-  const [statusFilter, setStatusFilter] = React.useState<Selection>("all");
+  const [statusFilter] = React.useState<Selection>("all");
   const [caseTypeFilter, setCaseTypeFilter] = React.useState<Selection>("all");
   const [purposeFilter, setPurposeFilter] = React.useState<Selection>("all");
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
@@ -372,7 +372,7 @@ export default function CaseFilters({
     console.log("🔍 Should apply case type filter:", shouldApplyCaseTypeFilter);
 
     if (shouldApplyCaseTypeFilter) {
-      const caseTypeArray = Array.from(caseTypeFilter);
+      const caseTypeArray = Array.from(caseTypeFilter as Set<string>);
       console.log("🔍 Filtering by case types:", caseTypeArray);
       filteredCaseFiles = filteredCaseFiles.filter((file) =>
         caseTypeArray.includes(file.case_type.toLowerCase())
@@ -394,7 +394,7 @@ export default function CaseFilters({
     console.log("🔍 Should apply purpose filter:", shouldApplyPurposeFilter);
 
     if (shouldApplyPurposeFilter) {
-      const purposeArray = Array.from(purposeFilter);
+      const purposeArray = Array.from(purposeFilter as Set<string>);
       console.log("🔍 Filtering by purposes:", purposeArray);
       filteredCaseFiles = filteredCaseFiles.filter((file) =>
         purposeArray.includes(file.purpose.toLowerCase())
@@ -737,107 +737,6 @@ export default function CaseFilters({
               setValue={handleDateRangeChange}
             />
 
-            <Dropdown>
-              <DropdownTrigger className="hidden sm:flex">
-                <Button
-                  endContent={<ChevronDownIcon className="text-small" />}
-                  size="sm"
-                  variant="flat"
-                >
-                  <FilterIcon className="w-4 h-4" />
-                </Button>
-              </DropdownTrigger>
-              <DropdownMenu
-                disallowEmptySelection
-                aria-label="Advanced Filters"
-                closeOnSelect={false}
-              >
-                <DropdownItem key="type" isReadOnly>
-                  <div className="font-semibold">Case Type</div>
-                </DropdownItem>
-                {caseTypeOptions.map((type) => (
-                  <DropdownItem
-                    key={type.uid}
-                    className="capitalize pl-6"
-                    onPress={() => {
-                      console.log(
-                        "🔧 Case Type Filter - Before:",
-                        caseTypeFilter
-                      );
-
-                      // Handle the case where filter is "all" vs Set
-                      const currentFilter =
-                        caseTypeFilter === "all"
-                          ? new Set()
-                          : new Set(caseTypeFilter);
-                      console.log("🔧 Current filter as Set:", currentFilter);
-
-                      if (currentFilter.has(type.uid)) {
-                        currentFilter.delete(type.uid);
-                        console.log("🔧 Removed:", type.uid);
-                      } else {
-                        currentFilter.add(type.uid);
-                        console.log("🔧 Added:", type.uid);
-                      }
-                      console.log("🔧 New filter size:", currentFilter.size);
-
-                      // Automatically reset to "all" when no items selected
-                      const finalFilter =
-                        currentFilter.size === 0 ? "all" : currentFilter;
-                      console.log("🔧 Final filter:", finalFilter);
-                      setCaseTypeFilter(finalFilter);
-                    }}
-                  >
-                    {caseTypeFilter === "all" ||
-                    !Array.from(caseTypeFilter).includes(type.uid)
-                      ? ""
-                      : "✓ "}
-                    {capitalize(type.name)}
-                  </DropdownItem>
-                ))}
-                <DropdownItem key="purpose" isReadOnly>
-                  <div className="font-semibold">Purpose</div>
-                </DropdownItem>
-                {purposeOptions.map((purpose) => (
-                  <DropdownItem
-                    key={purpose.uid}
-                    className="capitalize pl-6"
-                    onPress={() => {
-                      console.log("🔧 Purpose Filter - Before:", purposeFilter);
-
-                      // Handle the case where filter is "all" vs Set
-                      const currentFilter =
-                        purposeFilter === "all"
-                          ? new Set()
-                          : new Set(purposeFilter);
-                      console.log("🔧 Current filter as Set:", currentFilter);
-
-                      if (currentFilter.has(purpose.uid)) {
-                        currentFilter.delete(purpose.uid);
-                        console.log("🔧 Removed:", purpose.uid);
-                      } else {
-                        currentFilter.add(purpose.uid);
-                        console.log("🔧 Added:", purpose.uid);
-                      }
-                      console.log("🔧 New filter size:", currentFilter.size);
-
-                      // Automatically reset to "all" when no items selected
-                      const finalFilter =
-                        currentFilter.size === 0 ? "all" : currentFilter;
-                      console.log("🔧 Final filter:", finalFilter);
-                      setPurposeFilter(finalFilter);
-                    }}
-                  >
-                    {purposeFilter === "all" ||
-                    !Array.from(purposeFilter).includes(purpose.uid)
-                      ? ""
-                      : "✓ "}
-                    {capitalize(purpose.name)}
-                  </DropdownItem>
-                ))}
-              </DropdownMenu>
-            </Dropdown>
-
             <Button
               className={
                 showOverdueOnly
@@ -901,7 +800,8 @@ export default function CaseFilters({
             </div>
           </div>
 
-          <div>
+          <div className="flex gap-4 items-center">
+            {/* Rows per page selector */}
             <label className="flex items-center text-default-400 text-small">
               Rows per page:
               <select
@@ -913,6 +813,117 @@ export default function CaseFilters({
                 <option value="15">15</option>
               </select>
             </label>
+
+            {/* Advanced Filters Dropdown */}
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  size="sm"
+                  variant="flat"
+                >
+                  <FilterIcon className="w-4 h-4" />
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Advanced Filters"
+                closeOnSelect={false}
+              >
+                {[
+                  <DropdownItem key="type" isReadOnly>
+                    <div className="font-semibold">Case Type</div>
+                  </DropdownItem>,
+                  ...caseTypeOptions.map((type) => (
+                    <DropdownItem
+                      key={type.uid}
+                      className="capitalize pl-6"
+                      onPress={() => {
+                        console.log(
+                          "🔧 Case Type Filter - Before:",
+                          caseTypeFilter
+                        );
+
+                        // Handle the case where filter is "all" vs Set
+                        const currentFilter =
+                          caseTypeFilter === "all"
+                            ? new Set<string>()
+                            : new Set<string>(caseTypeFilter as Set<string>);
+                        console.log("🔧 Current filter as Set:", currentFilter);
+
+                        if (currentFilter.has(type.uid)) {
+                          currentFilter.delete(type.uid);
+                          console.log("🔧 Removed:", type.uid);
+                        } else {
+                          currentFilter.add(type.uid);
+                          console.log("🔧 Added:", type.uid);
+                        }
+                        console.log("🔧 New filter size:", currentFilter.size);
+
+                        // Automatically reset to "all" when no items selected
+                        const finalFilter: Selection =
+                          currentFilter.size === 0 ? "all" : currentFilter;
+                        console.log("🔧 Final filter:", finalFilter);
+                        setCaseTypeFilter(finalFilter);
+                      }}
+                    >
+                      {caseTypeFilter === "all" ||
+                      !Array.from(caseTypeFilter as Set<string>).includes(
+                        type.uid
+                      )
+                        ? ""
+                        : "✓ "}
+                      {capitalize(type.name)}
+                    </DropdownItem>
+                  )),
+                  <DropdownItem key="purpose" isReadOnly>
+                    <div className="font-semibold">Purpose</div>
+                  </DropdownItem>,
+                  ...purposeOptions.map((purpose) => (
+                    <DropdownItem
+                      key={purpose.uid}
+                      className="capitalize pl-6"
+                      onPress={() => {
+                        console.log(
+                          "🔧 Purpose Filter - Before:",
+                          purposeFilter
+                        );
+
+                        // Handle the case where filter is "all" vs Set
+                        const currentFilter =
+                          purposeFilter === "all"
+                            ? new Set<string>()
+                            : new Set<string>(purposeFilter as Set<string>);
+                        console.log("🔧 Current filter as Set:", currentFilter);
+
+                        if (currentFilter.has(purpose.uid)) {
+                          currentFilter.delete(purpose.uid);
+                          console.log("🔧 Removed:", purpose.uid);
+                        } else {
+                          currentFilter.add(purpose.uid);
+                          console.log("🔧 Added:", purpose.uid);
+                        }
+                        console.log("🔧 New filter size:", currentFilter.size);
+
+                        // Automatically reset to "all" when no items selected
+                        const finalFilter: Selection =
+                          currentFilter.size === 0 ? "all" : currentFilter;
+                        console.log("🔧 Final filter:", finalFilter);
+                        setPurposeFilter(finalFilter);
+                      }}
+                    >
+                      {purposeFilter === "all" ||
+                      !Array.from(purposeFilter as Set<string>).includes(
+                        purpose.uid
+                      )
+                        ? ""
+                        : "✓ "}
+                      {capitalize(purpose.name)}
+                    </DropdownItem>
+                  )),
+                ]}
+              </DropdownMenu>
+            </Dropdown>
           </div>
         </div>
       </div>
@@ -977,7 +988,7 @@ export default function CaseFilters({
 
   // Bulk selection state
   const [selectedBulk, setSelectedBulk] = useState<Set<number>>(new Set());
-  const [selectAll, setSelectAll] = useState(false);
+  const [, setSelectAll] = useState(false);
 
   // Analytics state
   const [analytics, setAnalytics] = useState({
@@ -1146,23 +1157,6 @@ export default function CaseFilters({
   }, [caseFiles, overdueCases.length]);
 
   // Bulk actions handlers
-  const handleBulkSelect = (id: number) => {
-    setSelectedBulk((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-  const handleSelectAll = () => {
-    if (selectAll) {
-      setSelectedBulk(new Set());
-      setSelectAll(false);
-    } else {
-      setSelectedBulk(new Set(filteredItems.map((f) => f.file_id)));
-      setSelectAll(true);
-    }
-  };
   const handleBulkClose = () => {
     // Example: mark all selected as closed (simulate)
     setCaseFiles((prev) =>
