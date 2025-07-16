@@ -1,5 +1,4 @@
 import {
-  Badge,
   Button,
   Calendar,
   Card,
@@ -31,6 +30,7 @@ import {
   User,
 } from "lucide-react";
 import { useState } from "react";
+import * as XLSX from "xlsx";
 import { fileSectionData as caseFiles } from "../components/files_data";
 import LeftPanel from "../components/left_panel";
 import NavbarSection from "../components/navbar";
@@ -86,8 +86,8 @@ function CalendarItem() {
   const { isOpen: isOpenView, onOpenChange: onOpenChangeView } =
     useDisclosure();
 
-  // Enhanced export function with more professional formatting
-  function exportCasesToCSV(cases: any[], date: any) {
+  // Enhanced export function to Excel format with advanced styling
+  function exportCasesToExcel(cases: any[], date: any) {
     if (!cases || cases.length === 0) return;
 
     const formattedDate = new Date(date).toLocaleDateString("en-US", {
@@ -100,26 +100,241 @@ function CalendarItem() {
       "Case Number": c.case_number || `Case ${index + 1}`,
       "Case Type": c.case_type || "N/A",
       Purpose: c.purpose || "N/A",
-      "Required On": new Date(c.required_on).toLocaleDateString(),
-      Client: c.client || "N/A",
-      Status: c.status || "Pending",
-      Priority: c.priority || "Normal",
+      "Scheduled Time": new Date(c.required_on).toLocaleString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      }),
       Notes: c.notes || "No notes",
     }));
 
-    const header = Object.keys(exportData[0]).join(",");
-    const rows = exportData.map((row) => Object.values(row).join(","));
-    const csv = [
-      `"Legal Diary Export - ${formattedDate}"`,
-      `"Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}"`,
-      `"Total Cases: ${cases.length}"`,
-      "",
-      header,
-      ...rows,
-    ].join("\n");
+    // Create a new workbook
+    const wb = XLSX.utils.book_new();
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    saveAs(blob, `Legal_Diary_${date}_${cases.length}_Cases.csv`);
+    // Create header information with enhanced styling
+    const headerData = [
+      [`KILUNGU LAW COURTS - COURT SCHEDULE`],
+      [`${formattedDate}`],
+      [
+        `Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+      ],
+      [
+        `Total Cases: ${cases.length} scheduled hearing${
+          cases.length !== 1 ? "s" : ""
+        }`,
+      ],
+      [], // Empty row for spacing
+      [], // Another empty row for better spacing
+    ];
+
+    // Add column headers
+    const columnHeaders = Object.keys(exportData[0]);
+    headerData.push(columnHeaders);
+
+    // Add data rows
+    exportData.forEach((row) => {
+      headerData.push(Object.values(row));
+    });
+
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet(headerData);
+
+    // Enhanced column widths
+    const colWidths = [
+      { wch: 18 }, // Case Number
+      { wch: 15 }, // Case Type
+      { wch: 35 }, // Purpose
+      { wch: 22 }, // Scheduled Time
+      { wch: 45 }, // Notes
+    ];
+    ws["!cols"] = colWidths;
+
+    // Main title styling (A1)
+    const titleStyle = {
+      font: { bold: true, sz: 16, color: { rgb: "1E40AF" } },
+      alignment: { horizontal: "center", vertical: "center" },
+      fill: { fgColor: { rgb: "E3F2FD" } },
+      border: {
+        top: { style: "thick", color: { rgb: "1E40AF" } },
+        bottom: { style: "thick", color: { rgb: "1E40AF" } },
+        left: { style: "thick", color: { rgb: "1E40AF" } },
+        right: { style: "thick", color: { rgb: "1E40AF" } },
+      },
+    };
+
+    // Date styling (A2)
+    const dateStyle = {
+      font: { bold: true, sz: 14, color: { rgb: "374151" } },
+      alignment: { horizontal: "center", vertical: "center" },
+      fill: { fgColor: { rgb: "F8FAFC" } },
+      border: {
+        top: { style: "thin", color: { rgb: "E5E7EB" } },
+        bottom: { style: "thin", color: { rgb: "E5E7EB" } },
+        left: { style: "thin", color: { rgb: "E5E7EB" } },
+        right: { style: "thin", color: { rgb: "E5E7EB" } },
+      },
+    };
+
+    // Generation info styling (A3)
+    const infoStyle = {
+      font: { sz: 10, color: { rgb: "6B7280" } },
+      alignment: { horizontal: "center", vertical: "center" },
+      fill: { fgColor: { rgb: "F9FAFB" } },
+      border: {
+        top: { style: "thin", color: { rgb: "E5E7EB" } },
+        bottom: { style: "thin", color: { rgb: "E5E7EB" } },
+        left: { style: "thin", color: { rgb: "E5E7EB" } },
+        right: { style: "thin", color: { rgb: "E5E7EB" } },
+      },
+    };
+
+    // Total cases styling (A4)
+    const totalStyle = {
+      font: { bold: true, sz: 11, color: { rgb: "1F2937" } },
+      alignment: { horizontal: "center", vertical: "center" },
+      fill: { fgColor: { rgb: "DBEAFE" } },
+      border: {
+        top: { style: "thin", color: { rgb: "3B82F6" } },
+        bottom: { style: "thin", color: { rgb: "3B82F6" } },
+        left: { style: "thin", color: { rgb: "3B82F6" } },
+        right: { style: "thin", color: { rgb: "3B82F6" } },
+      },
+    };
+
+    // Column headers styling (Row 7)
+    const columnHeaderStyle = {
+      font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } },
+      alignment: { horizontal: "center", vertical: "center" },
+      fill: { fgColor: { rgb: "1E40AF" } },
+      border: {
+        top: { style: "medium", color: { rgb: "1E40AF" } },
+        bottom: { style: "medium", color: { rgb: "1E40AF" } },
+        left: { style: "thin", color: { rgb: "FFFFFF" } },
+        right: { style: "thin", color: { rgb: "FFFFFF" } },
+      },
+    };
+
+    // Data row styling
+    const dataRowStyle = {
+      font: { sz: 10, color: { rgb: "1F2937" } },
+      alignment: { horizontal: "left", vertical: "center", wrapText: true },
+      border: {
+        top: { style: "thin", color: { rgb: "E5E7EB" } },
+        bottom: { style: "thin", color: { rgb: "E5E7EB" } },
+        left: { style: "thin", color: { rgb: "E5E7EB" } },
+        right: { style: "thin", color: { rgb: "E5E7EB" } },
+      },
+    };
+
+    // Alternating row colors
+    const evenRowStyle = {
+      ...dataRowStyle,
+      fill: { fgColor: { rgb: "F9FAFB" } },
+    };
+
+    const oddRowStyle = {
+      ...dataRowStyle,
+      fill: { fgColor: { rgb: "FFFFFF" } },
+    };
+
+    // Apply styles to header cells
+    if (ws["A1"]) ws["A1"].s = titleStyle;
+    if (ws["A2"]) ws["A2"].s = dateStyle;
+    if (ws["A3"]) ws["A3"].s = infoStyle;
+    if (ws["A4"]) ws["A4"].s = totalStyle;
+
+    // Merge cells for headers
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 4 } }, // Title row
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 4 } }, // Date row
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 4 } }, // Generated info row
+      { s: { r: 3, c: 0 }, e: { r: 3, c: 4 } }, // Total cases row
+    ];
+
+    // Apply column header styles
+    columnHeaders.forEach((_, index) => {
+      const cellAddress = XLSX.utils.encode_cell({ r: 6, c: index });
+      if (ws[cellAddress]) ws[cellAddress].s = columnHeaderStyle;
+    });
+
+    // Apply data row styles with alternating colors
+    exportData.forEach((_, rowIndex) => {
+      const actualRowIndex = rowIndex + 7; // Starting from row 8 (0-indexed)
+      const isEvenRow = rowIndex % 2 === 0;
+
+      columnHeaders.forEach((_, colIndex) => {
+        const cellAddress = XLSX.utils.encode_cell({
+          r: actualRowIndex,
+          c: colIndex,
+        });
+        if (ws[cellAddress]) {
+          ws[cellAddress].s = isEvenRow ? evenRowStyle : oddRowStyle;
+
+          // Special styling for case numbers
+          if (colIndex === 0) {
+            ws[cellAddress].s = {
+              ...ws[cellAddress].s,
+              font: {
+                ...ws[cellAddress].s.font,
+                bold: true,
+                color: { rgb: "1E40AF" },
+              },
+            };
+          }
+
+          // Special styling for case types
+          if (colIndex === 1) {
+            ws[cellAddress].s = {
+              ...ws[cellAddress].s,
+              font: {
+                ...ws[cellAddress].s.font,
+                bold: true,
+                color: { rgb: "059669" },
+              },
+              alignment: { horizontal: "center", vertical: "center" },
+            };
+          }
+
+          // Special styling for scheduled time
+          if (colIndex === 3) {
+            ws[cellAddress].s = {
+              ...ws[cellAddress].s,
+              font: {
+                ...ws[cellAddress].s.font,
+                bold: true,
+                color: { rgb: "DC2626" },
+              },
+              alignment: { horizontal: "center", vertical: "center" },
+            };
+          }
+        }
+      });
+    });
+
+    // Set row heights for better appearance
+    ws["!rows"] = [
+      { hpt: 25 }, // Title row
+      { hpt: 20 }, // Date row
+      { hpt: 15 }, // Generated info row
+      { hpt: 18 }, // Total cases row
+      { hpt: 10 }, // Empty row
+      { hpt: 10 }, // Empty row
+      { hpt: 22 }, // Column headers
+      ...exportData.map(() => ({ hpt: 35 })), // Data rows with increased height for wrapping
+    ];
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, "Court Schedule");
+
+    // Generate Excel file and download
+    const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([excelBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    saveAs(blob, `Court_Schedule_${date}_${cases.length}_Cases.xlsx`);
   }
 
   // Enhanced print function with professional formatting
@@ -130,61 +345,408 @@ function CalendarItem() {
       day: "numeric",
     });
 
+    const currentTime = new Date();
+    const generatedTime = currentTime.toLocaleString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
+
+    // Calculate statistics
+    const caseTypes = cases.reduce((acc, file) => {
+      const type = file.case_type || "Other";
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
     const printContent = `
       <html>
         <head>
-          <title>Legal Diary - ${formattedDate}</title>
+          <title>Diary Schedule - ${formattedDate}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
-            .case-item { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
-            .case-number { font-weight: bold; color: #0066cc; }
-            .case-type { background: #f0f0f0; padding: 2px 8px; border-radius: 3px; font-size: 0.9em; }
-            .footer { margin-top: 30px; text-align: center; font-size: 0.8em; color: #666; }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+              .page-break { page-break-before: always; }
+            }
+            
+            body { 
+              font-family: 'Georgia', 'Times New Roman', serif; 
+              margin: 20px; 
+              line-height: 1.6; 
+              color: #333;
+              background: #fff;
+            }
+            
+            .letterhead {
+              text-align: center;
+              border-bottom: 3px solid #2563eb;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+              background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+              padding: 20px;
+              border-radius: 8px;
+            }
+            
+            .letterhead h1 {
+              margin: 0;
+              color: #1e40af;
+              font-size: 2.2em;
+              font-weight: bold;
+              text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+            }
+            
+            .letterhead h2 {
+              margin: 5px 0;
+              color: #374151;
+              font-size: 1.5em;
+              font-weight: normal;
+            }
+            
+            .letterhead .subtitle {
+              color: #6b7280;
+              font-style: italic;
+              font-size: 1.1em;
+            }
+            
+            .document-info {
+              background: #f9fafb;
+              padding: 15px;
+              border-radius: 6px;
+              margin-bottom: 25px;
+              border-left: 4px solid #3b82f6;
+            }
+            
+            .document-info table {
+              width: 100%;
+              border-collapse: collapse;
+            }
+            
+            .document-info td {
+              padding: 5px 10px;
+              border-bottom: 1px solid #e5e7eb;
+            }
+            
+            .document-info td:first-child {
+              font-weight: bold;
+              color: #374151;
+              width: 30%;
+            }
+            
+            .statistics {
+              display: block;
+              margin-bottom: 25px;
+            }
+            
+            .stat-box {
+              background: #f3f4f6;
+              padding: 15px;
+              border-radius: 6px;
+              border: 1px solid #d1d5db;
+              max-width: 400px;
+              margin: 0 auto;
+            }
+            
+            .stat-box h3 {
+              margin: 0 0 10px 0;
+              color: #1f2937;
+              font-size: 1.1em;
+              border-bottom: 2px solid #3b82f6;
+              padding-bottom: 5px;
+            }
+            
+            .stat-item {
+              display: flex;
+              justify-content: space-between;
+              padding: 3px 0;
+              border-bottom: 1px dotted #d1d5db;
+            }
+            
+            .stat-item:last-child {
+              border-bottom: none;
+            }
+            
+            .cases-section {
+              margin-top: 30px;
+            }
+            
+            .section-header {
+              background: #1e40af;
+              color: white;
+              padding: 12px 15px;
+              margin: 0 0 20px 0;
+              border-radius: 6px;
+              font-size: 1.3em;
+              font-weight: bold;
+            }
+            
+            .case-item {
+              margin: 15px 0;
+              padding: 20px;
+              border: 2px solid #e5e7eb;
+              border-radius: 8px;
+              background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+              position: relative;
+            }
+            
+            .case-item::before {
+              content: '';
+              position: absolute;
+              left: 0;
+              top: 0;
+              bottom: 0;
+              width: 4px;
+              background: linear-gradient(to bottom, #3b82f6, #1d4ed8);
+              border-radius: 4px 0 0 4px;
+            }
+            
+            .case-number {
+              font-weight: bold;
+              color: #1e40af;
+              font-size: 1.3em;
+              margin-bottom: 10px;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            }
+            
+            .case-number::before {
+              content: '■';
+              font-size: 1.2em;
+              color: #3b82f6;
+            }
+            
+            .case-details {
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr;
+              gap: 15px;
+              margin-top: 15px;
+            }
+            
+            .case-detail {
+              display: flex;
+              flex-direction: column;
+            }
+            
+            .case-detail-label {
+              font-weight: bold;
+              color: #374151;
+              font-size: 0.9em;
+              margin-bottom: 3px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            
+            .case-detail-value {
+              color: #1f2937;
+              font-size: 1em;
+              padding: 5px 8px;
+              background: #f9fafb;
+              border-radius: 4px;
+              border: 1px solid #e5e7eb;
+            }
+            
+            .case-type {
+              background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+              color: #1e40af;
+              padding: 4px 12px;
+              border-radius: 20px;
+              font-size: 0.9em;
+              font-weight: bold;
+              border: 1px solid #93c5fd;
+            }
+            
+            .priority-high { background: #fef2f2; color: #dc2626; border-color: #fca5a5; }
+            .priority-medium { background: #fff7ed; color: #ea580c; border-color: #fdba74; }
+            .priority-low { background: #f0fdf4; color: #16a34a; border-color: #86efac; }
+            
+            .case-notes {
+              margin-top: 15px;
+              padding: 12px;
+              background: #fffbeb;
+              border-left: 4px solid #f59e0b;
+              border-radius: 0 6px 6px 0;
+            }
+            
+            .case-notes-label {
+              font-weight: bold;
+              color: #92400e;
+              font-size: 0.9em;
+              margin-bottom: 5px;
+            }
+            
+            .case-notes-content {
+              color: #78350f;
+              font-style: italic;
+              line-height: 1.5;
+            }
+            
+            .footer {
+              margin-top: 40px;
+              padding: 20px;
+              text-align: center;
+              border-top: 2px solid #e5e7eb;
+              background: #f9fafb;
+              border-radius: 6px;
+            }
+            
+            .footer p {
+              margin: 5px 0;
+              color: #6b7280;
+            }
+            
+            .footer .system-info {
+              font-weight: bold;
+              color: #374151;
+              font-size: 1.1em;
+            }
+            
+            .page-number {
+              position: fixed;
+              bottom: 10px;
+              right: 10px;
+              background: #f3f4f6;
+              padding: 5px 10px;
+              border-radius: 4px;
+              font-size: 0.8em;
+              color: #6b7280;
+            }
+            
+            @media print {
+              .page-number { display: none; }
+            }
           </style>
         </head>
         <body>
-          <div class="header">
-            <h1>Legal Diary Schedule</h1>
+          <div class="letterhead">
+            <h1>Court Schedule</h1>
             <h2>${formattedDate}</h2>
-            <p>Total Cases: ${cases.length}</p>
+            <p class="subtitle">Kilungu Law Court</p>
           </div>
-          ${cases
-            .map(
-              (file, index) => `
-            <div class="case-item">
-              <div class="case-number">${index + 1}. ${
-                file.case_number || "Untitled Case"
-              }</div>
-              <div><strong>Type:</strong> <span class="case-type">${
-                file.case_type || "N/A"
-              }</span></div>
-              <div><strong>Purpose:</strong> ${file.purpose || "N/A"}</div>
-              <div><strong>Client:</strong> ${file.client || "N/A"}</div>
-              <div><strong>Time:</strong> ${new Date(
-                file.required_on
-              ).toLocaleTimeString()}</div>
-              ${
-                file.notes
-                  ? `<div><strong>Notes:</strong> ${file.notes}</div>`
-                  : ""
-              }
+          
+          <div class="document-info">
+            <table>
+              <tr>
+                <td>Court Date:</td>
+                <td>${formattedDate}</td>
+              </tr>
+              <tr>
+                <td>Total Cases:</td>
+                <td>${cases.length} scheduled hearing${
+      cases.length !== 1 ? "s" : ""
+    }</td>
+              </tr>
+              <tr>
+                <td>Generated:</td>
+                <td>${generatedTime}</td>
+              </tr>
+              <tr>
+                <td>System:</td>
+                <td>Records & Tracking</td>
+              </tr>
+            </table>
+          </div>
+          
+          <div class="statistics">
+            <div class="stat-box">
+              <h3>Case Types Distribution</h3>
+              ${Object.entries(caseTypes)
+                .map(
+                  ([type, count]) =>
+                    `<div class="stat-item">
+                  <span>${type}</span>
+                  <span><strong>${count}</strong></span>
+                </div>`
+                )
+                .join("")}
             </div>
-          `
-            )
-            .join("")}
-          <div class="footer">
-            <p>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-            <p>Records & Tracking - Legal Case Management System</p>
           </div>
+          
+          <div class="cases-section">
+            <div class="section-header">
+              Detailed Court Schedule
+            </div>
+            
+            ${cases
+              .map((file, index) => {
+                return `
+                <div class="case-item">
+                  <div class="case-number">
+                    ${index + 1}. ${file.case_number || "Untitled Case"}
+                  </div>
+                  
+                  <div class="case-details">
+                    <div class="case-detail">
+                      <div class="case-detail-label">Case Type</div>
+                      <div class="case-detail-value">
+                        <span class="case-type">${
+                          file.case_type || "General"
+                        }</span>
+                      </div>
+                    </div>
+                    
+                    <div class="case-detail">
+                      <div class="case-detail-label">Purpose</div>
+                      <div class="case-detail-value">${
+                        file.purpose || "Not specified"
+                      }</div>
+                    </div>
+                    
+                    <div class="case-detail">
+                      <div class="case-detail-label">Scheduled Time</div>
+                      <div class="case-detail-value">${new Date(
+                        file.required_on
+                      ).toLocaleTimeString("en-US", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
+                      })}</div>
+                    </div>
+                  </div>
+                  
+                  ${
+                    file.notes
+                      ? `
+                    <div class="case-notes">
+                      <div class="case-notes-label">Additional Notes:</div>
+                      <div class="case-notes-content">${file.notes}</div>
+                    </div>
+                  `
+                      : ""
+                  }
+                </div>
+              `;
+              })
+              .join("")}
+          </div>
+          
+          <div class="footer">
+            <p class="system-info">Records & Tracking - Kilungu Law Courts</p>
+            <p>Generated on ${generatedTime}</p>
+            <p>This document contains confidential court information and should be handled accordingly.</p>
+            <p>© ${new Date().getFullYear()} Kilungu Law Courts</p>
+          </div>
+          
+          <div class="page-number">Page 1 of 1</div>
         </body>
       </html>
     `;
 
-    const win = window.open("", "_blank");
-    win?.document.write(printContent);
-    win?.document.close();
-    win?.print();
+    const win = window.open("", "_blank", "width=800,height=600");
+    if (win) {
+      win.document.write(printContent);
+      win.document.close();
+
+      // Add a small delay to ensure content is fully loaded before printing
+      setTimeout(() => {
+        win.print();
+      }, 500);
+    }
   }
 
   // Enhanced WhatsApp reminder with multiple options
@@ -206,7 +768,7 @@ function CalendarItem() {
       )
       .join("\n");
 
-    const message = `🔔 *Legal Diary Reminder*\n\n📅 *Date:* ${formattedDate}\n📋 *Total Cases:* ${matchingCases.length}\n\n*Schedule:*\n${casesList}\n\n⚖️ _Records & Tracking System_`;
+    const message = `COURT SCHEDULE REMINDER\n\nDate: ${formattedDate}\nTotal Cases: ${matchingCases.length}\n\nSchedule:\n${casesList}\n\nRecords & Tracking System`;
 
     switch (type) {
       case "whatsapp":
@@ -220,7 +782,7 @@ function CalendarItem() {
         window.open(smsUrl, "_blank");
         break;
       case "email":
-        const emailSubject = `Legal Diary Reminder - ${formattedDate}`;
+        const emailSubject = `Court Schedule Reminder - ${formattedDate}`;
         const emailBody = message.replace(/\*/g, "").replace(/_/g, "");
         const emailUrl = `mailto:?subject=${encodeURIComponent(
           emailSubject
@@ -237,17 +799,17 @@ function CalendarItem() {
         <div className="text-center">
           <h2 className="text-3xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
             <CalendarDays className="w-8 h-8 text-primary" />
-            Legal Diary
+            Court Schedule
           </h2>
           <p className="text-default-500">
-            Schedule and manage your legal appointments
+            Manage court hearings and case schedules
           </p>
         </div>
 
         {/* Enhanced Calendar */}
 
         <Calendar
-          aria-label="Legal Diary Calendar"
+          aria-label="Court Schedule Calendar"
           isDateUnavailable={isDateUnavailable}
           value={selectedDate}
           onChange={setSelectedDate}
@@ -264,28 +826,21 @@ function CalendarItem() {
                 <FileText className="w-6 h-6 text-primary" />
                 <h3 className="text-xl font-semibold">
                   {selectedDate
-                    ? `Cases for ${new Date(selectedDate).toLocaleDateString(
-                        "en-US",
-                        {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        }
-                      )}`
+                    ? `Court Schedule for ${new Date(
+                        selectedDate
+                      ).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}`
                     : "Select a Date"}
                 </h3>
               </div>
               {matchingCases?.length > 0 && (
-                <Badge
-                  content={matchingCases.length}
-                  color="primary"
-                  variant="solid"
-                >
-                  <Chip size="sm" variant="flat" color="primary">
-                    {matchingCases.length}{" "}
-                    {matchingCases.length === 1 ? "Case" : "Cases"}
-                  </Chip>
-                </Badge>
+                <Chip size="sm" variant="flat" color="primary">
+                  {matchingCases.length}{" "}
+                  {matchingCases.length === 1 ? "Case" : "Cases"}
+                </Chip>
               )}
             </div>
           </CardHeader>
@@ -338,17 +893,17 @@ function CalendarItem() {
                         </DropdownMenu>
                       </Dropdown>
 
-                      {/* Export to CSV */}
+                      {/* Export to Excel */}
                       <Button
                         color="primary"
                         variant="solid"
                         startContent={<Download className="w-4 h-4" />}
                         onPress={() =>
-                          exportCasesToCSV(matchingCases, selectedDate)
+                          exportCasesToExcel(matchingCases, selectedDate)
                         }
                         className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg"
                       >
-                        Export CSV
+                        Export Excel
                       </Button>
 
                       {/* Print */}
@@ -359,7 +914,7 @@ function CalendarItem() {
                         onPress={() => printCases(matchingCases, selectedDate)}
                         className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 shadow-lg"
                       >
-                        Print Schedule
+                        Print Court Schedule
                       </Button>
                     </div>
                   </div>
@@ -445,7 +1000,7 @@ function CalendarItem() {
                                       <Download className="w-4 h-4" />
                                     }
                                     onPress={() =>
-                                      exportCasesToCSV([file], selectedDate)
+                                      exportCasesToExcel([file], selectedDate)
                                     }
                                   >
                                     Export This Case
@@ -465,10 +1020,10 @@ function CalendarItem() {
                     <CalendarDays className="w-8 h-8 text-default-400" />
                   </div>
                   <h3 className="text-lg font-semibold text-default-500 mb-2">
-                    No cases scheduled
+                    No hearings scheduled
                   </h3>
                   <p className="text-default-400">
-                    No cases found for this date.
+                    No court cases found for this date.
                   </p>
                 </div>
               )
@@ -481,7 +1036,7 @@ function CalendarItem() {
                   Select a Date
                 </h3>
                 <p className="text-default-500">
-                  Click on a date in the calendar to view scheduled cases.
+                  Click on a date in the calendar to view scheduled hearings.
                 </p>
               </div>
             )}
