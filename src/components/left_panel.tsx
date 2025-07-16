@@ -426,7 +426,7 @@ const LeftPanel = () => {
             className="text-xs h-10"
             startContent={<FilePenLine className="w-3 h-3" />}
           >
-            Today's Case
+            New Case
           </Button>
           <Button
             size="sm"
@@ -436,8 +436,44 @@ const LeftPanel = () => {
             className="text-xs h-10"
             startContent={<CalendarDays className="w-3 h-3" />}
           >
-            View Offenders
+            Offenders
           </Button>
+          {/* Court Diary */}
+          <Button
+            size="sm"
+            variant="flat"
+            color="success"
+            onPress={() => redirect("/diary")}
+            className="text-xs h-10"
+            startContent={<CalendarDays className="w-3 h-3" />}
+          >
+            Court Diary
+          </Button>
+          {/* Export Data */}
+          {authData.user.role === "Super Admin" && (
+            <>
+              <Button
+                size="sm"
+                variant="flat"
+                color="warning"
+                onPress={() => redirect("/tools")}
+                className="text-xs h-10"
+                startContent={<Wrench className="w-3 h-3" />}
+              >
+                Tools
+              </Button>
+              <Button
+                size="sm"
+                variant="flat"
+                color="info"
+                onPress={() => redirect("/audit_logs")}
+                className="text-xs h-10"
+                startContent={<Logs className="w-3 h-3" />}
+              >
+                Audit Logs
+              </Button>
+            </>
+          )}
           {authData.user.role === "Super Admin" && (
             <>
               <Button

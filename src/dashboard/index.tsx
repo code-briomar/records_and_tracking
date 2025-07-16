@@ -1,19 +1,15 @@
 import {
   addToast,
-  Avatar,
   Badge,
   Button,
   Card,
   CardBody,
   CardHeader,
   Chip,
-  Progress,
 } from "@heroui/react";
 import {
-  Activity,
   AlertTriangle,
   ArrowRight,
-  BarChart3,
   BookOpen,
   Calendar,
   CheckCircle,
@@ -23,7 +19,6 @@ import {
   FileText,
   Gavel,
   Target,
-  Timer,
   Users,
   Zap,
 } from "lucide-react";
@@ -209,73 +204,73 @@ export default function Dashboard() {
 
   const renderStatsCards = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border-blue-200 dark:border-blue-800">
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <CardBody className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-blue-600 dark:text-blue-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Total Cases
               </p>
-              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {stats.totalCases}
               </p>
             </div>
-            <div className="p-3 bg-blue-500 rounded-full">
-              <FileText className="w-6 h-6 text-white" />
+            <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full">
+              <FileText className="w-6 h-6 text-gray-600 dark:text-gray-400" />
             </div>
           </div>
         </CardBody>
       </Card>
 
-      <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800">
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <CardBody className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-green-600 dark:text-green-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Today's Cases
               </p>
-              <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {stats.todayCases}
               </p>
             </div>
-            <div className="p-3 bg-green-500 rounded-full">
-              <Calendar className="w-6 h-6 text-white" />
+            <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full">
+              <Calendar className="w-6 h-6 text-gray-600 dark:text-gray-400" />
             </div>
           </div>
         </CardBody>
       </Card>
 
-      <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 border-orange-200 dark:border-orange-800">
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <CardBody className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-orange-600 dark:text-orange-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Overdue
               </p>
-              <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">
+              <p className="text-2xl font-bold text-red-600 dark:text-red-400">
                 {stats.overdueCases}
               </p>
             </div>
-            <div className="p-3 bg-orange-500 rounded-full">
-              <AlertTriangle className="w-6 h-6 text-white" />
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-full">
+              <AlertTriangle className="w-6 h-6 text-red-500" />
             </div>
           </div>
         </CardBody>
       </Card>
 
-      <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border-purple-200 dark:border-purple-800">
+      <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
         <CardBody className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-purple-600 dark:text-purple-400">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Completion Rate
               </p>
-              <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                 {stats.completionRate}%
               </p>
             </div>
-            <div className="p-3 bg-purple-500 rounded-full">
-              <Target className="w-6 h-6 text-white" />
+            <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded-full">
+              <Target className="w-6 h-6 text-gray-600 dark:text-gray-400" />
             </div>
           </div>
         </CardBody>
@@ -284,14 +279,14 @@ export default function Dashboard() {
   );
 
   const renderWelcomeBanner = () => (
-    <Card className="mb-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+    <Card className="mb-6 bg-gray-900 dark:bg-gray-800 text-white border border-gray-800 dark:border-gray-700">
       <CardBody className="p-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold mb-2">
               Welcome back, {authData?.user?.name}!
             </h1>
-            {/* <p className="text-indigo-100">
+            {/* <p className="text-gray-300">
               {currentTime.toLocaleDateString("en-US", {
                 weekday: "long",
                 year: "numeric",
@@ -299,7 +294,7 @@ export default function Dashboard() {
                 day: "numeric",
               })}
             </p>
-            <p className="text-indigo-200 text-sm mt-1">
+            <p className="text-gray-400 text-sm mt-1">
               {currentTime.toLocaleTimeString("en-US", {
                 hour: "2-digit",
                 minute: "2-digit",
@@ -319,7 +314,11 @@ export default function Dashboard() {
               />
               <span className="text-sm">Kilungu Law Courts</span>
             </div>
-            <Chip size="sm" variant="flat" className="bg-white/20 text-white">
+            <Chip
+              size="sm"
+              variant="flat"
+              className="bg-gray-700 text-gray-200 dark:bg-gray-600 dark:text-gray-300"
+            >
               {authData?.user?.role}
             </Chip>
           </div>
@@ -332,8 +331,8 @@ export default function Dashboard() {
     <Card>
       <CardHeader className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-            <Gavel className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+            <Gavel className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </div>
           <div>
             <h3 className="text-lg font-semibold">Today's Cases</h3>
@@ -438,8 +437,8 @@ export default function Dashboard() {
     <Card>
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
-            <Zap className="w-5 h-5 text-green-600 dark:text-green-400" />
+          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+            <Zap className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </div>
           <div>
             <h3 className="text-lg font-semibold">Quick Actions</h3>
@@ -490,47 +489,6 @@ export default function Dashboard() {
     </Card>
   );
 
-  const renderRecentActivity = () => (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
-            <Activity className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold">Recent Activity</h3>
-            <p className="text-sm text-gray-500">Latest system activities</p>
-          </div>
-        </div>
-      </CardHeader>
-      <CardBody>
-        <div className="space-y-4">
-          {fileSectionData.slice(0, 4).map((file, index) => (
-            <div
-              key={index}
-              className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
-            >
-              <Avatar
-                size="sm"
-                name={file.uploaded_by?.toString() || "U"}
-                className="bg-blue-500 text-white"
-              />
-              <div className="flex-1">
-                <p className="text-sm font-medium">
-                  Case {file.case_number || file.file_id} was updated
-                </p>
-                <p className="text-xs text-gray-500">
-                  {new Date(file.date_recieved).toLocaleDateString()}
-                </p>
-              </div>
-              <Timer className="w-4 h-4 text-gray-400" />
-            </div>
-          ))}
-        </div>
-      </CardBody>
-    </Card>
-  );
-
   // const navigate = useNavigate();
 
   return (
@@ -553,32 +511,26 @@ export default function Dashboard() {
                 <div className="space-y-6">
                   {/* Welcome Banner */}
                   {renderWelcomeBanner()}
-
                   {/* Stats Cards */}
                   {renderStatsCards()}
-
                   {/* Main Content Grid */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
                     {/* Today's Cases - Takes 2 columns */}
                     <div className="lg:col-span-2">{renderTodaysCases()}</div>
 
                     {/* Right Column */}
-                    <div className="space-y-6">
-                      {/* Quick Actions */}
-                      {renderQuickActions()}
-
-                      {/* Recent Activity */}
-                      {renderRecentActivity()}
-                    </div>
+                    {/* <div className="space-y-6"> */}
+                    {/* Quick Actions */}
+                    {/* {renderQuickActions()} */}
+                    {/* </div> */}
                   </div>
-
                   {/* Analytics Section */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <Card>
                       <CardHeader>
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                            <BarChart3 className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                            <BarChart3 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                           </div>
                           <div>
                             <h3 className="text-lg font-semibold">
@@ -627,8 +579,8 @@ export default function Dashboard() {
                     <Card>
                       <CardHeader>
                         <div className="flex items-center gap-3">
-                          <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
-                            <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400" />
+                          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                            <AlertTriangle className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                           </div>
                           <div>
                             <h3 className="text-lg font-semibold">
@@ -666,7 +618,7 @@ export default function Dashboard() {
                         </div>
                       </CardBody>
                     </Card>
-                  </div>
+                  </div> */}
                 </div>
               ) : (
                 // Staff Dashboard
@@ -675,8 +627,8 @@ export default function Dashboard() {
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <Card>
                       <CardBody className="text-center py-12">
-                        <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <BookOpen className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+                        <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <BookOpen className="w-10 h-10 text-gray-600 dark:text-gray-400" />
                         </div>
                         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
                           Welcome to Kilungu Law Courts
@@ -696,8 +648,8 @@ export default function Dashboard() {
                     </Card>
                     <Card>
                       <CardBody className="text-center py-12">
-                        <div className="w-20 h-20 bg-green-100 dark:bg-green-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                          <Users className="w-10 h-10 text-green-600 dark:text-green-400" />
+                        <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Users className="w-10 h-10 text-gray-600 dark:text-gray-400" />
                         </div>
                         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">
                           Staff Directory
