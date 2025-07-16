@@ -9,7 +9,19 @@ import {
   DropdownMenu,
   DropdownTrigger,
 } from "@heroui/react";
-import { ChevronDown } from "lucide-react";
+import {
+  BarChart3,
+  Building,
+  Calendar,
+  ChevronDown,
+  ClipboardList,
+  Columns,
+  FileText,
+  Palette,
+  RotateCcw,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import React from "react";
 import * as XLSX from "xlsx";
 import { writeFile } from "xlsx-js-style";
@@ -279,8 +291,9 @@ const ExportExcelTool = () => {
   return (
     <div className="max-w-2xl mx-auto mt-8 p-8 border dark:border-gray-800 rounded-2xl shadow-lg bg-white dark:bg-gray-900">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2">
-          📊 Export Court Data
+        <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2 flex items-center justify-center gap-3">
+          <BarChart3 className="w-8 h-8" />
+          Export Court Data
         </h2>
         <p className="text-gray-600 dark:text-gray-400 text-sm">
           Export Kilungu Law Court's data with professional formatting and
@@ -302,9 +315,13 @@ const ExportExcelTool = () => {
                 endContent={<ChevronDown className="w-4 h-4" />}
               >
                 <span className="flex items-center gap-2">
-                  {tableToExport === "cases" && "📋"}
-                  {tableToExport === "staff" && "👥"}
-                  {tableToExport === "audit logs" && "📝"}
+                  {tableToExport === "cases" && (
+                    <ClipboardList className="w-4 h-4" />
+                  )}
+                  {tableToExport === "staff" && <Users className="w-4 h-4" />}
+                  {tableToExport === "audit logs" && (
+                    <FileText className="w-4 h-4" />
+                  )}
                   {tableToExport.charAt(0).toUpperCase() +
                     tableToExport.slice(1)}
                 </span>
@@ -320,7 +337,7 @@ const ExportExcelTool = () => {
               <DropdownItem
                 key="cases"
                 onPress={() => setTableToExport("cases")}
-                startContent="📋"
+                startContent={<ClipboardList className="w-4 h-4" />}
               >
                 <div>
                   <div className="font-medium">Cases (CTS)</div>
@@ -332,7 +349,7 @@ const ExportExcelTool = () => {
               <DropdownItem
                 key="staff"
                 onPress={() => setTableToExport("staff")}
-                startContent="👥"
+                startContent={<Users className="w-4 h-4" />}
               >
                 <div>
                   <div className="font-medium">Staff Members</div>
@@ -344,7 +361,7 @@ const ExportExcelTool = () => {
               <DropdownItem
                 key="audit_logs"
                 onPress={() => setTableToExport("audit logs")}
-                startContent="📝"
+                startContent={<FileText className="w-4 h-4" />}
               >
                 <div>
                   <div className="font-medium">Audit Logs</div>
@@ -390,41 +407,46 @@ const ExportExcelTool = () => {
               </p>
             </div>
             <div className="text-2xl">
-              {tableToExport === "cases" && "📋"}
-              {tableToExport === "staff" && "👥"}
-              {tableToExport === "audit logs" && "📝"}
+              {tableToExport === "cases" && (
+                <ClipboardList className="w-8 h-8" />
+              )}
+              {tableToExport === "staff" && <Users className="w-8 h-8" />}
+              {tableToExport === "audit logs" && (
+                <FileText className="w-8 h-8" />
+              )}
             </div>
           </div>
         </div>
 
         {/* Export Features */}
         <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
-          <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-3">
-            ✨ Export Features
+          <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+            <Sparkles className="w-5 h-5" />
+            Export Features
           </h4>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <span>🎨</span>
+              <Palette className="w-4 h-4" />
               <span>Professional styling</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <span>📊</span>
+              <BarChart3 className="w-4 h-4" />
               <span>Detailed metadata</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <span>📏</span>
+              <Columns className="w-4 h-4" />
               <span>Auto-sized columns</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <span>🔄</span>
+              <RotateCcw className="w-4 h-4" />
               <span>Alternating row colors</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <span>📅</span>
+              <Calendar className="w-4 h-4" />
               <span>Formatted dates</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-              <span>🏛️</span>
+              <Building className="w-4 h-4" />
               <span>Court branding</span>
             </div>
           </div>
