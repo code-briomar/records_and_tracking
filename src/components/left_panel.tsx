@@ -30,7 +30,7 @@ import { useAuth } from "../context/auth_context";
 
 const LeftPanel = () => {
   const { authData } = useAuth();
-  const [absentStaff, setAbsentStaff] = React.useState<any>([]);
+  const [absentStaff] = React.useState<any>([]);
   const navigate = useNavigate();
 
   // Early return if authData is not available yet
@@ -330,7 +330,9 @@ const LeftPanel = () => {
               Staff Status
             </h2>
             {absentStaff.length > 0 && (
-              <Badge content={absentStaff.length} color="danger" size="sm" />
+              <Badge color="danger" size="sm">
+                {absentStaff?.length}
+              </Badge>
             )}
           </div>
 
@@ -465,7 +467,7 @@ const LeftPanel = () => {
               <Button
                 size="sm"
                 variant="flat"
-                color="info"
+                color="primary"
                 onPress={() => redirect("/audit_logs")}
                 className="text-xs h-10"
                 startContent={<Logs className="w-3 h-3" />}

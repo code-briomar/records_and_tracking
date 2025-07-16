@@ -14,13 +14,11 @@ import {
   Calendar,
   CheckCircle,
   Clock,
-  Download,
   Eye,
   FileText,
   Gavel,
   Target,
   Users,
-  Zap,
 } from "lucide-react";
 import React from "react";
 import { fileSectionData } from "../components/files_data";
@@ -39,6 +37,8 @@ export default function Dashboard() {
   const [selected, setSelected] = React.useState("overview");
   const [refreshKey, setRefreshKey] = React.useState(0);
   const [currentTime, setCurrentTime] = React.useState(new Date());
+
+  console.log(selected, setSelected, refreshKey, currentTime);
 
   // Update time every minute
   React.useEffect(() => {
@@ -342,7 +342,7 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge content={todayFiles.length} color="primary" />
+          <Badge color="primary">{todayFiles.length}</Badge>
           <Button
             size="sm"
             variant="flat"
@@ -373,13 +373,6 @@ export default function Dashboard() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Chip
-                        size="sm"
-                        color={getPriorityColor(file.priority)}
-                        variant="flat"
-                      >
-                        {file.priority || "Normal"}
-                      </Chip>
                       <Button
                         size="sm"
                         variant="light"
@@ -429,62 +422,6 @@ export default function Dashboard() {
             </p>
           </div>
         )}
-      </CardBody>
-    </Card>
-  );
-
-  const renderQuickActions = () => (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-            <Zap className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold">Quick Actions</h3>
-            <p className="text-sm text-gray-500">Common tasks and shortcuts</p>
-          </div>
-        </div>
-      </CardHeader>
-      <CardBody>
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            variant="flat"
-            color="primary"
-            onPress={() => navigate("/cts")}
-            startContent={<FileText className="w-4 h-4" />}
-            className="h-12"
-          >
-            New Case
-          </Button>
-          <Button
-            variant="flat"
-            color="secondary"
-            onPress={() => navigate("/diary")}
-            startContent={<Calendar className="w-4 h-4" />}
-            className="h-12"
-          >
-            Court Diary
-          </Button>
-          <Button
-            variant="flat"
-            color="success"
-            onPress={() => navigate("/offenders")}
-            startContent={<Users className="w-4 h-4" />}
-            className="h-12"
-          >
-            Offenders
-          </Button>
-          <Button
-            variant="flat"
-            color="warning"
-            onPress={() => navigate("/tools")}
-            startContent={<Download className="w-4 h-4" />}
-            className="h-12"
-          >
-            Export Data
-          </Button>
-        </div>
       </CardBody>
     </Card>
   );

@@ -311,7 +311,7 @@ const AuthForm = ({
           validationSchema={getValidationSchema(isLogin)}
           onSubmit={handleSubmit}
         >
-          {({ isSubmitting, setFieldError }) => (
+          {({ isSubmitting }) => (
             <Form className="space-y-6">
               {!isLogin && (
                 <>
@@ -514,7 +514,7 @@ const Gallery = () => {
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(true);
 
   useEffect(() => {
     if (darkMode) {
@@ -525,6 +525,7 @@ export default function Auth() {
   }, [darkMode]);
 
   useEffect(() => {
+    console.log("Online or Offline: ", navigator.onLine);
     const handleOnlineStatus = () => setIsOffline(!navigator.onLine);
     window.addEventListener("online", handleOnlineStatus);
     window.addEventListener("offline", handleOnlineStatus);
@@ -550,12 +551,13 @@ export default function Auth() {
       </div>
 
       {/* Offline indicator */}
-      {isOffline && (
-        <div className="fixed top-0 left-0 w-full bg-red-500/90 backdrop-blur-sm text-white text-center py-3 z-50 flex items-center justify-center space-x-2">
-          <WifiOff className="w-5 h-5" />
-          <span>You are offline. Some features may be unavailable.</span>
-        </div>
-      )}
+      {/* {isOffline ||
+        (!navigator.onLine && (
+          <div className="fixed top-10 left-0 w-full bg-red-500/90 backdrop-blur-sm text-white text-center py-3 z-10 flex items-center justify-center space-x-2">
+            <WifiOff className="w-5 h-5" />
+            <span>You are offline. Some features may be unavailable.</span>
+          </div>
+        ))} */}
 
       {/* Main grid layout */}
       <div className="grid lg:grid-cols-5 min-h-screen">
@@ -576,10 +578,10 @@ export default function Auth() {
               <img
                 src={darkMode ? "/logo/icon-dark.png" : "/logo/icon-light.png"}
                 alt="Kilungu Law Courts Logo"
-                className="w-20 h-20 rounded-sm m-1"
+                className="w-20 h-20 mt-8 rounded-sm m-1"
               />
 
-              <div>
+              <div className={"mt-5"}>
                 <h1 className="text-xl font-bold text-gray-800 dark:text-gray-200">
                   Kilungu Law Courts
                 </h1>
@@ -591,13 +593,13 @@ export default function Auth() {
 
             {/* Connection status */}
             <div className="flex items-center space-x-2">
-              {isOffline ? (
+              {isOffline || !navigator.onLine ? (
                 <WifiOff className="w-5 h-5 text-red-500" />
               ) : (
                 <Wifi className="w-5 h-5 text-green-500" />
               )}
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                {isOffline ? "Offline" : "Online"}
+                {isOffline || !navigator.onLine ? "Offline" : "Online"}
               </span>
             </div>
 

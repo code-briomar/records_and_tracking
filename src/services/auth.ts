@@ -132,7 +132,7 @@ export const registerUser = async (
 
     // Check if user already exists
     const existingUser = await invoke("get_user_by_email", { email });
-    if (existingUser && existingUser.user_id) {
+    if (existingUser) {
       return {
         success: false,
         message: "User with this email already exists",

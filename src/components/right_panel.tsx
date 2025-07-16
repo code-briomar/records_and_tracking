@@ -136,11 +136,9 @@ const RightPanel = () => {
                 Notifications
               </h2>
               {unreadNotifications.length > 0 && (
-                <Badge
-                  content={unreadNotifications.length}
-                  color="danger"
-                  size="sm"
-                />
+                <Badge color="danger" size="sm">
+                  {unreadNotifications.length}
+                </Badge>
               )}
             </div>
             <div className="flex gap-1">
@@ -249,7 +247,9 @@ const RightPanel = () => {
             <h2 className="text-sm font-medium text-gray-700 dark:text-gray-300">
               Staff Directory
             </h2>
-            <Badge content={filteredStaff.length} color="secondary" size="sm" />
+            <Badge color="secondary" size="sm">
+              {filteredStaff.length}
+            </Badge>
           </div>
           <Button
             size="sm"

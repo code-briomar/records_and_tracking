@@ -21,9 +21,10 @@ import {
   TableRow,
   Tabs,
   useDisclosure,
+  User,
 } from "@heroui/react";
 import { saveAs } from "file-saver";
-import { Check, ChevronRight } from "lucide-react";
+import { Check, FilterIcon } from "lucide-react";
 import React, { SVGProps, useEffect, useState } from "react";
 import { Bar } from "react-chartjs-2";
 import { deleteFile, File, getAllFiles, restoreFile } from "../services/files";
@@ -57,6 +58,24 @@ export const statusOptions = [
   { name: "Active", uid: "active" },
   { name: "Paused", uid: "paused" },
   { name: "Vacation", uid: "vacation" },
+];
+
+export const caseStatusOptions = [
+  { name: "Open", uid: "open" },
+  { name: "Closed", uid: "closed" },
+  { name: "Pending", uid: "pending" },
+];
+
+export const caseTypeOptions = [
+  { name: "Civil", uid: "civil" },
+  { name: "Criminal", uid: "criminal" },
+];
+
+export const purposeOptions = [
+  { name: "Judgement", uid: "judgement" },
+  { name: "Ruling", uid: "ruling" },
+  { name: "Review", uid: "review" },
+  { name: "Appeal", uid: "appeal" },
 ];
 
 export function capitalize(s: string) {
@@ -180,8 +199,6 @@ const INITIAL_VISIBLE_COLUMNS = [
   "case_number",
   "case_type",
   "purpose",
-  //"status", // Only include if it's part of your case/file schema
-  // "uploaded_by",
   "required_on",
   "notes",
   "#",
@@ -250,10 +267,12 @@ export default function CaseFilters({
     onOpenChange: onOpenChangeDelete,
   } = useDisclosure();
 
-  const [visibleColumns] = React.useState<Selection>(
+  const [visibleColumns, setVisibleColumns] = React.useState<Selection>(
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
-  const [statusFilter] = React.useState<Selection>("all");
+  const [statusFilter, setStatusFilter] = React.useState<Selection>("all");
+  const [caseTypeFilter, setCaseTypeFilter] = React.useState<Selection>("all");
+  const [purposeFilter, setPurposeFilter] = React.useState<Selection>("all");
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: "required_on",
@@ -297,8 +316,31 @@ export default function CaseFilters({
   const filteredItems = React.useMemo(() => {
     let filteredCaseFiles = [...caseFiles] as File[];
 
+    console.log(
+      "🔍 Filter Debug - Starting with:",
+      filteredCaseFiles.length,
+      "files"
+    );
+    console.log(
+      "🔍 Case Type Filter:",
+      caseTypeFilter,
+      "Type:",
+      typeof caseTypeFilter
+    );
+    console.log(
+      "🔍 Purpose Filter:",
+      purposeFilter,
+      "Type:",
+      typeof purposeFilter
+    );
+
     // Exclude deleted files
     filteredCaseFiles = filteredCaseFiles.filter((file) => !file.deleted);
+    console.log(
+      "🔍 After excluding deleted:",
+      filteredCaseFiles.length,
+      "files"
+    );
 
     if (showOverdueOnly) {
       filteredCaseFiles = filteredCaseFiles.filter((file) => {
@@ -306,11 +348,61 @@ export default function CaseFilters({
         requiredDate.setHours(0, 0, 0, 0);
         return requiredDate < today && !file.date_returned;
       });
+      console.log(
+        "🔍 After overdue filter:",
+        filteredCaseFiles.length,
+        "files"
+      );
     }
 
     if (hasSearchFilter) {
       filteredCaseFiles = filteredCaseFiles.filter((file) =>
         file.case_number.toLowerCase().includes(filterValue.toLowerCase())
+      );
+      console.log("🔍 After search filter:", filteredCaseFiles.length, "files");
+    }
+
+    // Case type filtering - fixed logic
+    const shouldApplyCaseTypeFilter =
+      caseTypeFilter !== "all" &&
+      caseTypeFilter instanceof Set &&
+      caseTypeFilter.size > 0 &&
+      caseTypeFilter.size !== caseTypeOptions.length;
+
+    console.log("🔍 Should apply case type filter:", shouldApplyCaseTypeFilter);
+
+    if (shouldApplyCaseTypeFilter) {
+      const caseTypeArray = Array.from(caseTypeFilter);
+      console.log("🔍 Filtering by case types:", caseTypeArray);
+      filteredCaseFiles = filteredCaseFiles.filter((file) =>
+        caseTypeArray.includes(file.case_type.toLowerCase())
+      );
+      console.log(
+        "🔍 After case type filter:",
+        filteredCaseFiles.length,
+        "files"
+      );
+    }
+
+    // Purpose filtering - fixed logic
+    const shouldApplyPurposeFilter =
+      purposeFilter !== "all" &&
+      purposeFilter instanceof Set &&
+      purposeFilter.size > 0 &&
+      purposeFilter.size !== purposeOptions.length;
+
+    console.log("🔍 Should apply purpose filter:", shouldApplyPurposeFilter);
+
+    if (shouldApplyPurposeFilter) {
+      const purposeArray = Array.from(purposeFilter);
+      console.log("🔍 Filtering by purposes:", purposeArray);
+      filteredCaseFiles = filteredCaseFiles.filter((file) =>
+        purposeArray.includes(file.purpose.toLowerCase())
+      );
+      console.log(
+        "🔍 After purpose filter:",
+        filteredCaseFiles.length,
+        "files"
       );
     }
 
@@ -326,11 +418,6 @@ export default function CaseFilters({
       }
     }
 
-    // const [value, setValue] = React.useState<RangeValue<DateValue> | null>({
-    //     start: parseDate("2024-04-01"),
-    //     end: parseDate("2024-04-08"),
-    //   });
-
     if (dateSearchValue && dateSearchValue.start && dateSearchValue.end) {
       const startDate = new Date(dateSearchValue.start.toString());
       const endDate = new Date(dateSearchValue.end.toString());
@@ -339,10 +426,24 @@ export default function CaseFilters({
         const fileDate = new Date(file.required_on);
         return fileDate >= startDate && fileDate <= endDate;
       });
+      console.log(
+        "🔍 After date range filter:",
+        filteredCaseFiles.length,
+        "files"
+      );
     }
 
+    console.log("🔍 Final filtered result:", filteredCaseFiles.length, "files");
     return filteredCaseFiles;
-  }, [caseFiles, filterValue, dateFilter, dateSearchValue, showOverdueOnly]);
+  }, [
+    caseFiles,
+    filterValue,
+    dateFilter,
+    dateSearchValue,
+    showOverdueOnly,
+    caseTypeFilter,
+    purposeFilter,
+  ]);
 
   const items = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -434,13 +535,26 @@ export default function CaseFilters({
         );
 
       case "uploaded_by":
+        const uploader = staff.find((u) => u.user_id === file.uploaded_by);
         return (
-          <span>
-            {/* {users.find((u) => u.user_id === file.uploaded_by)?.name ||
-              `User #${file.uploaded_by}`} */}
-            {staff.find((u) => u.user_id === file.uploaded_by)?.name ||
-              `User #${file.uploaded_by}`}
-          </span>
+          <User
+            avatarProps={{
+              radius: "full",
+              size: "sm",
+              src:
+                uploader?.avatar ||
+                `https://i.pravatar.cc/150?u=${file.uploaded_by}`,
+            }}
+            classNames={{
+              description: "text-default-500",
+            }}
+            description={
+              uploader?.email || `user${file.uploaded_by}@example.com`
+            }
+            name={uploader?.name || `User #${file.uploaded_by}`}
+          >
+            {uploader?.email || `user${file.uploaded_by}@example.com`}
+          </User>
         );
 
       case "current_location":
@@ -600,6 +714,7 @@ export default function CaseFilters({
   const topContent = React.useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
+        {/* Main Search and Filter Controls */}
         <div className="flex justify-between gap-3 items-center">
           <Input
             isClearable
@@ -615,19 +730,114 @@ export default function CaseFilters({
             onClear={() => setFilterValue("")}
             onValueChange={onSearchChange}
           />
-          <ControlledRangeDatePicker
-            value={dateSearchValue}
-            setValue={handleDateRangeChange}
-          />
-          <div className="flex gap-3 items-center">
-            <Chip
-              className="capitalize border-none gap-1 text-danger-600 p-4 text-lg font-bold"
-              size="sm"
-              variant="flat"
-              color="danger"
-            >
-              {overdueCases.length} Overdue
-            </Chip>
+
+          <div className="flex gap-2 items-center">
+            <ControlledRangeDatePicker
+              value={dateSearchValue}
+              setValue={handleDateRangeChange}
+            />
+
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  size="sm"
+                  variant="flat"
+                >
+                  <FilterIcon className="w-4 h-4" />
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Advanced Filters"
+                closeOnSelect={false}
+              >
+                <DropdownItem key="type" isReadOnly>
+                  <div className="font-semibold">Case Type</div>
+                </DropdownItem>
+                {caseTypeOptions.map((type) => (
+                  <DropdownItem
+                    key={type.uid}
+                    className="capitalize pl-6"
+                    onPress={() => {
+                      console.log(
+                        "🔧 Case Type Filter - Before:",
+                        caseTypeFilter
+                      );
+
+                      // Handle the case where filter is "all" vs Set
+                      const currentFilter =
+                        caseTypeFilter === "all"
+                          ? new Set()
+                          : new Set(caseTypeFilter);
+                      console.log("🔧 Current filter as Set:", currentFilter);
+
+                      if (currentFilter.has(type.uid)) {
+                        currentFilter.delete(type.uid);
+                        console.log("🔧 Removed:", type.uid);
+                      } else {
+                        currentFilter.add(type.uid);
+                        console.log("🔧 Added:", type.uid);
+                      }
+                      console.log("🔧 New filter size:", currentFilter.size);
+
+                      // Automatically reset to "all" when no items selected
+                      const finalFilter =
+                        currentFilter.size === 0 ? "all" : currentFilter;
+                      console.log("🔧 Final filter:", finalFilter);
+                      setCaseTypeFilter(finalFilter);
+                    }}
+                  >
+                    {caseTypeFilter === "all" ||
+                    !Array.from(caseTypeFilter).includes(type.uid)
+                      ? ""
+                      : "✓ "}
+                    {capitalize(type.name)}
+                  </DropdownItem>
+                ))}
+                <DropdownItem key="purpose" isReadOnly>
+                  <div className="font-semibold">Purpose</div>
+                </DropdownItem>
+                {purposeOptions.map((purpose) => (
+                  <DropdownItem
+                    key={purpose.uid}
+                    className="capitalize pl-6"
+                    onPress={() => {
+                      console.log("🔧 Purpose Filter - Before:", purposeFilter);
+
+                      // Handle the case where filter is "all" vs Set
+                      const currentFilter =
+                        purposeFilter === "all"
+                          ? new Set()
+                          : new Set(purposeFilter);
+                      console.log("🔧 Current filter as Set:", currentFilter);
+
+                      if (currentFilter.has(purpose.uid)) {
+                        currentFilter.delete(purpose.uid);
+                        console.log("🔧 Removed:", purpose.uid);
+                      } else {
+                        currentFilter.add(purpose.uid);
+                        console.log("🔧 Added:", purpose.uid);
+                      }
+                      console.log("🔧 New filter size:", currentFilter.size);
+
+                      // Automatically reset to "all" when no items selected
+                      const finalFilter =
+                        currentFilter.size === 0 ? "all" : currentFilter;
+                      console.log("🔧 Final filter:", finalFilter);
+                      setPurposeFilter(finalFilter);
+                    }}
+                  >
+                    {purposeFilter === "all" ||
+                    !Array.from(purposeFilter).includes(purpose.uid)
+                      ? ""
+                      : "✓ "}
+                    {capitalize(purpose.name)}
+                  </DropdownItem>
+                ))}
+              </DropdownMenu>
+            </Dropdown>
+
             <Button
               className={
                 showOverdueOnly
@@ -638,7 +848,7 @@ export default function CaseFilters({
               variant="flat"
               onPress={() => setShowOverdueOnly((v) => !v)}
             >
-              {showOverdueOnly ? "Show All" : "Show Overdue Only"}
+              {showOverdueOnly ? "Show All" : "Overdue Only"}
             </Button>
             <Button
               className="bg-foreground text-background"
@@ -650,106 +860,60 @@ export default function CaseFilters({
             </Button>
           </div>
         </div>
+
+        {/* Clean Status Bar */}
         <div className="flex justify-between items-center">
-          <div className="flex gap-2 items-center">
-            <h1>This week</h1>
-            <ChevronRight className="w-5 h-5" />
-            <Chip
-              className="capitalize border-none gap-1 text-default-600 p-4 text-lg font-bold"
-              size="sm"
-              variant="flat"
-              color="secondary"
-            >
-              {/* All Cases This Week */}
-              {/* Filter by "required_on" ( format is : 5/29/2025 ) */}
-              {
-                caseFiles.filter((eachCase) => {
-                  const requiredDate = new Date(eachCase.required_on);
-                  const today = new Date();
-                  const startOfWeek = new Date(today);
-                  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+          <div className="flex gap-4 items-center">
+            <span className="text-default-400 text-small">
+              Showing {filteredItems.length} of {caseFiles.length} cases
+            </span>
 
-                  // Reset time to 00:00:00 for all dates
-                  requiredDate.setHours(0, 0, 0, 0);
-                  today.setHours(0, 0, 0, 0);
-                  startOfWeek.setHours(0, 0, 0, 0);
+            {overdueCases.length > 0 && (
+              <Chip
+                className="capitalize border-none gap-1 text-danger-600"
+                size="sm"
+                variant="flat"
+                color="danger"
+              >
+                {overdueCases.length} Overdue
+              </Chip>
+            )}
 
-                  return requiredDate >= startOfWeek && requiredDate <= today;
-                }).length
-              }{" "}
-              files
-            </Chip>
-            <Chip
-              className="capitalize border-none gap-1 text-default-600 p-4 text-lg font-bold"
-              size="sm"
-              variant="flat"
-              color="warning"
-            >
-              {/* Criminal Case Types */}
-              {
-                // caseFiles.filter((file) => file.case_type === "Criminal").length
+            <div className="flex gap-2 items-center text-default-400 text-small">
+              <span>This week:</span>
+              <span className="font-semibold">
+                {
+                  caseFiles.filter((eachCase) => {
+                    const requiredDate = new Date(eachCase.required_on);
+                    const today = new Date();
+                    const startOfWeek = new Date(today);
+                    startOfWeek.setDate(today.getDate() - today.getDay() + 1);
 
-                caseFiles.filter((eachCase) => {
-                  const requiredDate = new Date(eachCase.required_on);
-                  const today = new Date();
-                  const startOfWeek = new Date(today);
-                  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+                    requiredDate.setHours(0, 0, 0, 0);
+                    today.setHours(0, 0, 0, 0);
+                    startOfWeek.setHours(0, 0, 0, 0);
 
-                  // Reset time to 00:00:00 for all dates
-                  requiredDate.setHours(0, 0, 0, 0);
-                  today.setHours(0, 0, 0, 0);
-                  startOfWeek.setHours(0, 0, 0, 0);
-
-                  return (
-                    requiredDate >= startOfWeek &&
-                    requiredDate <= today &&
-                    eachCase.case_type === "Criminal"
-                  );
-                }).length
-              }{" "}
-              - Criminal
-            </Chip>
-
-            <Chip
-              className="capitalize border-none gap-1 text-default-600 p-4 text-lg font-bold"
-              size="sm"
-              variant="flat"
-              color="default"
-            >
-              {/* Civil Case Types */}
-              {
-                caseFiles.filter((eachCase) => {
-                  const requiredDate = new Date(eachCase.required_on);
-                  const today = new Date();
-                  const startOfWeek = new Date(today);
-                  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
-
-                  // Reset time to 00:00:00 for all dates
-                  requiredDate.setHours(0, 0, 0, 0);
-                  today.setHours(0, 0, 0, 0);
-                  startOfWeek.setHours(0, 0, 0, 0);
-
-                  return (
-                    requiredDate >= startOfWeek &&
-                    requiredDate <= today &&
-                    eachCase.case_type === "Civil"
-                  );
-                }).length
-              }{" "}
-              - Civil
-            </Chip>
+                    return requiredDate >= startOfWeek && requiredDate <= today;
+                  }).length
+                }{" "}
+                cases
+              </span>
+            </div>
           </div>
-          <label className="flex items-center text-default-400 text-small">
-            Rows per page:
-            <select
-              className="bg-transparent outline-none text-default-400 text-small"
-              onChange={onRowsPerPageChange}
-            >
-              <option value="10">10</option>
-              <option value="5">5</option>
-              <option value="15">15</option>
-            </select>
-          </label>
+
+          <div>
+            <label className="flex items-center text-default-400 text-small">
+              Rows per page:
+              <select
+                className="bg-transparent outline-none text-default-400 text-small ml-2"
+                onChange={onRowsPerPageChange}
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+              </select>
+            </label>
+          </div>
         </div>
       </div>
     );
@@ -763,6 +927,9 @@ export default function CaseFilters({
     hasSearchFilter,
     overdueCases.length,
     showOverdueOnly,
+    caseTypeFilter,
+    purposeFilter,
+    filteredItems.length,
   ]);
 
   const bottomContent = React.useMemo(() => {
@@ -780,11 +947,11 @@ export default function CaseFilters({
           variant="light"
           onChange={setPage}
         />
-        {/* <span className="text-small text-default-400">
+        <span className="text-small text-default-400">
           {selectedKeys === "all"
             ? "All items selected"
             : `${selectedKeys.size} of ${items.length} selected`}
-        </span> */}
+        </span>
       </div>
     );
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
@@ -1201,54 +1368,44 @@ export default function CaseFilters({
         <Tab key="cases" title="Cases Table">
           {bulkBar}
           <Table
+            isCompact
             isStriped
             removeWrapper
             aria-label="Case Table"
             bottomContent={bottomContent}
             bottomContentPlacement="outside"
+            checkboxesProps={{
+              classNames: {
+                wrapper:
+                  "after:bg-foreground after:text-background text-background",
+              },
+            }}
             classNames={classNames}
+            selectedKeys={selectedKeys}
+            selectionMode="multiple"
             sortDescriptor={sortDescriptor}
             topContent={topContent}
             topContentPlacement="outside"
             onSelectionChange={setSelectedKeys}
             onSortChange={setSortDescriptor}
           >
-            <TableHeader
-              columns={[{ name: "", uid: "select" }, ...headerColumns]}
-            >
+            <TableHeader columns={headerColumns}>
               {(column) => (
                 <TableColumn
                   key={column.uid}
                   align={column.uid === "actions" ? "center" : "start"}
                   allowsSorting={"sortable" in column ? column.sortable : false}
                 >
-                  {column.uid === "select" ? (
-                    <input
-                      type="checkbox"
-                      checked={selectAll}
-                      onChange={handleSelectAll}
-                    />
-                  ) : (
-                    column.name
-                  )}
+                  {column.name}
                 </TableColumn>
               )}
             </TableHeader>
             <TableBody emptyContent={"No case files found"} items={sortedItems}>
               {(item) => (
                 <TableRow key={item.file_id}>
-                  <TableCell>
-                    <input
-                      type="checkbox"
-                      checked={selectedBulk.has(item.file_id)}
-                      onChange={() => handleBulkSelect(item.file_id)}
-                    />
-                  </TableCell>
-                  {headerColumns.map((column) => (
-                    <TableCell key={column.uid}>
-                      {renderCell(item, column.uid)}
-                    </TableCell>
-                  ))}
+                  {(columnKey) => (
+                    <TableCell>{renderCell(item, columnKey)}</TableCell>
+                  )}
                 </TableRow>
               )}
             </TableBody>
@@ -1543,17 +1700,6 @@ export default function CaseFilters({
         isOpen={isOpenDelete}
         onOpenChange={onOpenChangeDelete}
       />
-
-      {/* Automated reminders/alerts (in-app): */}
-      {React.useEffect(() => {
-        if (overdueCases.length > 0) {
-          addToast({
-            title: "Overdue Cases Alert!",
-            description: `You have ${overdueCases.length} overdue cases.`,
-            color: "danger",
-          });
-        }
-      }, [overdueCases.length])}
     </>
   );
 }
