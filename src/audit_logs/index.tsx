@@ -8,7 +8,7 @@ import { useAuth } from "../context/auth_context.tsx";
 
 export default function AuditLogs() {
   const { authData } = useAuth();
-  const breadcrumbs = [authData?.role, "Audit Logs"];
+  const breadcrumbs = [authData?.user?.role, "Audit Logs"];
   return (
     <>
       <Card

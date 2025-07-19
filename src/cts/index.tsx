@@ -10,7 +10,7 @@ import { File } from "../services/files";
 
 export default function CTS() {
   const { authData } = useAuth();
-  const breadcrumbs = [authData?.role, "CTS"];
+  const breadcrumbs = [authData?.user?.role, "CTS"];
 
   const [caseFiles, setCaseFiles] = useState<File[]>([]);
 

@@ -9,9 +9,22 @@ import {
   DropdownMenu,
   DropdownTrigger,
 } from "@heroui/react";
-import { ChevronDown } from "lucide-react";
+import {
+  BarChart3,
+  Building,
+  Calendar,
+  ChevronDown,
+  ClipboardList,
+  Columns,
+  FileText,
+  Palette,
+  RotateCcw,
+  Sparkles,
+  Users,
+} from "lucide-react";
 import React from "react";
-import { utils, writeFile } from "xlsx-js-style";
+import * as XLSX from "xlsx";
+import { writeFile } from "xlsx-js-style";
 import { fileSectionData } from "../components/files_data";
 import { notifications } from "../components/notifications_data";
 import { staff } from "../components/staff_data";
@@ -19,162 +32,453 @@ import { useAuth } from "../context/auth_context";
 
 const ExportExcelTool = () => {
   const [tableToExport, setTableToExport] = React.useState("cases");
+  const { authData } = useAuth();
+
   const exportToExcel = () => {
     let data = [];
+    let tableName = "";
 
     switch (tableToExport) {
       case "cases":
         data = fileSectionData;
+        tableName = "Cases (CTS)";
         break;
 
       case "staff":
         data = staff;
+        tableName = "Staff Members";
         break;
 
       case "audit logs":
         data = notifications;
+        tableName = "Audit Logs";
         break;
 
       default:
         data = fileSectionData;
+        tableName = "Cases (CTS)";
         break;
     }
 
-    const worksheet = utils.json_to_sheet([]);
+    if (!data || data.length === 0) {
+      alert(`No ${tableName.toLowerCase()} data to export.`);
+      return;
+    }
 
-    let Heading = undefined;
+    // Create workbook
+    const wb = XLSX.utils.book_new();
+
+    let customHeaders = [];
+    let formattedData = [];
+
     switch (tableToExport) {
       case "cases":
-        Heading = [
-          [
-            "#",
-            "Case Number",
-            "Purpose",
-            "Uploaded By",
-            "Current Location",
-            "Notes",
-            "Date Received",
-            "Required On",
-          ],
+        customHeaders = [
+          "Case Number",
+          "Purpose",
+          "Case Type",
+          "Uploaded By",
+          "Current Location",
+          "Notes",
+          "Date Received",
+          "Required On",
+          "Status",
         ];
+        formattedData = data.map((item: any) => ({
+          "Case Number": item.case_number || "N/A",
+          Purpose: item.purpose || "N/A",
+          "Case Type": item.case_type || "N/A",
+          "Uploaded By": item.uploaded_by || "N/A",
+          "Current Location": item.current_location || "N/A",
+          Notes: item.notes || "N/A",
+          "Date Received": item.date_received
+            ? new Date(item.date_received).toLocaleDateString()
+            : "N/A",
+          "Required On": item.required_on
+            ? new Date(item.required_on).toLocaleDateString()
+            : "N/A",
+          Status: item.status || "Active",
+        }));
         break;
 
       case "staff":
-        Heading = [["#", "Name", "Role", "Email", "Status", "Phone"]];
+        customHeaders = [
+          "Name",
+          "Role",
+          "Email",
+          "Phone",
+          "Status",
+          "Department",
+          "Hire Date",
+        ];
+        formattedData = data.map((item: any) => ({
+          Name: item.name || "N/A",
+          Role: item.role || "N/A",
+          Email: item.email || "N/A",
+          Phone: item.phone || "N/A",
+          Status: item.status || "Active",
+          Department: item.department || "N/A",
+          "Hire Date": item.hire_date
+            ? new Date(item.hire_date).toLocaleDateString()
+            : "N/A",
+        }));
         break;
 
       case "audit logs":
-        Heading = [["#", "Message", "Assigned To", "Date"]];
+        customHeaders = ["Message", "Assigned To", "Date", "Type", "Status"];
+        formattedData = data.map((item: any) => ({
+          Message: item.message || "N/A",
+          "Assigned To": item.assigned_to || "N/A",
+          Date: item.date ? new Date(item.date).toLocaleDateString() : "N/A",
+          Type: item.type || "General",
+          Status: item.status || "Active",
+        }));
         break;
 
       default:
-        Heading = [
-          [
-            "#",
-            "Case Number",
-            "Purpose",
-            "Uploaded By",
-            "Current Location",
-            "Notes",
-            "Date Received",
-            "Required On",
-          ],
-        ];
+        customHeaders = ["Data"];
+        formattedData = data;
         break;
     }
 
-    // Add header row
-    utils.sheet_add_aoa(worksheet, Heading);
+    // Create metadata section
+    const metadata = [
+      [`KILUNGU LAW COURTS - ${tableName.toUpperCase()} EXPORT`],
+      [""],
+      [
+        "Export Date:",
+        `${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+      ],
+      ["Data Type:", tableName],
+      ["Total Records:", data.length],
+      ["Generated by:", authData?.user?.name || "System"],
+      ["Report Type:", "Complete Data Export"],
+      [""],
+      [""], // Extra space before headers
+    ];
 
-    // Add data rows starting from A2
-    utils.sheet_add_json(worksheet, data, {
-      origin: "A2",
-      skipHeader: true,
+    // Add metadata rows
+    const ws_data = [...metadata];
+
+    // Add headers
+    ws_data.push(customHeaders);
+
+    // Add data
+    formattedData.forEach((item) => {
+      ws_data.push(
+        customHeaders.map((header) => item[header as keyof typeof item])
+      );
     });
 
-    // Bold the header cells
-    Heading[0].forEach((_, colIndex) => {
-      const cellAddress = utils.encode_cell({ r: 0, c: colIndex });
-      if (!worksheet[cellAddress]) return;
+    // Create worksheet
+    const ws = XLSX.utils.aoa_to_sheet(ws_data);
 
-      worksheet[cellAddress].s = {
-        font: {
-          bold: true,
-        },
+    // Set column widths based on content
+    const colWidths = customHeaders.map((header) => {
+      const maxLength = Math.max(
+        header.length,
+        ...formattedData.map(
+          (item) => String(item[header as keyof typeof item] || "").length
+        )
+      );
+      return { wch: Math.min(Math.max(maxLength + 2, 10), 50) };
+    });
+    ws["!cols"] = colWidths;
+
+    // Style the metadata section
+    const metadataRowCount = metadata.length;
+
+    // Style title (row 1)
+    if (ws["A1"]) {
+      ws["A1"].s = {
+        font: { bold: true, size: 14, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "2c3e50" } },
+        alignment: { horizontal: "center", vertical: "center" },
       };
+    }
+
+    // Style metadata labels and values
+    for (let i = 3; i <= 7; i++) {
+      // Style the label (column A)
+      const labelCellRef = `A${i}`;
+      if (ws[labelCellRef]) {
+        ws[labelCellRef].s = {
+          font: { bold: true, color: { rgb: "495057" } },
+          fill: { fgColor: { rgb: "f8f9fa" } },
+        };
+      }
+
+      // Style the value (column B)
+      const valueCellRef = `B${i}`;
+      if (ws[valueCellRef]) {
+        ws[valueCellRef].s = {
+          font: { bold: true, color: { rgb: "2c3e50" } },
+          fill: { fgColor: { rgb: "f8f9fa" } },
+        };
+      }
+    }
+
+    // Style headers row
+    const headerRow = metadataRowCount + 1;
+    customHeaders.forEach((_, index) => {
+      const cellRef = XLSX.utils.encode_cell({ r: headerRow - 1, c: index });
+      if (ws[cellRef]) {
+        ws[cellRef].s = {
+          font: { bold: true, color: { rgb: "FFFFFF" } },
+          fill: { fgColor: { rgb: "007bff" } },
+          alignment: { horizontal: "center", vertical: "center" },
+          border: {
+            top: { style: "thin", color: { rgb: "000000" } },
+            bottom: { style: "thin", color: { rgb: "000000" } },
+            left: { style: "thin", color: { rgb: "000000" } },
+            right: { style: "thin", color: { rgb: "000000" } },
+          },
+        };
+      }
     });
 
-    // Auto-width columns
-    const columnWidths = Heading[0].map((header) => ({
-      wch: header.length + 5, // adjust width based on header length
-    }));
-    worksheet["!cols"] = columnWidths;
+    // Style data rows with alternating colors
+    const dataStartRow = headerRow + 1;
+    for (let i = 0; i < formattedData.length; i++) {
+      const rowIndex = dataStartRow + i - 1;
+      const isEvenRow = i % 2 === 0;
 
-    const workbook = utils.book_new();
-    utils.book_append_sheet(workbook, worksheet, "Kilungu Law Courts - Cases");
+      customHeaders.forEach((_, colIndex) => {
+        const cellRef = XLSX.utils.encode_cell({ r: rowIndex, c: colIndex });
+        if (ws[cellRef]) {
+          ws[cellRef].s = {
+            fill: { fgColor: { rgb: isEvenRow ? "f8f9fa" : "ffffff" } },
+            border: {
+              top: { style: "thin", color: { rgb: "dee2e6" } },
+              bottom: { style: "thin", color: { rgb: "dee2e6" } },
+              left: { style: "thin", color: { rgb: "dee2e6" } },
+              right: { style: "thin", color: { rgb: "dee2e6" } },
+            },
+          };
+        }
+      });
+    }
 
-    writeFile(workbook, "Kilungu-Law-Courts-Cases.xlsx");
+    // Merge cells for title
+    ws["!merges"] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: customHeaders.length - 1 } },
+    ];
+
+    // Add worksheet to workbook
+    const sheetName =
+      `${tableName} - ${new Date().toLocaleDateString()}`.replace(
+        /[:\\\/\?\*\[\]]/g,
+        "_"
+      );
+    XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+    // Generate Excel file
+    const fileName = `Kilungu_Law_Courts_${tableName.replace(/\s+/g, "_")}_${
+      new Date().toISOString().split("T")[0]
+    }_${data.length}records.xlsx`;
+
+    // Use writeFile from xlsx-js-style for styling support
+    writeFile(wb, fileName);
+
+    // Show success message
+    alert(
+      `Successfully exported ${
+        data.length
+      } ${tableName.toLowerCase()} records to Excel file: ${fileName}`
+    );
   };
 
   return (
-    <div className="max-w-md mx-auto mt-16 p-6 border dark:border-gray-800 rounded-2xl shadow-lg">
-      <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-4">
-        Export Kilungu Law Court's Data
-      </h2>
-      <p className="text-gray-600 mb-6 text-sm">
-        Select the type of data you want to export as an Excel file.
-      </p>
-
-      <div className="mb-6">
-        <Dropdown>
-          <DropdownTrigger>
-            <Button
-              variant="bordered"
-              className="w-full justify-between text-gray-700 dark:text-gray-200"
-              endContent={<ChevronDown className="w-4 h-4" />}
-            >
-              {tableToExport.charAt(0).toUpperCase() + tableToExport.slice(1)}
-            </Button>
-          </DropdownTrigger>
-          <DropdownMenu
-            aria-label="Select table type"
-            variant="faded"
-            disallowEmptySelection
-            selectionMode="single"
-          >
-            <DropdownItem key="cases" onPress={() => setTableToExport("cases")}>
-              CTS
-            </DropdownItem>
-            <DropdownItem key="staff" onPress={() => setTableToExport("staff")}>
-              Staff
-            </DropdownItem>
-            <DropdownItem
-              key="audit_logs"
-              onPress={() => setTableToExport("audit logs")}
-            >
-              Audit Logs
-            </DropdownItem>
-          </DropdownMenu>
-        </Dropdown>
+    <div className="max-w-2xl mx-auto mt-8 p-8 border dark:border-gray-800 rounded-2xl shadow-lg bg-white dark:bg-gray-900">
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold text-gray-800 dark:text-gray-200 mb-2 flex items-center justify-center gap-3">
+          <BarChart3 className="w-8 h-8" />
+          Export Court Data
+        </h2>
+        <p className="text-gray-600 dark:text-gray-400 text-sm">
+          Export Kilungu Law Court's data with professional formatting and
+          detailed metadata
+        </p>
       </div>
 
-      <Button
-        onPress={exportToExcel}
-        color="primary"
-        className="w-full font-semibold"
-        endContent={
-          <img src="/icons/excel.png" alt="Excel Icon" className="w-4 h-4" />
-        }
-      >
-        Export {tableToExport} to Excel
-      </Button>
+      <div className="space-y-6">
+        {/* Data Type Selection */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Select Data Type to Export
+          </label>
+          <Dropdown>
+            <DropdownTrigger>
+              <Button
+                variant="bordered"
+                className="w-full justify-between text-gray-700 dark:text-gray-200 h-12"
+                endContent={<ChevronDown className="w-4 h-4" />}
+              >
+                <span className="flex items-center gap-2">
+                  {tableToExport === "cases" && (
+                    <ClipboardList className="w-4 h-4" />
+                  )}
+                  {tableToExport === "staff" && <Users className="w-4 h-4" />}
+                  {tableToExport === "audit logs" && (
+                    <FileText className="w-4 h-4" />
+                  )}
+                  {tableToExport.charAt(0).toUpperCase() +
+                    tableToExport.slice(1)}
+                </span>
+              </Button>
+            </DropdownTrigger>
+            <DropdownMenu
+              aria-label="Select table type"
+              variant="faded"
+              disallowEmptySelection
+              selectionMode="single"
+              className="min-w-full"
+            >
+              <DropdownItem
+                key="cases"
+                onPress={() => setTableToExport("cases")}
+                startContent={<ClipboardList className="w-4 h-4" />}
+              >
+                <div>
+                  <div className="font-medium">Cases (CTS)</div>
+                  <div className="text-xs text-gray-500">
+                    Case tracking system data
+                  </div>
+                </div>
+              </DropdownItem>
+              <DropdownItem
+                key="staff"
+                onPress={() => setTableToExport("staff")}
+                startContent={<Users className="w-4 h-4" />}
+              >
+                <div>
+                  <div className="font-medium">Staff Members</div>
+                  <div className="text-xs text-gray-500">
+                    Employee information and roles
+                  </div>
+                </div>
+              </DropdownItem>
+              <DropdownItem
+                key="audit_logs"
+                onPress={() => setTableToExport("audit logs")}
+                startContent={<FileText className="w-4 h-4" />}
+              >
+                <div>
+                  <div className="font-medium">Audit Logs</div>
+                  <div className="text-xs text-gray-500">
+                    System activity and notifications
+                  </div>
+                </div>
+              </DropdownItem>
+            </DropdownMenu>
+          </Dropdown>
+        </div>
+
+        {/* Export Statistics */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-medium text-blue-900 dark:text-blue-100">
+                Export Preview
+              </h3>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                {(() => {
+                  let count = 0;
+                  let type = "";
+                  switch (tableToExport) {
+                    case "cases":
+                      count = fileSectionData.length;
+                      type = "cases";
+                      break;
+                    case "staff":
+                      count = staff.length;
+                      type = "staff members";
+                      break;
+                    case "audit logs":
+                      count = notifications.length;
+                      type = "audit logs";
+                      break;
+                    default:
+                      count = 0;
+                      type = "records";
+                  }
+                  return `${count} ${type} will be exported`;
+                })()}
+              </p>
+            </div>
+            <div className="text-2xl">
+              {tableToExport === "cases" && (
+                <ClipboardList className="w-8 h-8" />
+              )}
+              {tableToExport === "staff" && <Users className="w-8 h-8" />}
+              {tableToExport === "audit logs" && (
+                <FileText className="w-8 h-8" />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Export Features */}
+        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+          <h4 className="font-medium text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+            <Sparkles className="w-5 h-5" />
+            Export Features
+          </h4>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+              <Palette className="w-4 h-4" />
+              <span>Professional styling</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+              <BarChart3 className="w-4 h-4" />
+              <span>Detailed metadata</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+              <Columns className="w-4 h-4" />
+              <span>Auto-sized columns</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+              <RotateCcw className="w-4 h-4" />
+              <span>Alternating row colors</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+              <Calendar className="w-4 h-4" />
+              <span>Formatted dates</span>
+            </div>
+            <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
+              <Building className="w-4 h-4" />
+              <span>Court branding</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Export Button */}
+        <Button
+          onPress={exportToExcel}
+          color="primary"
+          className="w-full h-12 font-semibold text-lg bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+          endContent={
+            <img src="/icons/excel.png" alt="Excel Icon" className="w-5 h-5" />
+          }
+        >
+          Export{" "}
+          {tableToExport.charAt(0).toUpperCase() + tableToExport.slice(1)} to
+          Excel
+        </Button>
+
+        {/* Footer Info */}
+        <div className="text-center text-xs text-gray-500 dark:text-gray-400 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <p>Generated by Kilungu Law Courts Records & Tracking System</p>
+          <p>© {new Date().getFullYear()} - Confidential Legal Document</p>
+        </div>
+      </div>
     </div>
   );
 };
 
 export default function Tools() {
   const { authData } = useAuth();
-  const breadcrumbs = [authData?.role, "Tools"];
+  const breadcrumbs = [authData?.user?.role, "Tools"];
 
   return (
     <>

@@ -1,6 +1,13 @@
 import { BreadcrumbItem, Breadcrumbs } from "@heroui/react";
 import { invoke } from "@tauri-apps/api/core";
-import { LucideFolderSync, Moon, RotateCw, Sun } from "lucide-react";
+import {
+  LucideFolderSync,
+  Moon,
+  RotateCw,
+  Sun,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -70,11 +77,12 @@ const NavbarSection = ({ breadcrumbs }: { breadcrumbs: string[] }) => {
           className={`w-5 h-5 cursor-pointer ${spinning ? "animate-spin" : ""}`}
           onClick={handleClick}
         />
-        {/* {authData?.role == "Super Admin" && (
+        {/* {authData?.user?.role === "Super Admin" && (
           <Bell className="w-6 h-6" onClick={notifications} />
         )} */}
         {/* Sync Data */}
-        {authData?.role == "Super Admin" || "Court Admin" ? (
+        {authData?.user?.role === "Super Admin" ||
+        authData?.user?.role === "Court Admin" ? (
           <LucideFolderSync
             className="w-5 h-5 cursor-pointer"
             onClick={() => {
@@ -109,6 +117,14 @@ const NavbarSection = ({ breadcrumbs }: { breadcrumbs: string[] }) => {
             }}
           />
         ) : null}
+
+        {/* Offline or Online */}
+
+        {!navigator.onLine ? (
+          <WifiOff className="w-5 h-5 text-red-500" />
+        ) : (
+          <Wifi className="w-5 h-5 text-green-500" />
+        )}
       </div>
     </div>
   );

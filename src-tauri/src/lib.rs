@@ -189,8 +189,11 @@ pub fn run() {
 
     // Configure Supabase
     let supabase = SupabaseClient::new(
-        
+        "https://jdvxrimlhomteuwydvvh.supabase.co",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkdnhyaW1saG9tdGV1d3lkdnZoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjE4ODk3MiwiZXhwIjoyMDYxNzY0OTcyfQ.c0gLkOARG17I1hP_Hl1wzJlceE0_4uaqLsKnNL5XltI",
+        ""
     );
+
     log_startup("✅ Supabase client configured");
 
     let app_state = AppState { conn, supabase };
@@ -261,6 +264,7 @@ pub fn run() {
             mark_notification_as_read,
             delete_notification,
             list_offenders,
+            fetch_all_histories,
             get_offender,
             create_offender,
             update_offender,

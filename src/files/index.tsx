@@ -7,7 +7,7 @@ import { useAuth } from "../context/auth_context";
 
 export default function File() {
   const { authData } = useAuth();
-  const breadcrumbs = [authData?.role, "File Explorer"];
+  const breadcrumbs = [authData?.user?.role, "File Explorer"];
   return (
     <>
       <Card

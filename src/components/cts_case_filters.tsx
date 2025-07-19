@@ -21,11 +21,35 @@ import {
   TableRow,
   Tabs,
   useDisclosure,
+  User,
 } from "@heroui/react";
 import { saveAs } from "file-saver";
-import { Check, ChevronRight } from "lucide-react";
+import {
+  AlertTriangle,
+  BarChart3,
+  Calendar,
+  Check,
+  CheckCircle,
+  Clock,
+  Download,
+  FileText,
+  FilterIcon,
+  FolderOpen,
+  Gavel,
+  Mail,
+  MessageCircle,
+  RotateCcw,
+  Save,
+  Scale,
+  Settings,
+  ShieldAlert,
+  Smartphone,
+  Target,
+  TrendingUp,
+  Users,
+  Zap,
+} from "lucide-react";
 import React, { SVGProps, useEffect, useState } from "react";
-import { Bar } from "react-chartjs-2";
 import { deleteFile, File, getAllFiles, restoreFile } from "../services/files";
 import AddNewCaseFileForm from "./add_new_case_file_form";
 import ControlledRangeDatePicker from "./controlled_range_date_picker";
@@ -57,6 +81,24 @@ export const statusOptions = [
   { name: "Active", uid: "active" },
   { name: "Paused", uid: "paused" },
   { name: "Vacation", uid: "vacation" },
+];
+
+export const caseStatusOptions = [
+  { name: "Open", uid: "open" },
+  { name: "Closed", uid: "closed" },
+  { name: "Pending", uid: "pending" },
+];
+
+export const caseTypeOptions = [
+  { name: "Civil", uid: "civil" },
+  { name: "Criminal", uid: "criminal" },
+];
+
+export const purposeOptions = [
+  { name: "Judgement", uid: "judgement" },
+  { name: "Ruling", uid: "ruling" },
+  { name: "Review", uid: "review" },
+  { name: "Appeal", uid: "appeal" },
 ];
 
 export function capitalize(s: string) {
@@ -180,8 +222,6 @@ const INITIAL_VISIBLE_COLUMNS = [
   "case_number",
   "case_type",
   "purpose",
-  //"status", // Only include if it's part of your case/file schema
-  // "uploaded_by",
   "required_on",
   "notes",
   "#",
@@ -254,6 +294,8 @@ export default function CaseFilters({
     new Set(INITIAL_VISIBLE_COLUMNS)
   );
   const [statusFilter] = React.useState<Selection>("all");
+  const [caseTypeFilter, setCaseTypeFilter] = React.useState<Selection>("all");
+  const [purposeFilter, setPurposeFilter] = React.useState<Selection>("all");
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
   const [sortDescriptor, setSortDescriptor] = React.useState<SortDescriptor>({
     column: "required_on",
@@ -297,8 +339,31 @@ export default function CaseFilters({
   const filteredItems = React.useMemo(() => {
     let filteredCaseFiles = [...caseFiles] as File[];
 
+    console.log(
+      "🔍 Filter Debug - Starting with:",
+      filteredCaseFiles.length,
+      "files"
+    );
+    console.log(
+      "🔍 Case Type Filter:",
+      caseTypeFilter,
+      "Type:",
+      typeof caseTypeFilter
+    );
+    console.log(
+      "🔍 Purpose Filter:",
+      purposeFilter,
+      "Type:",
+      typeof purposeFilter
+    );
+
     // Exclude deleted files
     filteredCaseFiles = filteredCaseFiles.filter((file) => !file.deleted);
+    console.log(
+      "🔍 After excluding deleted:",
+      filteredCaseFiles.length,
+      "files"
+    );
 
     if (showOverdueOnly) {
       filteredCaseFiles = filteredCaseFiles.filter((file) => {
@@ -306,11 +371,61 @@ export default function CaseFilters({
         requiredDate.setHours(0, 0, 0, 0);
         return requiredDate < today && !file.date_returned;
       });
+      console.log(
+        "🔍 After overdue filter:",
+        filteredCaseFiles.length,
+        "files"
+      );
     }
 
     if (hasSearchFilter) {
       filteredCaseFiles = filteredCaseFiles.filter((file) =>
         file.case_number.toLowerCase().includes(filterValue.toLowerCase())
+      );
+      console.log("🔍 After search filter:", filteredCaseFiles.length, "files");
+    }
+
+    // Case type filtering - fixed logic
+    const shouldApplyCaseTypeFilter =
+      caseTypeFilter !== "all" &&
+      caseTypeFilter instanceof Set &&
+      caseTypeFilter.size > 0 &&
+      caseTypeFilter.size !== caseTypeOptions.length;
+
+    console.log("🔍 Should apply case type filter:", shouldApplyCaseTypeFilter);
+
+    if (shouldApplyCaseTypeFilter) {
+      const caseTypeArray = Array.from(caseTypeFilter as Set<string>);
+      console.log("🔍 Filtering by case types:", caseTypeArray);
+      filteredCaseFiles = filteredCaseFiles.filter((file) =>
+        caseTypeArray.includes(file.case_type.toLowerCase())
+      );
+      console.log(
+        "🔍 After case type filter:",
+        filteredCaseFiles.length,
+        "files"
+      );
+    }
+
+    // Purpose filtering - fixed logic
+    const shouldApplyPurposeFilter =
+      purposeFilter !== "all" &&
+      purposeFilter instanceof Set &&
+      purposeFilter.size > 0 &&
+      purposeFilter.size !== purposeOptions.length;
+
+    console.log("🔍 Should apply purpose filter:", shouldApplyPurposeFilter);
+
+    if (shouldApplyPurposeFilter) {
+      const purposeArray = Array.from(purposeFilter as Set<string>);
+      console.log("🔍 Filtering by purposes:", purposeArray);
+      filteredCaseFiles = filteredCaseFiles.filter((file) =>
+        purposeArray.includes(file.purpose.toLowerCase())
+      );
+      console.log(
+        "🔍 After purpose filter:",
+        filteredCaseFiles.length,
+        "files"
       );
     }
 
@@ -326,11 +441,6 @@ export default function CaseFilters({
       }
     }
 
-    // const [value, setValue] = React.useState<RangeValue<DateValue> | null>({
-    //     start: parseDate("2024-04-01"),
-    //     end: parseDate("2024-04-08"),
-    //   });
-
     if (dateSearchValue && dateSearchValue.start && dateSearchValue.end) {
       const startDate = new Date(dateSearchValue.start.toString());
       const endDate = new Date(dateSearchValue.end.toString());
@@ -339,10 +449,24 @@ export default function CaseFilters({
         const fileDate = new Date(file.required_on);
         return fileDate >= startDate && fileDate <= endDate;
       });
+      console.log(
+        "🔍 After date range filter:",
+        filteredCaseFiles.length,
+        "files"
+      );
     }
 
+    console.log("🔍 Final filtered result:", filteredCaseFiles.length, "files");
     return filteredCaseFiles;
-  }, [caseFiles, filterValue, dateFilter, dateSearchValue, showOverdueOnly]);
+  }, [
+    caseFiles,
+    filterValue,
+    dateFilter,
+    dateSearchValue,
+    showOverdueOnly,
+    caseTypeFilter,
+    purposeFilter,
+  ]);
 
   const items = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -434,13 +558,26 @@ export default function CaseFilters({
         );
 
       case "uploaded_by":
+        const uploader = staff.find((u) => u.user_id === file.uploaded_by);
         return (
-          <span>
-            {/* {users.find((u) => u.user_id === file.uploaded_by)?.name ||
-              `User #${file.uploaded_by}`} */}
-            {staff.find((u) => u.user_id === file.uploaded_by)?.name ||
-              `User #${file.uploaded_by}`}
-          </span>
+          <User
+            avatarProps={{
+              radius: "full",
+              size: "sm",
+              src:
+                uploader?.avatar ||
+                `https://i.pravatar.cc/150?u=${file.uploaded_by}`,
+            }}
+            classNames={{
+              description: "text-default-500",
+            }}
+            description={
+              uploader?.email || `user${file.uploaded_by}@example.com`
+            }
+            name={uploader?.name || `User #${file.uploaded_by}`}
+          >
+            {uploader?.email || `user${file.uploaded_by}@example.com`}
+          </User>
         );
 
       case "current_location":
@@ -600,6 +737,7 @@ export default function CaseFilters({
   const topContent = React.useMemo(() => {
     return (
       <div className="flex flex-col gap-4">
+        {/* Main Search and Filter Controls */}
         <div className="flex justify-between gap-3 items-center">
           <Input
             isClearable
@@ -615,19 +753,13 @@ export default function CaseFilters({
             onClear={() => setFilterValue("")}
             onValueChange={onSearchChange}
           />
-          <ControlledRangeDatePicker
-            value={dateSearchValue}
-            setValue={handleDateRangeChange}
-          />
-          <div className="flex gap-3 items-center">
-            <Chip
-              className="capitalize border-none gap-1 text-danger-600 p-4 text-lg font-bold"
-              size="sm"
-              variant="flat"
-              color="danger"
-            >
-              {overdueCases.length} Overdue
-            </Chip>
+
+          <div className="flex gap-2 items-center">
+            <ControlledRangeDatePicker
+              value={dateSearchValue}
+              setValue={handleDateRangeChange}
+            />
+
             <Button
               className={
                 showOverdueOnly
@@ -638,7 +770,7 @@ export default function CaseFilters({
               variant="flat"
               onPress={() => setShowOverdueOnly((v) => !v)}
             >
-              {showOverdueOnly ? "Show All" : "Show Overdue Only"}
+              {showOverdueOnly ? "Show All" : "Overdue Only"}
             </Button>
             <Button
               className="bg-foreground text-background"
@@ -650,106 +782,172 @@ export default function CaseFilters({
             </Button>
           </div>
         </div>
+
+        {/* Clean Status Bar */}
         <div className="flex justify-between items-center">
-          <div className="flex gap-2 items-center">
-            <h1>This week</h1>
-            <ChevronRight className="w-5 h-5" />
-            <Chip
-              className="capitalize border-none gap-1 text-default-600 p-4 text-lg font-bold"
-              size="sm"
-              variant="flat"
-              color="secondary"
-            >
-              {/* All Cases This Week */}
-              {/* Filter by "required_on" ( format is : 5/29/2025 ) */}
-              {
-                caseFiles.filter((eachCase) => {
-                  const requiredDate = new Date(eachCase.required_on);
-                  const today = new Date();
-                  const startOfWeek = new Date(today);
-                  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+          <div className="flex gap-4 items-center">
+            <span className="text-default-400 text-small">
+              Showing {filteredItems.length} of {caseFiles.length} cases
+            </span>
 
-                  // Reset time to 00:00:00 for all dates
-                  requiredDate.setHours(0, 0, 0, 0);
-                  today.setHours(0, 0, 0, 0);
-                  startOfWeek.setHours(0, 0, 0, 0);
+            {overdueCases.length > 0 && (
+              <Chip
+                className="capitalize border-none gap-1 text-danger-600"
+                size="sm"
+                variant="flat"
+                color="danger"
+              >
+                {overdueCases.length} Overdue
+              </Chip>
+            )}
 
-                  return requiredDate >= startOfWeek && requiredDate <= today;
-                }).length
-              }{" "}
-              files
-            </Chip>
-            <Chip
-              className="capitalize border-none gap-1 text-default-600 p-4 text-lg font-bold"
-              size="sm"
-              variant="flat"
-              color="warning"
-            >
-              {/* Criminal Case Types */}
-              {
-                // caseFiles.filter((file) => file.case_type === "Criminal").length
+            <div className="flex gap-2 items-center text-default-400 text-small">
+              <span>This week:</span>
+              <span className="font-semibold">
+                {
+                  caseFiles.filter((eachCase) => {
+                    const requiredDate = new Date(eachCase.required_on);
+                    const today = new Date();
+                    const startOfWeek = new Date(today);
+                    startOfWeek.setDate(today.getDate() - today.getDay() + 1);
 
-                caseFiles.filter((eachCase) => {
-                  const requiredDate = new Date(eachCase.required_on);
-                  const today = new Date();
-                  const startOfWeek = new Date(today);
-                  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
+                    requiredDate.setHours(0, 0, 0, 0);
+                    today.setHours(0, 0, 0, 0);
+                    startOfWeek.setHours(0, 0, 0, 0);
 
-                  // Reset time to 00:00:00 for all dates
-                  requiredDate.setHours(0, 0, 0, 0);
-                  today.setHours(0, 0, 0, 0);
-                  startOfWeek.setHours(0, 0, 0, 0);
-
-                  return (
-                    requiredDate >= startOfWeek &&
-                    requiredDate <= today &&
-                    eachCase.case_type === "Criminal"
-                  );
-                }).length
-              }{" "}
-              - Criminal
-            </Chip>
-
-            <Chip
-              className="capitalize border-none gap-1 text-default-600 p-4 text-lg font-bold"
-              size="sm"
-              variant="flat"
-              color="default"
-            >
-              {/* Civil Case Types */}
-              {
-                caseFiles.filter((eachCase) => {
-                  const requiredDate = new Date(eachCase.required_on);
-                  const today = new Date();
-                  const startOfWeek = new Date(today);
-                  startOfWeek.setDate(today.getDate() - today.getDay() + 1); // Monday
-
-                  // Reset time to 00:00:00 for all dates
-                  requiredDate.setHours(0, 0, 0, 0);
-                  today.setHours(0, 0, 0, 0);
-                  startOfWeek.setHours(0, 0, 0, 0);
-
-                  return (
-                    requiredDate >= startOfWeek &&
-                    requiredDate <= today &&
-                    eachCase.case_type === "Civil"
-                  );
-                }).length
-              }{" "}
-              - Civil
-            </Chip>
+                    return requiredDate >= startOfWeek && requiredDate <= today;
+                  }).length
+                }{" "}
+                cases
+              </span>
+            </div>
           </div>
-          <label className="flex items-center text-default-400 text-small">
-            Rows per page:
-            <select
-              className="bg-transparent outline-none text-default-400 text-small"
-              onChange={onRowsPerPageChange}
-            >
-              <option value="10">10</option>
-              <option value="5">5</option>
-              <option value="15">15</option>
-            </select>
-          </label>
+
+          <div className="flex gap-4 items-center">
+            {/* Rows per page selector */}
+            <label className="flex items-center text-default-400 text-small">
+              Rows per page:
+              <select
+                className="bg-transparent outline-none text-default-400 text-small ml-2"
+                onChange={onRowsPerPageChange}
+              >
+                <option value="5">5</option>
+                <option value="10">10</option>
+                <option value="15">15</option>
+              </select>
+            </label>
+
+            {/* Advanced Filters Dropdown */}
+            <Dropdown>
+              <DropdownTrigger className="hidden sm:flex">
+                <Button
+                  endContent={<ChevronDownIcon className="text-small" />}
+                  size="sm"
+                  variant="flat"
+                >
+                  <FilterIcon className="w-4 h-4" />
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                disallowEmptySelection
+                aria-label="Advanced Filters"
+                closeOnSelect={false}
+              >
+                {[
+                  <DropdownItem key="type" isReadOnly>
+                    <div className="font-semibold">Case Type</div>
+                  </DropdownItem>,
+                  ...caseTypeOptions.map((type) => (
+                    <DropdownItem
+                      key={type.uid}
+                      className="capitalize pl-6"
+                      onPress={() => {
+                        console.log(
+                          "🔧 Case Type Filter - Before:",
+                          caseTypeFilter
+                        );
+
+                        // Handle the case where filter is "all" vs Set
+                        const currentFilter =
+                          caseTypeFilter === "all"
+                            ? new Set<string>()
+                            : new Set<string>(caseTypeFilter as Set<string>);
+                        console.log("🔧 Current filter as Set:", currentFilter);
+
+                        if (currentFilter.has(type.uid)) {
+                          currentFilter.delete(type.uid);
+                          console.log("🔧 Removed:", type.uid);
+                        } else {
+                          currentFilter.add(type.uid);
+                          console.log("🔧 Added:", type.uid);
+                        }
+                        console.log("🔧 New filter size:", currentFilter.size);
+
+                        // Automatically reset to "all" when no items selected
+                        const finalFilter: Selection =
+                          currentFilter.size === 0 ? "all" : currentFilter;
+                        console.log("🔧 Final filter:", finalFilter);
+                        setCaseTypeFilter(finalFilter);
+                      }}
+                    >
+                      {caseTypeFilter === "all" ||
+                      !Array.from(caseTypeFilter as Set<string>).includes(
+                        type.uid
+                      )
+                        ? ""
+                        : "✓ "}
+                      {capitalize(type.name)}
+                    </DropdownItem>
+                  )),
+                  <DropdownItem key="purpose" isReadOnly>
+                    <div className="font-semibold">Purpose</div>
+                  </DropdownItem>,
+                  ...purposeOptions.map((purpose) => (
+                    <DropdownItem
+                      key={purpose.uid}
+                      className="capitalize pl-6"
+                      onPress={() => {
+                        console.log(
+                          "🔧 Purpose Filter - Before:",
+                          purposeFilter
+                        );
+
+                        // Handle the case where filter is "all" vs Set
+                        const currentFilter =
+                          purposeFilter === "all"
+                            ? new Set<string>()
+                            : new Set<string>(purposeFilter as Set<string>);
+                        console.log("🔧 Current filter as Set:", currentFilter);
+
+                        if (currentFilter.has(purpose.uid)) {
+                          currentFilter.delete(purpose.uid);
+                          console.log("🔧 Removed:", purpose.uid);
+                        } else {
+                          currentFilter.add(purpose.uid);
+                          console.log("🔧 Added:", purpose.uid);
+                        }
+                        console.log("🔧 New filter size:", currentFilter.size);
+
+                        // Automatically reset to "all" when no items selected
+                        const finalFilter: Selection =
+                          currentFilter.size === 0 ? "all" : currentFilter;
+                        console.log("🔧 Final filter:", finalFilter);
+                        setPurposeFilter(finalFilter);
+                      }}
+                    >
+                      {purposeFilter === "all" ||
+                      !Array.from(purposeFilter as Set<string>).includes(
+                        purpose.uid
+                      )
+                        ? ""
+                        : "✓ "}
+                      {capitalize(purpose.name)}
+                    </DropdownItem>
+                  )),
+                ]}
+              </DropdownMenu>
+            </Dropdown>
+          </div>
         </div>
       </div>
     );
@@ -763,6 +961,9 @@ export default function CaseFilters({
     hasSearchFilter,
     overdueCases.length,
     showOverdueOnly,
+    caseTypeFilter,
+    purposeFilter,
+    filteredItems.length,
   ]);
 
   const bottomContent = React.useMemo(() => {
@@ -780,11 +981,11 @@ export default function CaseFilters({
           variant="light"
           onChange={setPage}
         />
-        {/* <span className="text-small text-default-400">
+        <span className="text-small text-default-400">
           {selectedKeys === "all"
             ? "All items selected"
             : `${selectedKeys.size} of ${items.length} selected`}
-        </span> */}
+        </span>
       </div>
     );
   }, [selectedKeys, items.length, page, pages, hasSearchFilter]);
@@ -810,7 +1011,7 @@ export default function CaseFilters({
 
   // Bulk selection state
   const [selectedBulk, setSelectedBulk] = useState<Set<number>>(new Set());
-  const [selectAll, setSelectAll] = useState(false);
+  const [, setSelectAll] = useState(false);
 
   // Analytics state
   const [analytics, setAnalytics] = useState({
@@ -836,21 +1037,14 @@ export default function CaseFilters({
     }
   });
   const [newViewName, setNewViewName] = useState("");
-  const [pinnedAnalytics, setPinnedAnalytics] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem("pinnedAnalytics") || "[]");
-    } catch {
-      return [];
-    }
-  });
+  // Removed pinnedAnalytics since it's not used in the new implementation
 
-  // Save custom views and pins to localStorage
+  // Save custom views to localStorage
   useEffect(() => {
     localStorage.setItem("customViews", JSON.stringify(customViews));
   }, [customViews]);
-  useEffect(() => {
-    localStorage.setItem("pinnedAnalytics", JSON.stringify(pinnedAnalytics));
-  }, [pinnedAnalytics]);
+
+  // Removed pinnedAnalytics localStorage sync since it's not used anymore
 
   // Save current filter as a custom view
   const saveCurrentView = () => {
@@ -883,19 +1077,19 @@ export default function CaseFilters({
     setCustomViews((prev: any) => prev.filter((_: any, i: any) => i !== idx));
   };
 
-  // Pin/unpin analytics widgets
-  const analyticsOptions = [
-    { key: "weekly", label: "Cases Created Per Week" },
-    { key: "monthly", label: "Cases Created Per Month" },
-    { key: "byPurpose", label: "Cases by Purpose" },
-    { key: "byUploader", label: "Cases by Uploader" },
-    { key: "overdueTrend", label: "Overdue Cases Per Week" },
-  ];
-  const togglePin = (key: string) => {
-    setPinnedAnalytics((prev: string[]) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
-    );
-  };
+  // Pin/unpin analytics widgets - removed unused code
+  // const analyticsOptions = [
+  //   { key: "weekly", label: "Cases Created Per Week" },
+  //   { key: "monthly", label: "Cases Created Per Month" },
+  //   { key: "byPurpose", label: "Cases by Purpose" },
+  //   { key: "byUploader", label: "Cases by Uploader" },
+  //   { key: "overdueTrend", label: "Overdue Cases Per Week" },
+  // ];
+  // const togglePin = (key: string) => {
+  //   setPinnedAnalytics((prev: string[]) =>
+  //     prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+  //   );
+  // };
 
   // Calculate analytics
   useEffect(() => {
@@ -979,23 +1173,6 @@ export default function CaseFilters({
   }, [caseFiles, overdueCases.length]);
 
   // Bulk actions handlers
-  const handleBulkSelect = (id: number) => {
-    setSelectedBulk((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-  const handleSelectAll = () => {
-    if (selectAll) {
-      setSelectedBulk(new Set());
-      setSelectAll(false);
-    } else {
-      setSelectedBulk(new Set(filteredItems.map((f) => f.file_id)));
-      setSelectAll(true);
-    }
-  };
   const handleBulkClose = () => {
     // Example: mark all selected as closed (simulate)
     setCaseFiles((prev) =>
@@ -1023,152 +1200,8 @@ export default function CaseFilters({
     URL.revokeObjectURL(url);
   };
 
-  // Analytics panel (above table)
-  const analyticsPanel = (
-    <div className="flex flex-col gap-6 mb-4 p-4 rounded shadow transition-colors duration-300 bg-gray-50 dark:bg-neutral-900 text-black dark:text-white">
-      <div className="flex flex-wrap gap-4">
-        <div>
-          <span className="font-semibold">Total Cases:</span>{" "}
-          <b>{analytics.total}</b>
-        </div>
-        <div>
-          <span className="font-semibold">Overdue Cases:</span>{" "}
-          <b className="text-danger-600">{analytics.overdue}</b>
-        </div>
-        <div>
-          <span className="font-semibold">Closed Cases:</span>{" "}
-          <b>{analytics.closed}</b>
-        </div>
-        <div>
-          <span className="font-semibold">Average Processing Time (days):</span>{" "}
-          <b>{analytics.avgProcessing}</b>
-        </div>
-        <div>
-          <span className="font-semibold">Civil Cases:</span>{" "}
-          <b>{analytics.byType.Civil}</b>
-        </div>
-        <div>
-          <span className="font-semibold">Criminal Cases:</span>{" "}
-          <b>{analytics.byType.Criminal}</b>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-8">
-        <div className="w-80 h-48">
-          <div className="mb-2 font-semibold text-center">
-            Cases Created Per Week
-          </div>
-          <Bar
-            data={{
-              labels: analytics.weekly.map((w) => w.week),
-              datasets: [
-                {
-                  label: "Cases/Week",
-                  data: analytics.weekly.map((w) => w.count),
-                  backgroundColor: "#6366f1",
-                },
-              ],
-            }}
-            options={{
-              plugins: { legend: { display: false } },
-              scales: { y: { beginAtZero: true } },
-              responsive: true,
-              maintainAspectRatio: false,
-            }}
-          />
-        </div>
-        <div className="w-80 h-48">
-          <div className="mb-2 font-semibold text-center">
-            Cases Created Per Month
-          </div>
-          <Bar
-            data={{
-              labels: analytics.monthly.map((m) => m.month),
-              datasets: [
-                {
-                  label: "Cases/Month",
-                  data: analytics.monthly.map((m) => m.count),
-                  backgroundColor: "#f59e42",
-                },
-              ],
-            }}
-            options={{
-              plugins: { legend: { display: false } },
-              scales: { y: { beginAtZero: true } },
-              responsive: true,
-              maintainAspectRatio: false,
-            }}
-          />
-        </div>
-        <div className="w-80 h-48">
-          <div className="mb-2 font-semibold text-center">Cases by Purpose</div>
-          <Bar
-            data={{
-              labels: Object.keys(analytics.byPurpose),
-              datasets: [
-                {
-                  label: "Cases by Purpose",
-                  data: Object.values(analytics.byPurpose),
-                  backgroundColor: "#10b981",
-                },
-              ],
-            }}
-            options={{
-              plugins: { legend: { display: false } },
-              scales: { y: { beginAtZero: true } },
-              responsive: true,
-              maintainAspectRatio: false,
-            }}
-          />
-        </div>
-        <div className="w-80 h-48">
-          <div className="mb-2 font-semibold text-center">
-            Cases by Uploader
-          </div>
-          <Bar
-            data={{
-              labels: Object.keys(analytics.byUploader),
-              datasets: [
-                {
-                  label: "Cases by Uploader",
-                  data: Object.values(analytics.byUploader),
-                  backgroundColor: "#e11d48",
-                },
-              ],
-            }}
-            options={{
-              plugins: { legend: { display: false } },
-              scales: { y: { beginAtZero: true } },
-              responsive: true,
-              maintainAspectRatio: false,
-            }}
-          />
-        </div>
-        <div className="w-80 h-48">
-          <div className="mb-2 font-semibold text-center">
-            Overdue Cases Per Week
-          </div>
-          <Bar
-            data={{
-              labels: analytics.overdueTrend.map((w) => w.week),
-              datasets: [
-                {
-                  label: "Overdue/Week",
-                  data: analytics.overdueTrend.map((w) => w.count),
-                  backgroundColor: "#f43f5e",
-                },
-              ],
-            }}
-            options={{
-              plugins: { legend: { display: false } },
-              scales: { y: { beginAtZero: true } },
-              responsive: true,
-              maintainAspectRatio: false,
-            }}
-          />
-        </div>
-      </div>
-    </div>
-  );
+  // Analytics panel removed - replaced with new insights tab
+  // const analyticsPanel = (...)
 
   // Bulk actions bar (above table)
   const bulkBar = React.useMemo(
@@ -1201,316 +1234,1061 @@ export default function CaseFilters({
         <Tab key="cases" title="Cases Table">
           {bulkBar}
           <Table
+            isCompact
             isStriped
             removeWrapper
             aria-label="Case Table"
             bottomContent={bottomContent}
             bottomContentPlacement="outside"
+            checkboxesProps={{
+              classNames: {
+                wrapper:
+                  "after:bg-foreground after:text-background text-background",
+              },
+            }}
             classNames={classNames}
+            selectedKeys={selectedKeys}
+            selectionMode="multiple"
             sortDescriptor={sortDescriptor}
             topContent={topContent}
             topContentPlacement="outside"
             onSelectionChange={setSelectedKeys}
             onSortChange={setSortDescriptor}
           >
-            <TableHeader
-              columns={[{ name: "", uid: "select" }, ...headerColumns]}
-            >
+            <TableHeader columns={headerColumns}>
               {(column) => (
                 <TableColumn
                   key={column.uid}
                   align={column.uid === "actions" ? "center" : "start"}
                   allowsSorting={"sortable" in column ? column.sortable : false}
                 >
-                  {column.uid === "select" ? (
-                    <input
-                      type="checkbox"
-                      checked={selectAll}
-                      onChange={handleSelectAll}
-                    />
-                  ) : (
-                    column.name
-                  )}
+                  {column.name}
                 </TableColumn>
               )}
             </TableHeader>
             <TableBody emptyContent={"No case files found"} items={sortedItems}>
               {(item) => (
                 <TableRow key={item.file_id}>
-                  <TableCell>
-                    <input
-                      type="checkbox"
-                      checked={selectedBulk.has(item.file_id)}
-                      onChange={() => handleBulkSelect(item.file_id)}
-                    />
-                  </TableCell>
-                  <>
-                    {headerColumns.map((column) => (
-                      <TableCell key={column.uid}>
-                        {renderCell(item, column.uid)}
-                      </TableCell>
-                    ))}
-                  </>
+                  {(columnKey) => (
+                    <TableCell>{renderCell(item, columnKey)}</TableCell>
+                  )}
                 </TableRow>
               )}
             </TableBody>
           </Table>
         </Tab>
         <Tab key="insights" title="Case Insights">
-          {analyticsPanel}
-        </Tab>
-        <Tab key="custom" title="Custom Views">
-          <div className="p-4 flex flex-col gap-6">
-            <div className="mb-4">
-              <div className="font-bold mb-2">Save Current Table View</div>
-              <div className="flex gap-2 items-center">
-                <Input
-                  size="sm"
-                  placeholder="View name..."
-                  value={newViewName}
-                  onValueChange={setNewViewName}
-                />
-                <Button size="sm" onPress={saveCurrentView}>
-                  Save View
-                </Button>
-              </div>
-              <div className="mt-2">
-                {customViews.length === 0 && (
-                  <span className="text-default-400">No saved views yet.</span>
-                )}
-                {customViews.map((view: any, idx: any) => (
-                  <div key={idx} className="flex gap-2 items-center mt-2">
-                    <Button
-                      size="sm"
-                      variant="flat"
-                      onPress={() => applyCustomView(view)}
-                    >
-                      {view.name}
-                    </Button>
+          <div className="p-4 space-y-6">
+            {/* Action Required Section */}
+            <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+              <h3 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-3 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" />
+                Action Required
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-gray-800 p-3 rounded">
+                  <div className="text-2xl font-bold text-red-600">
+                    {analytics.overdue}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Overdue Cases
+                  </div>
+                  {analytics.overdue > 0 && (
                     <Button
                       size="sm"
                       color="danger"
-                      variant="light"
-                      onPress={() => removeCustomView(idx)}
+                      className="mt-2"
+                      onPress={() => {
+                        setShowOverdueOnly(true);
+                        setSelectedTab("cases");
+                      }}
                     >
-                      Remove
+                      View Overdue Cases
                     </Button>
+                  )}
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded">
+                  <div className="text-2xl font-bold text-orange-600">
+                    {
+                      caseFiles.filter((f) => {
+                        const dueDate = new Date(f.required_on);
+                        const threeDaysFromNow = new Date();
+                        threeDaysFromNow.setDate(
+                          threeDaysFromNow.getDate() + 3
+                        );
+                        return (
+                          dueDate <= threeDaysFromNow &&
+                          dueDate > new Date() &&
+                          !f.date_returned
+                        );
+                      }).length
+                    }
                   </div>
-                ))}
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Due This Week
+                  </div>
+                  <Button
+                    size="sm"
+                    color="warning"
+                    className="mt-2"
+                    onPress={() => {
+                      const threeDaysFromNow = new Date();
+                      threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+                      setCaseTypeFilter("all");
+                      setPurposeFilter("all");
+                      setSelectedTab("cases");
+                    }}
+                  >
+                    View This Week
+                  </Button>
+                </div>
               </div>
             </div>
-            <div>
-              <div className="font-bold mb-2">Pin Analytics Widgets</div>
-              <div className="flex flex-wrap gap-2">
-                {analyticsOptions.map((opt) => (
-                  <Button
-                    key={opt.key}
-                    size="sm"
-                    variant={
-                      pinnedAnalytics.includes(opt.key) ? "solid" : "flat"
-                    }
-                    onPress={() => togglePin(opt.key)}
-                  >
-                    {pinnedAnalytics.includes(opt.key) ? "Unpin" : "Pin"}{" "}
-                    {opt.label}
-                  </Button>
-                ))}
+
+            {/* Performance Metrics */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-3 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                Performance Metrics
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white dark:bg-gray-800 p-3 rounded text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {analytics.avgProcessing}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Avg Processing Days
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {analytics.total > 0
+                      ? Math.round((analytics.closed / analytics.total) * 100)
+                      : 0}
+                    %
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Completion Rate
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded text-center">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {analytics.total - analytics.closed}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Active Cases
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-8 mt-4">
-                {pinnedAnalytics.includes("weekly") && (
-                  <div className="w-80 h-48">
-                    <div className="mb-2 font-semibold text-center">
-                      Cases Created Per Week
+            </div>
+
+            {/* Workload Distribution */}
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+              <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-3 flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Workload Distribution
+              </h3>
+              <div className="space-y-2">
+                {Object.entries(analytics.byUploader).map(
+                  ([uploader, count]) => (
+                    <div
+                      key={uploader}
+                      className="flex items-center justify-between bg-white dark:bg-gray-800 p-2 rounded"
+                    >
+                      <span className="text-sm">User #{uploader}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="w-32 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-green-500 h-2 rounded-full"
+                            style={{
+                              width: `${
+                                ((count as number) / analytics.total) * 100
+                              }%`,
+                            }}
+                          />
+                        </div>
+                        <span className="text-sm font-semibold">
+                          {count as number}
+                        </span>
+                      </div>
                     </div>
-                    <Bar
-                      data={{
-                        labels: analytics.weekly.map((w) => w.week),
-                        datasets: [
-                          {
-                            label: "Cases/Week",
-                            data: analytics.weekly.map((w) => w.count),
-                            backgroundColor: "#6366f1",
-                          },
-                        ],
-                      }}
-                      options={{
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true } },
-                        responsive: true,
-                        maintainAspectRatio: false,
+                  )
+                )}
+              </div>
+            </div>
+
+            {/* Case Type Breakdown */}
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+              <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-200 mb-3 flex items-center gap-2">
+                <Scale className="w-5 h-5" />
+                Case Type Analysis
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-gray-800 p-3 rounded">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Civil Cases</span>
+                    <span className="text-lg font-bold text-blue-600">
+                      {analytics.byType.Civil}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-blue-500 h-2 rounded-full"
+                      style={{
+                        width: `${
+                          (analytics.byType.Civil / analytics.total) * 100
+                        }%`,
                       }}
                     />
                   </div>
-                )}
-                {pinnedAnalytics.includes("monthly") && (
-                  <div className="w-80 h-48">
-                    <div className="mb-2 font-semibold text-center">
-                      Cases Created Per Month
-                    </div>
-                    <Bar
-                      data={{
-                        labels: analytics.monthly.map((m) => m.month),
-                        datasets: [
-                          {
-                            label: "Cases/Month",
-                            data: analytics.monthly.map((m) => m.count),
-                            backgroundColor: "#f59e42",
-                          },
-                        ],
-                      }}
-                      options={{
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true } },
-                        responsive: true,
-                        maintainAspectRatio: false,
+                  <Button
+                    size="sm"
+                    color="primary"
+                    className="mt-2"
+                    onPress={() => {
+                      setCaseTypeFilter(new Set(["civil"]));
+                      setSelectedTab("cases");
+                    }}
+                  >
+                    View Civil Cases
+                  </Button>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Criminal Cases</span>
+                    <span className="text-lg font-bold text-red-600">
+                      {analytics.byType.Criminal}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className="bg-red-500 h-2 rounded-full"
+                      style={{
+                        width: `${
+                          (analytics.byType.Criminal / analytics.total) * 100
+                        }%`,
                       }}
                     />
                   </div>
-                )}
-                {pinnedAnalytics.includes("byPurpose") && (
-                  <div className="w-80 h-48">
-                    <div className="mb-2 font-semibold text-center">
-                      Cases by Purpose
+                  <Button
+                    size="sm"
+                    color="danger"
+                    className="mt-2"
+                    onPress={() => {
+                      setCaseTypeFilter(new Set(["criminal"]));
+                      setSelectedTab("cases");
+                    }}
+                  >
+                    View Criminal Cases
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-gray-50 dark:bg-gray-900/20 p-4 rounded-lg border border-gray-200 dark:border-gray-800">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                Quick Actions
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Button
+                  color="primary"
+                  onPress={() => {
+                    const rows = caseFiles.filter((f) => !f.deleted);
+                    const csv = [
+                      "Case Number,Type,Purpose,Due Date,Status,Days Until Due",
+                    ]
+                      .concat(
+                        rows.map((f) => {
+                          const dueDate = new Date(f.required_on);
+                          const today = new Date();
+                          const daysUntilDue = Math.ceil(
+                            (dueDate.getTime() - today.getTime()) /
+                              (1000 * 60 * 60 * 24)
+                          );
+                          return `${f.case_number},${f.case_type},${
+                            f.purpose
+                          },${f.required_on},${
+                            f.date_returned ? "Completed" : "Pending"
+                          },${daysUntilDue}`;
+                        })
+                      )
+                      .join("\n");
+                    const blob = new Blob([csv], { type: "text/csv" });
+                    saveAs(blob, "case_report.csv");
+                  }}
+                >
+                  Export Report
+                </Button>
+                <Button
+                  color="success"
+                  onPress={() => {
+                    setCaseTypeFilter("all");
+                    setPurposeFilter("all");
+                    setShowOverdueOnly(false);
+                    setFilterValue("");
+                    setSelectedTab("cases");
+                  }}
+                >
+                  Clear All Filters
+                </Button>
+                <Button color="warning" onPress={onOpen}>
+                  Add New Case
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Tab>
+        <Tab key="custom" title="Custom Views">
+          <div className="p-4 space-y-6">
+            {/* Preset Views */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-3 flex items-center gap-2">
+                <Target className="w-5 h-5" />
+                Preset Views
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <Button
+                  variant="flat"
+                  color="danger"
+                  onPress={() => {
+                    setShowOverdueOnly(true);
+                    setCaseTypeFilter("all");
+                    setPurposeFilter("all");
+                    setFilterValue("");
+                    setSelectedTab("cases");
+                  }}
+                  className="justify-start"
+                >
+                  <div className="text-left">
+                    <div className="font-semibold flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4" />
+                      Overdue Cases
                     </div>
-                    <Bar
-                      data={{
-                        labels: Object.keys(analytics.byPurpose),
-                        datasets: [
-                          {
-                            label: "Cases by Purpose",
-                            data: Object.values(analytics.byPurpose),
-                            backgroundColor: "#10b981",
-                          },
-                        ],
-                      }}
-                      options={{
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true } },
-                        responsive: true,
-                        maintainAspectRatio: false,
-                      }}
-                    />
-                  </div>
-                )}
-                {pinnedAnalytics.includes("byUploader") && (
-                  <div className="w-80 h-48">
-                    <div className="mb-2 font-semibold text-center">
-                      Cases by Uploader
+                    <div className="text-xs opacity-75">
+                      {analytics.overdue} cases
                     </div>
-                    <Bar
-                      data={{
-                        labels: Object.keys(analytics.byUploader),
-                        datasets: [
-                          {
-                            label: "Cases by Uploader",
-                            data: Object.values(analytics.byUploader),
-                            backgroundColor: "#e11d48",
-                          },
-                        ],
-                      }}
-                      options={{
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true } },
-                        responsive: true,
-                        maintainAspectRatio: false,
-                      }}
-                    />
                   </div>
-                )}
-                {pinnedAnalytics.includes("overdueTrend") && (
-                  <div className="w-80 h-48">
-                    <div className="mb-2 font-semibold text-center">
-                      Overdue Cases Per Week
+                </Button>
+                <Button
+                  variant="flat"
+                  color="warning"
+                  onPress={() => {
+                    setShowOverdueOnly(false);
+                    setCaseTypeFilter(new Set(["civil"]));
+                    setPurposeFilter("all");
+                    setFilterValue("");
+                    setSelectedTab("cases");
+                  }}
+                  className="justify-start"
+                >
+                  <div className="text-left">
+                    <div className="font-semibold flex items-center gap-2">
+                      <Scale className="w-4 h-4" />
+                      Civil Cases
                     </div>
-                    <Bar
-                      data={{
-                        labels: analytics.overdueTrend.map((w) => w.week),
-                        datasets: [
-                          {
-                            label: "Overdue/Week",
-                            data: analytics.overdueTrend.map((w) => w.count),
-                            backgroundColor: "#f43f5e",
-                          },
-                        ],
-                      }}
-                      options={{
-                        plugins: { legend: { display: false } },
-                        scales: { y: { beginAtZero: true } },
-                        responsive: true,
-                        maintainAspectRatio: false,
-                      }}
-                    />
+                    <div className="text-xs opacity-75">
+                      {analytics.byType.Civil} cases
+                    </div>
                   </div>
-                )}
+                </Button>
+                <Button
+                  variant="flat"
+                  color="secondary"
+                  onPress={() => {
+                    setShowOverdueOnly(false);
+                    setCaseTypeFilter(new Set(["criminal"]));
+                    setPurposeFilter("all");
+                    setFilterValue("");
+                    setSelectedTab("cases");
+                  }}
+                  className="justify-start"
+                >
+                  <div className="text-left">
+                    <div className="font-semibold flex items-center gap-2">
+                      <ShieldAlert className="w-4 h-4" />
+                      Criminal Cases
+                    </div>
+                    <div className="text-xs opacity-75">
+                      {analytics.byType.Criminal} cases
+                    </div>
+                  </div>
+                </Button>
+                <Button
+                  variant="flat"
+                  color="success"
+                  onPress={() => {
+                    setShowOverdueOnly(false);
+                    setCaseTypeFilter("all");
+                    setPurposeFilter(new Set(["judgement"]));
+                    setFilterValue("");
+                    setSelectedTab("cases");
+                  }}
+                  className="justify-start"
+                >
+                  <div className="text-left">
+                    <div className="font-semibold flex items-center gap-2">
+                      <Gavel className="w-4 h-4" />
+                      Judgements
+                    </div>
+                    <div className="text-xs opacity-75">
+                      {(analytics.byPurpose as Record<string, number>)
+                        .judgement || 0}{" "}
+                      cases
+                    </div>
+                  </div>
+                </Button>
+                <Button
+                  variant="flat"
+                  color="primary"
+                  onPress={() => {
+                    setShowOverdueOnly(false);
+                    setCaseTypeFilter("all");
+                    setPurposeFilter(new Set(["appeal"]));
+                    setFilterValue("");
+                    setSelectedTab("cases");
+                  }}
+                  className="justify-start"
+                >
+                  <div className="text-left">
+                    <div className="font-semibold flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Appeals
+                    </div>
+                    <div className="text-xs opacity-75">
+                      {(analytics.byPurpose as Record<string, number>).appeal ||
+                        0}{" "}
+                      cases
+                    </div>
+                  </div>
+                </Button>
+                <Button
+                  variant="flat"
+                  color="default"
+                  onPress={() => {
+                    setShowOverdueOnly(false);
+                    setCaseTypeFilter("all");
+                    setPurposeFilter("all");
+                    setFilterValue("");
+                    setSelectedTab("cases");
+                  }}
+                  className="justify-start"
+                >
+                  <div className="text-left">
+                    <div className="font-semibold flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4" />
+                      Completed
+                    </div>
+                    <div className="text-xs opacity-75">
+                      {analytics.closed} cases
+                    </div>
+                  </div>
+                </Button>
+              </div>
+            </div>
+
+            {/* Custom View Creator */}
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+              <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-3 flex items-center gap-2">
+                <Save className="w-5 h-5" />
+                Save Current View
+              </h3>
+              <div className="space-y-3">
+                <div className="flex gap-2 items-center">
+                  <Input
+                    size="sm"
+                    placeholder="Enter view name (e.g., 'High Priority Cases')"
+                    value={newViewName}
+                    onValueChange={setNewViewName}
+                    className="flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    color="success"
+                    onPress={saveCurrentView}
+                    isDisabled={!newViewName.trim()}
+                  >
+                    Save Current View
+                  </Button>
+                </div>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Current filters:{" "}
+                  {filterValue ? `Search: "${filterValue}"` : "No search"}, Case
+                  Type:{" "}
+                  {caseTypeFilter === "all"
+                    ? "All"
+                    : Array.from(caseTypeFilter as Set<string>).join(", ")}
+                  , Purpose:{" "}
+                  {purposeFilter === "all"
+                    ? "All"
+                    : Array.from(purposeFilter as Set<string>).join(", ")}
+                  , {showOverdueOnly ? "Overdue Only" : "All Cases"}
+                </div>
+              </div>
+            </div>
+
+            {/* Saved Views */}
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+              <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-200 mb-3 flex items-center gap-2">
+                <FolderOpen className="w-5 h-5" />
+                Saved Views
+              </h3>
+              {customViews.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <FolderOpen className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p>No saved views yet</p>
+                  <p className="text-sm">
+                    Create custom views by saving your current filter settings
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {customViews.map((view: any, idx: any) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between bg-white dark:bg-gray-800 p-3 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <div className="font-medium">{view.name}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                          {view.filterValue &&
+                            `Search: "${view.filterValue}" • `}
+                          {view.showOverdueOnly ? "Overdue Only" : "All Cases"}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          color="primary"
+                          variant="flat"
+                          onPress={() => {
+                            applyCustomView(view);
+                            setSelectedTab("cases");
+                          }}
+                        >
+                          Apply
+                        </Button>
+                        <Button
+                          size="sm"
+                          color="danger"
+                          variant="light"
+                          onPress={() => removeCustomView(idx)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* View Statistics */}
+            <div className="bg-gray-50 dark:bg-gray-900/20 p-4 rounded-lg border border-gray-200 dark:border-gray-800">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5" />
+                View Statistics
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-gray-800 p-3 rounded">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Currently Viewing
+                  </div>
+                  <div className="text-lg font-semibold">
+                    {filteredItems.length} of {caseFiles.length} cases
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Saved Views
+                  </div>
+                  <div className="text-lg font-semibold">
+                    {customViews.length} custom views
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </Tab>
         <Tab key="integrations" title="Integrations">
-          <div className="p-4 flex flex-col gap-6">
-            <div className="font-bold mb-2">Calendar Integration</div>
-            <div className="mb-4">
-              <Button
-                size="sm"
-                onPress={() => {
-                  // Export all upcoming case deadlines to .ics (iCalendar) file
-                  const events = caseFiles
-                    .filter((f) => !f.deleted && f.required_on)
-                    .map((f) => {
-                      const start = new Date(f.required_on);
-                      const end = new Date(start.getTime() + 60 * 60 * 1000); // 1 hour event
-                      return `BEGIN:VEVENT\nSUMMARY:Case ${
-                        f.case_number
-                      } Due\nDESCRIPTION:${f.purpose || ""}\nDTSTART:${start
-                        .toISOString()
-                        .replace(/[-:]/g, "")
-                        .replace(/\.\d+Z$/, "Z")
-                        .replace("T", "T")
-                        .slice(0, 15)}\nDTEND:${end
-                        .toISOString()
-                        .replace(/[-:]/g, "")
-                        .replace(/\.\d+Z$/, "Z")
-                        .replace("T", "T")
-                        .slice(0, 15)}\nEND:VEVENT`;
-                    })
-                    .join("\n");
-                  const ics = `BEGIN:VCALENDAR\nVERSION:2.0\n${events}\nEND:VCALENDAR`;
-                  const blob = new Blob([ics], { type: "text/calendar" });
-                  saveAs(blob, "case_deadlines.ics");
-                }}
-              >
-                Export All Deadlines to Calendar (.ics)
-              </Button>
-              <div className="text-default-400 mt-2">
-                Download and import into Google Calendar, Outlook, or any
-                calendar app.
+          <div className="p-4 space-y-6">
+            {/* Export & Reporting */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-3 flex items-center gap-2">
+                <Download className="w-5 h-5" />
+                Export & Reporting
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-gray-800 p-4 rounded">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4" />
+                    Case Reports
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Export detailed case reports with analytics
+                  </p>
+                  <div className="space-y-2">
+                    <Button
+                      size="sm"
+                      color="primary"
+                      className="w-full"
+                      onPress={() => {
+                        const rows = caseFiles.filter((f) => !f.deleted);
+                        const csv = [
+                          "Case Number,Type,Purpose,Created,Due Date,Status,Days Until Due,Uploader",
+                        ]
+                          .concat(
+                            rows.map((f) => {
+                              const dueDate = new Date(f.required_on);
+                              const today = new Date();
+                              const daysUntilDue = Math.ceil(
+                                (dueDate.getTime() - today.getTime()) /
+                                  (1000 * 60 * 60 * 24)
+                              );
+                              return `${f.case_number},${f.case_type},${
+                                f.purpose
+                              },${f.date_recieved},${f.required_on},${
+                                f.date_returned ? "Completed" : "Pending"
+                              },${daysUntilDue},${f.uploaded_by}`;
+                            })
+                          )
+                          .join("\n");
+                        const blob = new Blob([csv], { type: "text/csv" });
+                        saveAs(
+                          blob,
+                          `case_report_${
+                            new Date().toISOString().split("T")[0]
+                          }.csv`
+                        );
+                      }}
+                    >
+                      Export All Cases (CSV)
+                    </Button>
+                    <Button
+                      size="sm"
+                      color="danger"
+                      variant="flat"
+                      className="w-full"
+                      onPress={() => {
+                        const overdueRows = caseFiles.filter((f) => {
+                          const requiredDate = new Date(f.required_on);
+                          requiredDate.setHours(0, 0, 0, 0);
+                          return (
+                            !f.deleted &&
+                            requiredDate < today &&
+                            !f.date_returned
+                          );
+                        });
+                        const csv = [
+                          "Case Number,Type,Purpose,Due Date,Days Overdue,Uploader",
+                        ]
+                          .concat(
+                            overdueRows.map((f) => {
+                              const dueDate = new Date(f.required_on);
+                              const daysOverdue = Math.ceil(
+                                (today.getTime() - dueDate.getTime()) /
+                                  (1000 * 60 * 60 * 24)
+                              );
+                              return `${f.case_number},${f.case_type},${f.purpose},${f.required_on},${daysOverdue},${f.uploaded_by}`;
+                            })
+                          )
+                          .join("\n");
+                        const blob = new Blob([csv], { type: "text/csv" });
+                        saveAs(
+                          blob,
+                          `overdue_cases_${
+                            new Date().toISOString().split("T")[0]
+                          }.csv`
+                        );
+                      }}
+                    >
+                      Export Overdue Cases Only
+                    </Button>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-4 rounded">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Calendar Integration
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Export deadlines to your calendar app
+                  </p>
+                  <div className="space-y-2">
+                    <Button
+                      size="sm"
+                      color="success"
+                      className="w-full"
+                      onPress={() => {
+                        const events = caseFiles
+                          .filter((f) => !f.deleted && f.required_on)
+                          .map((f) => {
+                            const start = new Date(f.required_on);
+                            const end = new Date(
+                              start.getTime() + 60 * 60 * 1000
+                            );
+                            return `BEGIN:VEVENT\nSUMMARY:${f.case_number} - ${
+                              f.case_type
+                            } (${f.purpose})\nDESCRIPTION:Case ${
+                              f.case_number
+                            } is due for ${f.purpose}\nDTSTART:${start
+                              .toISOString()
+                              .replace(/[-:]/g, "")
+                              .replace(/\.\d+Z$/, "Z")}\nDTEND:${end
+                              .toISOString()
+                              .replace(/[-:]/g, "")
+                              .replace(/\.\d+Z$/, "Z")}\nEND:VEVENT`;
+                          })
+                          .join("\n");
+                        const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Case Management//Case Deadlines//EN\n${events}\nEND:VCALENDAR`;
+                        const blob = new Blob([ics], { type: "text/calendar" });
+                        saveAs(blob, "case_deadlines.ics");
+                      }}
+                    >
+                      Export All Deadlines (.ics)
+                    </Button>
+                    <Button
+                      size="sm"
+                      color="warning"
+                      variant="flat"
+                      className="w-full"
+                      onPress={() => {
+                        const nextWeek = new Date();
+                        nextWeek.setDate(nextWeek.getDate() + 7);
+                        const events = caseFiles
+                          .filter(
+                            (f) =>
+                              !f.deleted &&
+                              f.required_on &&
+                              new Date(f.required_on) <= nextWeek
+                          )
+                          .map((f) => {
+                            const start = new Date(f.required_on);
+                            const end = new Date(
+                              start.getTime() + 60 * 60 * 1000
+                            );
+                            return `BEGIN:VEVENT\nSUMMARY:${f.case_number} - ${
+                              f.case_type
+                            } (${f.purpose})\nDESCRIPTION:Case ${
+                              f.case_number
+                            } is due for ${f.purpose}\nDTSTART:${start
+                              .toISOString()
+                              .replace(/[-:]/g, "")
+                              .replace(/\.\d+Z$/, "Z")}\nDTEND:${end
+                              .toISOString()
+                              .replace(/[-:]/g, "")
+                              .replace(/\.\d+Z$/, "Z")}\nEND:VEVENT`;
+                          })
+                          .join("\n");
+                        const ics = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Case Management//Case Deadlines//EN\n${events}\nEND:VCALENDAR`;
+                        const blob = new Blob([ics], { type: "text/calendar" });
+                        saveAs(blob, "upcoming_deadlines.ics");
+                      }}
+                    >
+                      Export Next Week Only
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="font-bold mb-2">Communication Integration</div>
-            <div className="mb-4">
-              <Button
-                size="sm"
-                onPress={() => {
-                  const mailto = `mailto:?subject=Case%20Deadlines&body=${encodeURIComponent(
-                    caseFiles
-                      .filter((f) => !f.deleted)
-                      .map((f) => `Case ${f.case_number}: Due ${f.required_on}`)
-                      .join("\n")
-                  )}`;
-                  window.open(mailto, "_blank");
-                }}
-              >
-                Email All Deadlines
-              </Button>
-              <div className="text-default-400 mt-2">
-                Send a summary of all deadlines to your email client.
+
+            {/* Communication Tools */}
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+              <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-3 flex items-center gap-2">
+                <MessageCircle className="w-5 h-5" />
+                Communication Tools
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-gray-800 p-4 rounded">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    Email Templates
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Quick email templates for common scenarios
+                  </p>
+                  <div className="space-y-2">
+                    <Button
+                      size="sm"
+                      color="primary"
+                      className="w-full"
+                      onPress={() => {
+                        const overdueList = caseFiles
+                          .filter((f) => {
+                            const requiredDate = new Date(f.required_on);
+                            requiredDate.setHours(0, 0, 0, 0);
+                            return (
+                              !f.deleted &&
+                              requiredDate < today &&
+                              !f.date_returned
+                            );
+                          })
+                          .map(
+                            (f) =>
+                              `• ${f.case_number} (${
+                                f.case_type
+                              }) - Due: ${new Date(
+                                f.required_on
+                              ).toLocaleDateString()}`
+                          )
+                          .join("\n");
+                        const subject = `Overdue Cases Alert - ${new Date().toLocaleDateString()}`;
+                        const body = `Dear Team,\n\nPlease find below the list of overdue cases that require immediate attention:\n\n${overdueList}\n\nTotal overdue cases: ${analytics.overdue}\n\nPlease prioritize these cases and update their status as soon as possible.\n\nBest regards,\nCase Management System`;
+                        const mailto = `mailto:?subject=${encodeURIComponent(
+                          subject
+                        )}&body=${encodeURIComponent(body)}`;
+                        window.open(mailto, "_blank");
+                      }}
+                    >
+                      Email Overdue Cases Alert
+                    </Button>
+                    <Button
+                      size="sm"
+                      color="success"
+                      variant="flat"
+                      className="w-full"
+                      onPress={() => {
+                        const weeklyList = caseFiles
+                          .filter((f) => !f.deleted)
+                          .map(
+                            (f) =>
+                              `• ${f.case_number} (${
+                                f.case_type
+                              }) - Due: ${new Date(
+                                f.required_on
+                              ).toLocaleDateString()}`
+                          )
+                          .join("\n");
+                        const subject = `Weekly Case Report - ${new Date().toLocaleDateString()}`;
+                        const body = `Dear Team,\n\nHere's your weekly case summary:\n\n📊 Summary:\n• Total Cases: ${
+                          analytics.total
+                        }\n• Overdue Cases: ${
+                          analytics.overdue
+                        }\n• Completed Cases: ${
+                          analytics.closed
+                        }\n• Active Cases: ${
+                          analytics.total - analytics.closed
+                        }\n\n📋 All Cases:\n${weeklyList}\n\nBest regards,\nCase Management System`;
+                        const mailto = `mailto:?subject=${encodeURIComponent(
+                          subject
+                        )}&body=${encodeURIComponent(body)}`;
+                        window.open(mailto, "_blank");
+                      }}
+                    >
+                      Email Weekly Report
+                    </Button>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-4 rounded">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Smartphone className="w-4 h-4" />
+                    Quick Actions
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Instant notifications and reminders
+                  </p>
+                  <div className="space-y-2">
+                    <Button
+                      size="sm"
+                      color="warning"
+                      className="w-full"
+                      onPress={() => {
+                        if (analytics.overdue > 0) {
+                          if (Notification.permission === "granted") {
+                            new Notification("Case Management Alert", {
+                              body: `You have ${analytics.overdue} overdue cases that need attention!`,
+                              icon: "/favicon.ico",
+                            });
+                          } else if (Notification.permission !== "denied") {
+                            Notification.requestPermission().then(
+                              (permission) => {
+                                if (permission === "granted") {
+                                  new Notification("Case Management Alert", {
+                                    body: `You have ${analytics.overdue} overdue cases that need attention!`,
+                                    icon: "/favicon.ico",
+                                  });
+                                }
+                              }
+                            );
+                          }
+                        } else {
+                          alert("No overdue cases at this time! 🎉");
+                        }
+                      }}
+                    >
+                      Test Overdue Notification
+                    </Button>
+                    <Button
+                      size="sm"
+                      color="secondary"
+                      variant="flat"
+                      className="w-full"
+                      onPress={() => {
+                        const summary = `📊 Case Summary:\n• Total: ${
+                          analytics.total
+                        }\n• Overdue: ${analytics.overdue}\n• Completed: ${
+                          analytics.closed
+                        }\n• Active: ${
+                          analytics.total - analytics.closed
+                        }\n\n📈 Performance:\n• Avg Processing: ${
+                          analytics.avgProcessing
+                        } days\n• Completion Rate: ${
+                          analytics.total > 0
+                            ? Math.round(
+                                (analytics.closed / analytics.total) * 100
+                              )
+                            : 0
+                        }%`;
+                        navigator.clipboard.writeText(summary).then(() => {
+                          alert("Case summary copied to clipboard!");
+                        });
+                      }}
+                    >
+                      Copy Summary to Clipboard
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="font-bold mb-2">Webhooks (Advanced)</div>
-            <div className="mb-4">
-              <div className="text-default-400">
-                (Coming soon) Notify Slack, Teams, or custom endpoints when a
-                case is updated.
+
+            {/* Automation & Workflows */}
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+              <h3 className="text-lg font-semibold text-purple-800 dark:text-purple-200 mb-3 flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                Automation & Workflows
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white dark:bg-gray-800 p-4 rounded">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Automated Reminders
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Set up automatic notifications for upcoming deadlines
+                  </p>
+                  <div className="space-y-2">
+                    <Button
+                      size="sm"
+                      color="primary"
+                      className="w-full"
+                      onPress={() => {
+                        const nextWeekCases = caseFiles.filter((f) => {
+                          const dueDate = new Date(f.required_on);
+                          const nextWeek = new Date();
+                          nextWeek.setDate(nextWeek.getDate() + 7);
+                          return (
+                            !f.deleted &&
+                            dueDate <= nextWeek &&
+                            dueDate > new Date() &&
+                            !f.date_returned
+                          );
+                        });
+                        alert(
+                          `Found ${nextWeekCases.length} cases due within the next week. In a full implementation, this would set up automated email reminders.`
+                        );
+                      }}
+                    >
+                      Setup Weekly Reminders
+                    </Button>
+                    <Button
+                      size="sm"
+                      color="warning"
+                      variant="flat"
+                      className="w-full"
+                      onPress={() => {
+                        alert(
+                          "Daily overdue alerts would be configured here. This would send notifications every morning for overdue cases."
+                        );
+                      }}
+                    >
+                      Configure Daily Alerts
+                    </Button>
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-4 rounded">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <RotateCcw className="w-4 h-4" />
+                    Batch Operations
+                  </h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Perform bulk actions on multiple cases
+                  </p>
+                  <div className="space-y-2">
+                    <Button
+                      size="sm"
+                      color="success"
+                      className="w-full"
+                      onPress={() => {
+                        const completedToday = caseFiles.filter((f) => {
+                          const today = new Date().toDateString();
+                          return (
+                            f.date_returned &&
+                            new Date(f.date_returned).toDateString() === today
+                          );
+                        });
+                        alert(
+                          `${completedToday.length} cases were completed today. In a full system, this would trigger completion workflows.`
+                        );
+                      }}
+                    >
+                      Process Today's Completions
+                    </Button>
+                    <Button
+                      size="sm"
+                      color="secondary"
+                      variant="flat"
+                      className="w-full"
+                      onPress={() => {
+                        const oldCases = caseFiles.filter((f) => {
+                          const caseDate = new Date(f.date_recieved);
+                          const sixMonthsAgo = new Date();
+                          sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+                          return caseDate < sixMonthsAgo && f.date_returned;
+                        });
+                        alert(
+                          `Found ${oldCases.length} cases older than 6 months that could be archived.`
+                        );
+                      }}
+                    >
+                      Archive Old Cases
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* System Status */}
+            <div className="bg-gray-50 dark:bg-gray-900/20 p-4 rounded-lg border border-gray-200 dark:border-gray-800">
+              <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                System Status
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white dark:bg-gray-800 p-3 rounded text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    <CheckCircle className="w-8 h-8 mx-auto" />
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    System Online
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {caseFiles.length}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Total Records
+                  </div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 p-3 rounded text-center">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {new Date().toLocaleDateString()}
+                  </div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    Last Updated
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1545,17 +2323,6 @@ export default function CaseFilters({
         isOpen={isOpenDelete}
         onOpenChange={onOpenChangeDelete}
       />
-
-      {/* Automated reminders/alerts (in-app): */}
-      {React.useEffect(() => {
-        if (overdueCases.length > 0) {
-          addToast({
-            title: "Overdue Cases Alert!",
-            description: `You have ${overdueCases.length} overdue cases.`,
-            color: "danger",
-          });
-        }
-      }, [overdueCases.length])}
     </>
   );
 }

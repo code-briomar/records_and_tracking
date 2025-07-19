@@ -1,5 +1,15 @@
-import { Accordion, AccordionItem, Button } from "@heroui/react";
 import {
+  Accordion,
+  AccordionItem,
+  Avatar,
+  Button,
+  Card,
+  CardBody,
+  Chip,
+} from "@heroui/react";
+import {
+  AlertTriangle,
+  Badge,
   CalendarDays,
   Check,
   ChevronRight,
@@ -8,47 +18,57 @@ import {
   Gauge,
   HelpCircle,
   Logs,
+  Sparkles,
   UserRound,
+  Users,
   Wrench,
 } from "lucide-react";
-import React, { useEffect } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { UserDropdown } from "../components/user_dropdown";
 import { useAuth } from "../context/auth_context";
-import { fetchStaffData, staff } from "./staff_data";
 
 const LeftPanel = () => {
   const { authData } = useAuth();
-  const [absentStaff, setAbsentStaff] = React.useState<any>([]);
+  const [absentStaff] = React.useState<any>([]);
   const navigate = useNavigate();
+
+  // Early return if authData is not available yet
+  if (!authData || !authData.user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   const redirect = (path: string) => {
     console.log(path);
-
     navigate(path);
   };
 
-  useEffect(() => {
-    const fetchAbsentStaff = async () => {
-      try {
-        // Simulate fetching staff data
-        const response = staff.filter((staff) => staff.status == "Absent");
-        setAbsentStaff(response);
-      } catch (error) {
-        console.error("Error fetching staff data:", error);
-      }
-    };
+  // useEffect(() => {
+  //   const fetchAbsentStaff = async () => {
+  //     try {
+  //       // Simulate fetching staff data
+  //       const response = staff.filter((staff) => staff.status == "Absent");
+  //       setAbsentStaff(response);
+  //     } catch (error) {
+  //       console.error("Error fetching staff data:", error);
+  //     }
+  //   };
 
-    fetchStaffData(); // Fetch all staff data on mount
+  //   fetchStaffData(); // Fetch all staff data on mount
 
-    fetchAbsentStaff();
-  }, [staff]); // Empty dependency array to run only once on mount
+  //   fetchAbsentStaff();
+  // }, [staff]); // Empty dependency array to run only once on mount
 
   // const absentStaff = staff.filter((staff) => staff.status == "Absent");
 
   console.log("Absent Staff: ", absentStaff);
 
   return (
-    <div className="border-r-small border-divider p-2 space-y-8">
+    <div className="border-r-small border-divider p-2 space-y-2">
       {/* USER SECTION */}
       <div>
         <UserDropdown />
@@ -89,7 +109,8 @@ const LeftPanel = () => {
           </AccordionItem>
 
           {/* Case Tracking System */}
-          {authData.role == "Super Admin" || authData.role == "Court Admin" ? (
+          {authData.user.role === "Super Admin" ||
+          authData.user.role === "Court Admin" ? (
             <AccordionItem
               key="2"
               aria-label="CTS"
@@ -152,7 +173,7 @@ const LeftPanel = () => {
           </AccordionItem>
 
           {/* Staff */}
-          {authData.role == "Super Admin" ? (
+          {authData.user.role === "Super Admin" ? (
             <AccordionItem
               key="4"
               aria-label="Staff"
@@ -194,7 +215,7 @@ const LeftPanel = () => {
           </AccordionItem> */}
 
           {/*Audit Logs*/}
-          {authData.role == "Super Admin" ? (
+          {authData.user.role === "Super Admin" ? (
             <AccordionItem
               key="5"
               aria-label="Audit-Logs"
@@ -256,7 +277,8 @@ const LeftPanel = () => {
           </AccordionItem> */}
 
           {/*Tools - Such as Scanned PDF to Word*/}
-          {authData.role == "Super Admin" || authData.role == "Court Admin" ? (
+          {authData.user.role === "Super Admin" ||
+          authData.user.role === "Court Admin" ? (
             <AccordionItem
               key="8"
               aria-label="Tools"
@@ -297,49 +319,198 @@ const LeftPanel = () => {
           </AccordionItem> */}
         </Accordion>
       </div>
-      {/* Absent Staff */}
-      {authData.role == "Super Admin" || authData.role == "Court Admin" ? (
-        <div>
-          <h1 className="m-2 text-rose-500">Absent Staff</h1>
 
-          {absentStaff.length > 0 ? (
-            <>
-              {absentStaff.map((staff: any) => (
-                // <AccordionItem
-                //   key={staff.staff_id}
-                //   aria-label={staff.name}
-                //   startContent={<UserRound />}
-                //   subtitle={staff.contact_number}
-                //   title={staff.name}
-                // >
-                //   {defaultContent}
-                // </AccordionItem>
-                <div
-                  key={staff.staff_id}
-                  className="flex items-center justify-between p-2 border-b border-gray-200"
-                >
-                  <div className="flex items-center space-x-2">
-                    <UserRound className="w-4 h-4" />
-                    <div className="text-sm font-semibold">{staff.name}</div>
+      {/* ABSENT STAFF SECTION */}
+      {(authData.user.role === "Super Admin" ||
+        authData.user.role === "Court Admin") && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+              <Users className="w-4 h-4" />
+              Staff Status
+            </h2>
+            {absentStaff.length > 0 && (
+              <Badge color="danger" size="sm">
+                {absentStaff?.length}
+              </Badge>
+            )}
+          </div>
+
+          <Card
+            className={`border ${
+              absentStaff.length > 0
+                ? "border-red-200 dark:border-red-800"
+                : "border-green-200 dark:border-green-800"
+            }`}
+          >
+            <CardBody className="p-3">
+              {absentStaff.length > 0 ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                    <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                      {absentStaff.length} Staff Member
+                      {absentStaff.length > 1 ? "s" : ""} Absent
+                    </span>
                   </div>
-                  {/* <div className="text-xs text-gray-500">{staff.status}</div> */}
-                </div>
-              ))}
 
-              {absentStaff.length > 4 && (
-                <div className="mt-2 text-blue-500 cursor-pointer hover:underline">
-                  <a href="/all-notifications">See more</a>
+                  <div className="space-y-2">
+                    {absentStaff.slice(0, 3).map((staff: any) => (
+                      <div
+                        key={staff.staff_id}
+                        className="flex items-center justify-between p-2 bg-red-50 dark:bg-red-900/20 rounded-lg"
+                      >
+                        <div className="flex items-center gap-2">
+                          <Avatar
+                            size="sm"
+                            name={staff.name}
+                            className="text-xs"
+                          />
+                          <div>
+                            <div className="text-xs font-medium text-red-800 dark:text-red-200">
+                              {staff.name}
+                            </div>
+                            <div className="text-xs text-red-600 dark:text-red-400">
+                              {staff.role}
+                            </div>
+                          </div>
+                        </div>
+                        <Chip size="sm" color="danger" variant="flat">
+                          Absent
+                        </Chip>
+                      </div>
+                    ))}
+
+                    {absentStaff.length > 3 && (
+                      <Button
+                        size="sm"
+                        variant="light"
+                        color="danger"
+                        onPress={() => redirect("/staff")}
+                        className="w-full text-xs"
+                      >
+                        View All ({absentStaff.length - 3} more)
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center space-y-2 flex-col">
+                  <div className="flex items-center gap-2">
+                    <Check className="w-5 h-5 text-green-600" />
+                    <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                      All Staff Present
+                    </span>
+                  </div>
+                  <div className="text-xs text-green-600 dark:text-green-400">
+                    Great attendance today!
+                  </div>
                 </div>
               )}
+            </CardBody>
+          </Card>
+        </div>
+      )}
+
+      {/* QUICK ACTIONS */}
+      <div className="space-y-3">
+        <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+          <Sparkles className="w-4 h-4" />
+          Quick Actions
+        </h2>
+
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            size="sm"
+            variant="flat"
+            color="primary"
+            onPress={() => redirect("/cts")}
+            className="text-xs h-10"
+            startContent={<FilePenLine className="w-3 h-3" />}
+          >
+            New Case
+          </Button>
+          <Button
+            size="sm"
+            variant="flat"
+            color="secondary"
+            onPress={() => redirect("/offenders")}
+            className="text-xs h-10"
+            startContent={<CalendarDays className="w-3 h-3" />}
+          >
+            Offenders
+          </Button>
+          {/* Court Diary */}
+          <Button
+            size="sm"
+            variant="flat"
+            color="success"
+            onPress={() => redirect("/diary")}
+            className="text-xs h-10"
+            startContent={<CalendarDays className="w-3 h-3" />}
+          >
+            Court Diary
+          </Button>
+          {/* Export Data */}
+          {authData.user.role === "Super Admin" && (
+            <>
+              <Button
+                size="sm"
+                variant="flat"
+                color="warning"
+                onPress={() => redirect("/tools")}
+                className="text-xs h-10"
+                startContent={<Wrench className="w-3 h-3" />}
+              >
+                Tools
+              </Button>
+              <Button
+                size="sm"
+                variant="flat"
+                color="primary"
+                onPress={() => redirect("/audit_logs")}
+                className="text-xs h-10"
+                startContent={<Logs className="w-3 h-3" />}
+              >
+                Audit Logs
+              </Button>
             </>
-          ) : (
-            <div className="flex items-center justify-start space-x-2">
-              <Check className="w-5 h-5 text-lime-600" />
-              <p className="text-green-600 flex">Everyone is present</p>
-            </div>
+          )}
+          {authData.user.role === "Super Admin" && (
+            <>
+              <Button
+                size="sm"
+                variant="flat"
+                color="success"
+                onPress={() => redirect("/staff")}
+                className="text-xs h-10"
+                startContent={<UserRound className="w-3 h-3" />}
+              >
+                Add Staff
+              </Button>
+              <Button
+                size="sm"
+                variant="flat"
+                color="warning"
+                onPress={() => redirect("/tools")}
+                className="text-xs h-10"
+                startContent={<Wrench className="w-3 h-3" />}
+              >
+                Tools
+              </Button>
+            </>
           )}
         </div>
-      ) : null}
+      </div>
+
+      {/* FOOTER */}
+      <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div className="text-center text-xs text-gray-500 dark:text-gray-400">
+          <p>Kilungu Law Courts</p>
+          <p>Records & Tracking System</p>
+          <p className="mt-1">v1.0.0</p>
+        </div>
+      </div>
     </div>
   );
 };
