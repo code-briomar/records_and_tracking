@@ -27,7 +27,6 @@ import {
   Phone,
   Printer,
   Share2,
-  User,
 } from "lucide-react";
 import { useState } from "react";
 import * as XLSX from "xlsx";
@@ -959,12 +958,12 @@ function CalendarItem() {
                                       file.required_on
                                     ).toLocaleTimeString()}
                                   </div>
-                                  {file.client && (
+                                  {/* {file.client && (
                                     <div className="flex items-center gap-1">
                                       <User className="w-3 h-3" />
                                       {file.client}
                                     </div>
-                                  )}
+                                  )} */}
                                 </div>
                               </div>
                             </div>

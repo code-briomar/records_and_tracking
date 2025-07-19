@@ -178,18 +178,18 @@ export default function Dashboard() {
 
   const stats = getDashboardStats();
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority?.toLowerCase()) {
-      case "high":
-        return "danger";
-      case "medium":
-        return "warning";
-      case "low":
-        return "success";
-      default:
-        return "default";
-    }
-  };
+  // const getPriorityColor = (priority: string) => {
+  //   switch (priority?.toLowerCase()) {
+  //     case "high":
+  //       return "danger";
+  //     case "medium":
+  //       return "warning";
+  //     case "low":
+  //       return "success";
+  //     default:
+  //       return "default";
+  //   }
+  // };
 
   const getStatusIcon = (file: any) => {
     if (file.date_returned)

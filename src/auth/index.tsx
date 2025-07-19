@@ -370,7 +370,7 @@ const AuthForm = ({
                     >
                       <option value="Staff">Staff</option>
                       <option value="Court Admin">Court Admin</option>
-                      <option value="Super Admin">Super Admin</option>
+                      {/* <option value="Super Admin">Super Admin</option> */}
                     </Field>
                     <ErrorMessage
                       name="role"
