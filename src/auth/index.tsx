@@ -1,12 +1,13 @@
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import {
   AlertCircle,
+  Briefcase,
+  Building2,
   CheckCircle,
   Gavel,
   Lock,
   Mail,
   Moon,
-  Phone,
   Shield,
   SunIcon,
   User,
@@ -18,12 +19,18 @@ import * as Yup from "yup";
 import { useAuth } from "../context/auth_context";
 import { loginUser, registerUser, storeAuthData } from "../services/auth";
 
-// Enhanced validation schema with stronger password requirements
+const ROLES = ["Judge", "Magistrate", "Court Admin", "Court Clerk", "Other"];
+
 const getValidationSchema = (isLogin: boolean) => {
   const baseSchema = {
+    courtId: Yup.string()
+      .required("Court ID is required"),
     email: Yup.string()
       .email("Invalid email address")
       .required("Email is required"),
+    role: Yup.string()
+      .oneOf(ROLES, "Invalid role")
+      .required("Role is required"),
     password: Yup.string()
       .min(8, "Password must be at least 8 characters")
       .required("Password is required"),
@@ -35,20 +42,10 @@ const getValidationSchema = (isLogin: boolean) => {
 
   return Yup.object({
     ...baseSchema,
-    firstName: Yup.string()
-      .min(2, "First name must be at least 2 characters")
-      .required("First Name is required"),
-    lastName: Yup.string()
-      .min(2, "Last name must be at least 2 characters")
-      .required("Last Name is required"),
-    phone: Yup.string()
-      .matches(/^\+?[\d\s\-()]+$/, "Invalid phone number format")
-      .min(10, "Phone number must be at least 10 digits")
-      .max(15, "Phone number must not exceed 15 digits")
-      .required("Phone Number is required"),
-    role: Yup.string()
-      .oneOf(["Staff", "Court Admin", "Super Admin"], "Invalid role")
-      .required("Role is required"),
+    fullName: Yup.string()
+      .min(2, "Full name must be at least 2 characters")
+      .required("Full Legal Name is required"),
+    professionalTitle: Yup.string(),
     password: Yup.string()
       .min(8, "Password must be at least 8 characters")
       .matches(
@@ -139,11 +136,11 @@ const AuthForm = ({
   }, [darkMode]);
 
   const initialValues = {
-    firstName: "",
-    lastName: "",
+    courtId: "",
+    fullName: "",
     email: "",
-    phone: "",
-    role: "Court Admin" as const,
+    role: "",
+    professionalTitle: "",
     password: "",
     confirmPassword: "",
   };
@@ -164,7 +161,9 @@ const AuthForm = ({
       if (isLogin) {
         // Login user
         const response = await loginUser({
+          courtId: values.courtId,
           email: values.email,
+          role: values.role,
           password: values.password,
         });
 
@@ -196,11 +195,11 @@ const AuthForm = ({
       } else {
         // Register user
         const response = await registerUser({
-          firstName: values.firstName,
-          lastName: values.lastName,
+          courtId: values.courtId,
+          fullName: values.fullName,
           email: values.email,
-          phone: values.phone,
           role: values.role,
+          professionalTitle: values.professionalTitle || undefined,
           password: values.password,
           confirmPassword: values.confirmPassword,
         });
@@ -313,80 +312,47 @@ const AuthForm = ({
         >
           {({ isSubmitting }) => (
             <Form className="space-y-6">
+              {/* Court ID — shown on both login and signup */}
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Field
+                  type="text"
+                  name="courtId"
+                  placeholder="Court ID"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                />
+                <ErrorMessage
+                  name="courtId"
+                  component="div"
+                  className="text-red-500 text-sm mt-1"
+                />
+              </div>
+
+              {/* Full Legal Name — signup only */}
               {!isLogin && (
-                <>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <Field
-                        type="text"
-                        name="firstName"
-                        placeholder="First Name"
-                        className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                      />
-                      <ErrorMessage
-                        name="firstName"
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
-                    </div>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <Field
-                        type="text"
-                        name="lastName"
-                        placeholder="Last Name"
-                        className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                      />
-                      <ErrorMessage
-                        name="lastName"
-                        component="div"
-                        className="text-red-500 text-sm mt-1"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <Field
-                      type="tel"
-                      name="phone"
-                      placeholder="Phone Number"
-                      className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                    />
-                    <ErrorMessage
-                      name="phone"
-                      component="div"
-                      className="text-red-500 text-sm mt-1"
-                    />
-                  </div>
-
-                  <div className="relative">
-                    <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <Field
-                      as="select"
-                      name="role"
-                      className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
-                    >
-                      <option value="Staff">Staff</option>
-                      <option value="Court Admin">Court Admin</option>
-                      {/* <option value="Super Admin">Super Admin</option> */}
-                    </Field>
-                    <ErrorMessage
-                      name="role"
-                      component="div"
-                      className="text-red-500 text-sm mt-1"
-                    />
-                  </div>
-                </>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Field
+                    type="text"
+                    name="fullName"
+                    placeholder="Full Legal Name"
+                    className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                  />
+                  <ErrorMessage
+                    name="fullName"
+                    component="div"
+                    className="text-red-500 text-sm mt-1"
+                  />
+                </div>
               )}
 
+              {/* Email */}
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Field
                   type="email"
                   name="email"
-                  placeholder="Email Address"
+                  placeholder={isLogin ? "Email Address" : "Work Email Address"}
                   className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
                 />
                 <ErrorMessage
@@ -396,6 +362,45 @@ const AuthForm = ({
                 />
               </div>
 
+              {/* Role — shown on both login and signup */}
+              <div className="relative">
+                <Shield className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <Field
+                  as="select"
+                  name="role"
+                  className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                >
+                  <option value="">Select Role</option>
+                  {ROLES.map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </Field>
+                <ErrorMessage
+                  name="role"
+                  component="div"
+                  className="text-red-500 text-sm mt-1"
+                />
+              </div>
+
+              {/* Professional Title — signup only, optional */}
+              {!isLogin && (
+                <div className="relative">
+                  <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Field
+                    type="text"
+                    name="professionalTitle"
+                    placeholder="Professional Title (optional)"
+                    className="w-full pl-12 pr-4 py-3 bg-gray-50 dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+                  />
+                  <ErrorMessage
+                    name="professionalTitle"
+                    component="div"
+                    className="text-red-500 text-sm mt-1"
+                  />
+                </div>
+              )}
+
+              {/* Password */}
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <Field
@@ -411,6 +416,7 @@ const AuthForm = ({
                 />
               </div>
 
+              {/* Confirm Password — signup only */}
               {!isLogin && (
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />

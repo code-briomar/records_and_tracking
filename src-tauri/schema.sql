@@ -16,13 +16,14 @@ PRAGMA foreign_keys = ON;
 
 -- Users Table
 CREATE TABLE IF NOT EXISTS users (
-    user_id        INTEGER PRIMARY KEY AUTOINCREMENT,
-    name          TEXT NOT NULL,
-    role          TEXT CHECK(role IN ('Super Admin', 'Court Admin', 'Staff')) NOT NULL,
-    email         TEXT,
-    phone_number  TEXT UNIQUE NOT NULL,
-    password_hash TEXT NOT NULL,
-    status        TEXT CHECK(status IN ('Active', 'Inactive')) NOT NULL DEFAULT 'Active'
+    user_id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name               TEXT NOT NULL,
+    role               TEXT CHECK(role IN ('Judge', 'Magistrate', 'Court Admin', 'Court Clerk', 'Other')) NOT NULL,
+    email              TEXT,
+    phone_number       TEXT UNIQUE,
+    password_hash      TEXT NOT NULL,
+    professional_title TEXT,
+    status             TEXT CHECK(status IN ('Active', 'Inactive')) NOT NULL DEFAULT 'Active'
 );
 
 -- Staff Table
@@ -199,84 +200,146 @@ ALTER TABLE users ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE users ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
 ALTER TABLE users ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN sync_version INTEGER DEFAULT 1;
-ALTER TABLE users ADD COLUMN supabase_id TEXT; -- Will store UUID strings
+ALTER TABLE users ADD COLUMN firestore_id TEXT;
 
 -- Add to staff table
 ALTER TABLE staff ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE staff ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
 ALTER TABLE staff ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE staff ADD COLUMN sync_version INTEGER DEFAULT 1;
-ALTER TABLE staff ADD COLUMN supabase_id TEXT;
+ALTER TABLE staff ADD COLUMN firestore_id TEXT;
 
 -- Add to attendance table
 ALTER TABLE attendance ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE attendance ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
 ALTER TABLE attendance ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE attendance ADD COLUMN sync_version INTEGER DEFAULT 1;
-ALTER TABLE attendance ADD COLUMN supabase_id TEXT;
+ALTER TABLE attendance ADD COLUMN firestore_id TEXT;
 
--- Add to cases table
+-- Add sync + mobile-aligned columns to cases table
 ALTER TABLE cases ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE cases ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
 ALTER TABLE cases ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE cases ADD COLUMN sync_version INTEGER DEFAULT 1;
-ALTER TABLE cases ADD COLUMN supabase_id TEXT;
+ALTER TABLE cases ADD COLUMN firestore_id TEXT UNIQUE;
+ALTER TABLE cases ADD COLUMN court_id TEXT;
+ALTER TABLE cases ADD COLUMN case_number TEXT;
+ALTER TABLE cases ADD COLUMN case_type TEXT;
+ALTER TABLE cases ADD COLUMN description TEXT;
+ALTER TABLE cases ADD COLUMN court_name TEXT;
+ALTER TABLE cases ADD COLUMN date_filed TEXT;
+ALTER TABLE cases ADD COLUMN date_of_judgment TEXT;
+ALTER TABLE cases ADD COLUMN judge_name TEXT;
+ALTER TABLE cases ADD COLUMN complainant_name TEXT;
+ALTER TABLE cases ADD COLUMN accused_name TEXT;
+ALTER TABLE cases ADD COLUMN charge_description TEXT;
+ALTER TABLE cases ADD COLUMN applicable_law TEXT;
+ALTER TABLE cases ADD COLUMN verdict TEXT;
+ALTER TABLE cases ADD COLUMN sentence TEXT;
+ALTER TABLE cases ADD COLUMN mitigation_notes TEXT;
+ALTER TABLE cases ADD COLUMN prosecution_counsel TEXT;
+ALTER TABLE cases ADD COLUMN defense_witnesses TEXT;
+ALTER TABLE cases ADD COLUMN prosecution_witnesses TEXT;
+ALTER TABLE cases ADD COLUMN evidence_summary TEXT;
+ALTER TABLE cases ADD COLUMN appeal_status TEXT;
+ALTER TABLE cases ADD COLUMN location_of_offence TEXT;
+ALTER TABLE cases ADD COLUMN hearing_dates TEXT;
+ALTER TABLE cases ADD COLUMN court_assistant TEXT;
+ALTER TABLE cases ADD COLUMN uploaded_by_id TEXT;
+ALTER TABLE cases ADD COLUMN is_new BOOLEAN DEFAULT 0;
+ALTER TABLE cases ADD COLUMN has_changes BOOLEAN DEFAULT 0;
+ALTER TABLE cases ADD COLUMN last_synced_at INTEGER;
+ALTER TABLE cases ADD COLUMN version INTEGER DEFAULT 1;
 
 -- Add to files table
 ALTER TABLE files ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE files ADD COLUMN sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
 ALTER TABLE files ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE files ADD COLUMN sync_version INTEGER DEFAULT 1;
-ALTER TABLE files ADD COLUMN supabase_id TEXT;
+ALTER TABLE files ADD COLUMN firestore_id TEXT;
 
 -- Add to notifications table
 ALTER TABLE notifications ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE notifications ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
 ALTER TABLE notifications ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE notifications ADD COLUMN sync_version INTEGER DEFAULT 1;
-ALTER TABLE notifications ADD COLUMN supabase_id TEXT;
+ALTER TABLE notifications ADD COLUMN firestore_id TEXT;
 
 -- Add to contacts table
 ALTER TABLE contacts ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE contacts ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
 ALTER TABLE contacts ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE contacts ADD COLUMN sync_version INTEGER DEFAULT 1;
-ALTER TABLE contacts ADD COLUMN supabase_id TEXT;
+ALTER TABLE contacts ADD COLUMN firestore_id TEXT;
 
 -- Add to reports_analytics table
 ALTER TABLE reports_analytics ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE reports_analytics ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
 ALTER TABLE reports_analytics ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE reports_analytics ADD COLUMN sync_version INTEGER DEFAULT 1;
-ALTER TABLE reports_analytics ADD COLUMN supabase_id TEXT;
+ALTER TABLE reports_analytics ADD COLUMN firestore_id TEXT;
 
 -- Add to news table
 ALTER TABLE news ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE news ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
 ALTER TABLE news ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE news ADD COLUMN sync_version INTEGER DEFAULT 1;
-ALTER TABLE news ADD COLUMN supabase_id TEXT;
+ALTER TABLE news ADD COLUMN firestore_id TEXT;
 
 -- Add to themes table
 ALTER TABLE themes ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE themes ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
 ALTER TABLE themes ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE themes ADD COLUMN sync_version INTEGER DEFAULT 1;
-ALTER TABLE themes ADD COLUMN supabase_id TEXT;
+ALTER TABLE themes ADD COLUMN firestore_id TEXT;
 
 -- Add to summaries table
 ALTER TABLE summaries ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE summaries ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
 ALTER TABLE summaries ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE summaries ADD COLUMN sync_version INTEGER DEFAULT 1;
-ALTER TABLE summaries ADD COLUMN supabase_id TEXT;
+ALTER TABLE summaries ADD COLUMN firestore_id TEXT;
 
--- Add to offenders table
+-- Add sync columns to offenders table
 ALTER TABLE offenders ADD COLUMN last_modified TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE offenders ADD COLUMN sync_status TEXT DEFAULT 'synced' CHECK(sync_status IN ('synced', 'pending', 'conflict'));
 ALTER TABLE offenders ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
 ALTER TABLE offenders ADD COLUMN sync_version INTEGER DEFAULT 1;
-ALTER TABLE offenders ADD COLUMN supabase_id TEXT;
+ALTER TABLE offenders ADD COLUMN firestore_id TEXT UNIQUE;
+ALTER TABLE offenders ADD COLUMN court_id TEXT;
+ALTER TABLE offenders ADD COLUMN alias TEXT;
+ALTER TABLE offenders ADD COLUMN nationality TEXT;
+ALTER TABLE offenders ADD COLUMN marital_status TEXT;
+ALTER TABLE offenders ADD COLUMN occupation TEXT;
+ALTER TABLE offenders ADD COLUMN address TEXT;
+ALTER TABLE offenders ADD COLUMN first_offender BOOLEAN;
+ALTER TABLE offenders ADD COLUMN criminal_history TEXT;
+ALTER TABLE offenders ADD COLUMN known_associates TEXT;
+ALTER TABLE offenders ADD COLUMN arresting_officer TEXT;
+ALTER TABLE offenders ADD COLUMN place_of_arrest TEXT;
+ALTER TABLE offenders ADD COLUMN arrest_date TEXT;
+ALTER TABLE offenders ADD COLUMN case_number TEXT;
+ALTER TABLE offenders ADD COLUMN eye_color TEXT;
+ALTER TABLE offenders ADD COLUMN hair_color TEXT;
+ALTER TABLE offenders ADD COLUMN phone_number TEXT;
+ALTER TABLE offenders ADD COLUMN emergency_contact_name TEXT;
+ALTER TABLE offenders ADD COLUMN emergency_contact_phone TEXT;
+ALTER TABLE offenders ADD COLUMN emergency_contact_relationship TEXT;
+ALTER TABLE offenders ADD COLUMN legal_representation TEXT;
+ALTER TABLE offenders ADD COLUMN medical_conditions TEXT;
+ALTER TABLE offenders ADD COLUMN risk_level TEXT;
+ALTER TABLE offenders ADD COLUMN distinguishing_marks TEXT;
+ALTER TABLE offenders ADD COLUMN type TEXT;
+ALTER TABLE offenders ADD COLUMN status TEXT DEFAULT 'Active';
+ALTER TABLE offenders ADD COLUMN facility TEXT;
+ALTER TABLE offenders ADD COLUMN offense_type TEXT;
+ALTER TABLE offenders ADD COLUMN uploaded_by_id TEXT;
+ALTER TABLE offenders ADD COLUMN photo_storage_url TEXT;
+ALTER TABLE offenders ADD COLUMN is_new BOOLEAN DEFAULT 0;
+ALTER TABLE offenders ADD COLUMN has_changes BOOLEAN DEFAULT 0;
+ALTER TABLE offenders ADD COLUMN last_synced_at INTEGER;
+ALTER TABLE offenders ADD COLUMN sync_retry_count INTEGER DEFAULT 0;
+ALTER TABLE offenders ADD COLUMN version INTEGER DEFAULT 1;
 
 
 -- Track sync sessions
@@ -556,6 +619,10 @@ CREATE INDEX IF NOT EXISTS idx_news_sync ON news(sync_status, last_modified);
 CREATE INDEX IF NOT EXISTS idx_themes_sync ON themes(sync_status, last_modified);
 CREATE INDEX IF NOT EXISTS idx_summaries_sync ON summaries(sync_status, last_modified);
 CREATE INDEX IF NOT EXISTS idx_offenders_name ON offenders(full_name);
+CREATE INDEX IF NOT EXISTS idx_offenders_firestore_id ON offenders(firestore_id);
+CREATE INDEX IF NOT EXISTS idx_offenders_court_id ON offenders(court_id);
+CREATE INDEX IF NOT EXISTS idx_cases_firestore_id ON cases(firestore_id);
+CREATE INDEX IF NOT EXISTS idx_cases_court_id ON cases(court_id);
 
 -- Insert initial sync metadata
 INSERT OR IGNORE INTO sync_metadata (id, last_sync) VALUES (1, NULL);

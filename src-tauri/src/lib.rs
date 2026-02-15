@@ -3,15 +3,17 @@
 use rusqlite::Connection;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use tauri::AppHandle;
 use tauri::Manager;
-use tokio::time::{sleep, Duration}; // ✅ Explicitly use tokio::sleep
+use tokio::time::{sleep, Duration};
 
 mod config;
 mod methods;
-use config::supabase::SupabaseClient;
+mod sync;
+use config::firebase::FirestoreClient;
 use methods::attendance::*;
+use methods::auth::*;
 use methods::cases::*;
 use methods::files::*;
 use methods::notifications::*;
@@ -28,14 +30,13 @@ use std::io::Write;
 
 use tauri::utils::platform::resource_dir;
 use tauri::{generate_context, Env};
-// use tauri_plugin_log::{Target, TargetKind};
 use tauri_plugin_updater::UpdaterExt;
 
-// extern crate embed_resource;
-struct AppState {
-    conn: Arc<Mutex<Connection>>,
-    // supabase: Option<SupabaseClient>,
-    supabase: SupabaseClient,
+pub struct AppState {
+    pub conn: Arc<Mutex<Connection>>,
+    pub firestore: FirestoreClient,
+    pub court_id: Arc<RwLock<Option<String>>>,
+    pub user_email: Arc<RwLock<Option<String>>>,
 }
 
 // fn embed_resources() {
@@ -117,7 +118,63 @@ fn init_db() -> Result<Arc<Mutex<Connection>>, rusqlite::Error> {
     } else {
         let conn = Connection::open(&db_path)?;
         log_startup("✅ Opened existing DB");
+
+        // Apply migrations for existing databases
+        apply_migrations(&conn);
+
         Ok(Arc::new(Mutex::new(conn)))
+    }
+}
+
+fn apply_migrations(conn: &Connection) {
+    // Check if schema_version table exists and if v2 has been applied
+    let has_v2: bool = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='schema_version'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .map(|count| {
+            if count > 0 {
+                conn.query_row(
+                    "SELECT COUNT(*) FROM schema_version WHERE version = 2",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )
+                .unwrap_or(0)
+                    > 0
+            } else {
+                false
+            }
+        })
+        .unwrap_or(false);
+
+    if !has_v2 {
+        log_startup("🔄 Applying migration v2 (Firebase columns)...");
+        let context: tauri::Context<tauri::Wry> = generate_context!();
+        let env = Env::default();
+        if let Ok(res_dir) = resource_dir(context.package_info(), &env) {
+            let migration_path = res_dir.join("migration_v2.sql");
+            if let Ok(migration_sql) = fs::read_to_string(&migration_path) {
+                // Execute each statement separately since ALTER TABLE can't be batched
+                // with error handling for already-existing columns
+                for statement in migration_sql.split(';') {
+                    let stmt = statement.trim();
+                    if !stmt.is_empty() {
+                        if let Err(e) = conn.execute_batch(stmt) {
+                            // Ignore "duplicate column" errors (column already exists)
+                            let err_msg = e.to_string();
+                            if !err_msg.contains("duplicate column") {
+                                eprintln!("Migration warning: {}", err_msg);
+                            }
+                        }
+                    }
+                }
+                log_startup("✅ Migration v2 applied successfully");
+            } else {
+                log_startup("⚠️ migration_v2.sql not found, skipping migration");
+            }
+        }
     }
 }
 
@@ -130,14 +187,38 @@ async fn is_online() -> bool {
 }
 
 async fn start_sync_loop(app_handle: AppHandle) {
+    let mut logged_no_auth = false;
+    let mut logged_offline = false;
+
     loop {
         if is_online().await {
-            let state = app_handle.state::<AppState>().clone();
-            if let Err(e) = sync_files(state).await {
-                eprintln!("Sync failed: {}", e);
+            logged_offline = false;
+            let state = app_handle.state::<AppState>();
+            let has_auth = state
+                .user_email
+                .read()
+                .map(|guard| guard.is_some())
+                .unwrap_or(false);
+
+            if has_auth {
+                logged_no_auth = false;
+                let engine = sync::engine::SyncEngine::new(
+                    state.firestore.clone(),
+                    state.conn.clone(),
+                    state.court_id.clone(),
+                );
+
+                match engine.sync_all().await {
+                    Ok(result) => println!("Sync complete: {}", result),
+                    Err(e) => eprintln!("Sync failed: {}", e),
+                }
+            } else if !logged_no_auth {
+                println!("Not authenticated, skipping sync.");
+                logged_no_auth = true;
             }
-        } else {
+        } else if !logged_offline {
             println!("Offline, skipping sync.");
+            logged_offline = true;
         }
 
         sleep(Duration::from_secs(300)).await;
@@ -183,20 +264,20 @@ pub fn run() {
 
     // IT WEIDLY STOPS LOGGING AFTER THIS POINT
 
-    // Load .env
-    // dotenv::dotenv().expect("❌ Failed to load .env file");
-    // log_startup("📦 Loaded .env configuration");
-
-    // Configure Supabase
-    let supabase = SupabaseClient::new(
-        "https://jdvxrimlhomteuwydvvh.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpkdnhyaW1saG9tdGV1d3lkdnZoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjE4ODk3MiwiZXhwIjoyMDYxNzY0OTcyfQ.c0gLkOARG17I1hP_Hl1wzJlceE0_4uaqLsKnNL5XltI",
-        ""
+    // Configure Firestore (API-key-only, no Firebase Auth)
+    let firestore = FirestoreClient::new(
+        "records-and-tracking",
+        "AIzaSyDXIXj_zQMghG0i_kG7G9qmr3eF9D7LMS8",
     );
 
-    log_startup("✅ Supabase client configured");
+    log_startup("✅ Firestore client configured");
 
-    let app_state = AppState { conn, supabase };
+    let app_state = AppState {
+        conn,
+        firestore,
+        court_id: Arc::new(RwLock::new(None)),
+        user_email: Arc::new(RwLock::new(None)),
+    };
 
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -227,6 +308,11 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            firebase_login,
+            firebase_logout,
+            set_court_id,
+            get_courts,
+            trigger_sync,
             create_user,
             get_user,
             get_user_by_email,

@@ -1,4 +1,5 @@
 pub mod attendance;
+pub mod auth;
 pub mod cases;
 pub mod files;
 pub mod notifications;

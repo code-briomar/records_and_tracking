@@ -12,16 +12,18 @@ export interface User {
 }
 
 export interface LoginCredentials {
+  courtId: string;
   email: string;
+  role: string;
   password: string;
 }
 
 export interface SignupData {
-  firstName: string;
-  lastName: string;
+  courtId: string;
+  fullName: string;
   email: string;
-  phone: string;
-  role: "Super Admin" | "Court Admin" | "Staff";
+  role: string;
+  professionalTitle?: string;
   password: string;
   confirmPassword: string;
 }
@@ -52,21 +54,51 @@ export const verifyPassword = async (
 };
 
 /**
- * Login user with email and password
+ * Login user with email and password via Firebase Auth
  */
 export const loginUser = async (
   credentials: LoginCredentials
 ): Promise<AuthResponse> => {
   try {
-    const { email, password } = credentials;
+    const { courtId, email, role, password } = credentials;
 
-    // Get user by email
-    const user: User = await invoke("get_user_by_email", { email });
+    // Step 1: Authenticate with Firebase
+    const firebaseResult: { success: boolean; firebase_uid: string; court_id: string | null; message: string } =
+      await invoke("firebase_login", { email, password, courtId });
 
-    if (!user || !user.user_id) {
+    if (!firebaseResult.success) {
       return {
         success: false,
-        message: "Invalid email or password",
+        message: firebaseResult.message || "Firebase authentication failed",
+      };
+    }
+
+    // Step 2: Get or create local user record
+    let user: User | null = null;
+    try {
+      user = await invoke("get_user_by_email", { email });
+    } catch {
+      // User doesn't exist locally yet
+    }
+
+    if (!user || !user.user_id) {
+      // User exists in Firebase but not locally - create a local record
+      const passwordHash = await hashPassword(password);
+      const userId: number = await invoke("create_user", {
+        name: email.split("@")[0],
+        role,
+        email,
+        phoneNumber: null,
+        passwordHash,
+        professionalTitle: null,
+      });
+      user = await invoke("get_user", { userId });
+    }
+
+    if (!user) {
+      return {
+        success: false,
+        message: "Failed to retrieve user profile",
       };
     }
 
@@ -78,17 +110,6 @@ export const loginUser = async (
       };
     }
 
-    // Verify password
-    const passwordMatch = await verifyPassword(password, user.password_hash);
-
-    if (!passwordMatch) {
-      return {
-        success: false,
-        message: "Invalid email or password",
-      };
-    }
-
-    // Remove password hash from user object
     const { password_hash, ...userWithoutPassword } = user;
 
     return {
@@ -98,9 +119,11 @@ export const loginUser = async (
     };
   } catch (error) {
     console.error("Login error:", error);
+    // Provide the actual error message from Firebase if available
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return {
       success: false,
-      message: "An error occurred during login. Please try again.",
+      message: errorMessage || "An error occurred during login. Please try again.",
     };
   }
 };
@@ -113,11 +136,11 @@ export const registerUser = async (
 ): Promise<AuthResponse> => {
   try {
     const {
-      firstName,
-      lastName,
+      courtId,
+      fullName,
       email,
-      phone,
       role,
+      professionalTitle,
       password,
       confirmPassword,
     } = userData;
@@ -144,16 +167,20 @@ export const registerUser = async (
 
     // Create user
     const userId: number = await invoke("create_user", {
-      name: `${firstName} ${lastName}`,
+      name: fullName,
       role,
       email,
-      phoneNumber: phone,
+      phoneNumber: null,
       passwordHash,
+      professionalTitle: professionalTitle || null,
     });
 
     // Get the created user
     const newUser: User = await invoke("get_user", { userId });
     const { password_hash, ...userWithoutPassword } = newUser;
+
+    // Set court ID in backend state
+    await invoke("set_court_id", { courtId });
 
     return {
       success: true,
@@ -262,10 +289,30 @@ export const getAuthData = (): {
 };
 
 /**
- * Clear authentication data
+ * Clear authentication data and logout from Firebase
  */
-export const clearAuthData = (): void => {
+export const clearAuthData = async (): Promise<void> => {
   localStorage.removeItem("authData");
+  try {
+    await invoke("firebase_logout");
+  } catch {
+    // Ignore logout errors
+  }
+};
+
+/**
+ * Trigger a manual sync with Firebase Firestore
+ */
+export const triggerSync = async (): Promise<{ success: boolean; message: string }> => {
+  try {
+    const result: { success: boolean; message: string } = await invoke("trigger_sync");
+    return result;
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
 };
 
 /**

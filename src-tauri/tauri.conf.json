@@ -27,7 +27,7 @@
     }
   },
   "bundle": {
-    "resources": ["schema.sql"],
+    "resources": ["schema.sql", "migration_v2.sql"],
     "createUpdaterArtifacts": true,
     "active": true,
     "targets": "all",
